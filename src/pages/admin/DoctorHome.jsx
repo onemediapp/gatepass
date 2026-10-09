@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, doc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../lib/auth';
-import { generateUniqueToken } from '../../utils/generateToken';
 import { getMidnightIST } from '../../utils/dateUtils';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { 
@@ -12,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, isToday, isFuture, isPast } from 'date-fns';
+
+const makeToken = () => 'RM' + Math.floor(1000 + Math.random() * 9000);
 
 export default function DoctorHome() {
   const { user, userData } = useAuth();
@@ -29,21 +30,17 @@ export default function DoctorHome() {
   // Approval Modal State
   const [approveModalReq, setApproveModalReq] = useState(null);
   const [approveForm, setApproveForm] = useState({ date: '', timeSlot: '12:00 PM - 2:00 PM', notes: '' });
-  const [doctorShifts, setDoctorShifts] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [copiedToken, setCopiedToken] = useState(null);
 
   useEffect(() => {
     if (!user) return;
 
-    // Load and listen to doctor profile & shifts
+    // Load and listen to doctor profile
     const unsubDoc = onSnapshot(doc(db, 'doctors', user.uid), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         setDoctorProfile(data);
-        if (data.shifts) {
-          setDoctorShifts(data.shifts.filter(s => s.active));
-        }
       }
     }, (err) => console.error(err));
 
@@ -101,54 +98,45 @@ export default function DoctorHome() {
       `*Status:* Confirmed & Scheduled\n` +
       `*Token:* #${token}\n` +
       `*Date:* ${dateStr}\n` +
-      `*Shift Window:* ${slot}\n` +
+      `*Slot:* ${slot}\n` +
       `*Visitor:* ${repName} (${repCompany})\n` +
-      `*Live Gatepass Slip:* ${statusUrl}\n\n` +
-      `_Please present this pass at the clinic reception desk on arrival._`;
+      `*Live Gatepass Slip:* ${statusUrl}\n`;
 
     const encoded = encodeURIComponent(text);
     window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
   };
 
-  // Auto-Archive Logic: 7 Days after Completed status
-  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-  const isAppointmentArchived = (app) => {
+  const isPastSlot = (app) => {
     if (app.status === 'archived') return true;
-    if (app.status === 'completed') {
-      const completedTime = app.completedAt?.toMillis
-        ? app.completedAt.toMillis()
-        : (app.completedAt instanceof Date ? app.completedAt.getTime() : null);
-      
-      const refTime = completedTime || (app.approvedDate?.toMillis ? app.approvedDate.toMillis() : (app.createdAt?.toMillis ? app.createdAt.toMillis() : null));
-      if (refTime && (Date.now() - refTime > SEVEN_DAYS_MS)) {
-        return true;
-      }
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    if (app.slotDate) return app.slotDate < todayStr;
+    if (app.approvedDate?.toDate) {
+      return format(app.approvedDate.toDate(), 'yyyy-MM-dd') < todayStr;
     }
     return false;
   };
 
   // Calculate Status Counts
   const counts = {
-    all: appointments.filter(a => !isAppointmentArchived(a)).length,
+    all: appointments.filter(a => !isPastSlot(a)).length,
     pending: appointments.filter(a => a.status === 'pending').length,
     confirmed: appointments.filter(a => a.status === 'approved' || a.status === 'confirmed').length,
-    completed: appointments.filter(a => a.status === 'completed' && !isAppointmentArchived(a)).length,
+    completed: appointments.filter(a => a.status === 'completed' && !isPastSlot(a)).length,
     rejected: appointments.filter(a => a.status === 'rejected').length,
-    archived: appointments.filter(a => isAppointmentArchived(a)).length,
+    archived: appointments.filter(a => isPastSlot(a)).length,
   };
 
   // Filter Logic
   const filteredAppointments = appointments.filter(app => {
-    const isArchived = isAppointmentArchived(app);
+    const isPast = isPastSlot(app);
 
     // 1. Status Filter
-    if (statusFilter === 'all' && isArchived) return false;
+    if (statusFilter === 'all' && isPast) return false;
     if (statusFilter === 'pending' && app.status !== 'pending') return false;
     if (statusFilter === 'confirmed' && (app.status !== 'approved' && app.status !== 'confirmed')) return false;
-    if (statusFilter === 'completed' && (app.status !== 'completed' || isArchived)) return false;
+    if (statusFilter === 'completed' && (app.status !== 'completed' || isPast)) return false;
     if (statusFilter === 'rejected' && app.status !== 'rejected') return false;
-    if (statusFilter === 'archived' && !isArchived) return false;
+    if (statusFilter === 'archived' && !isPast) return false;
 
     // 2. Date Filter
     const targetDate = app.approvedDate?.toDate ? app.approvedDate.toDate() : (app.preferredDate?.toDate ? app.preferredDate.toDate() : null);
@@ -187,13 +175,9 @@ export default function DoctorHome() {
 
   // Actions
   const handleApproveClick = (req) => {
-    const initialSlot = doctorShifts.length > 0
-      ? `${doctorShifts[0].title} (${formatTime12(doctorShifts[0].startTime)} - ${formatTime12(doctorShifts[0].endTime)})`
-      : '12:00 PM - 2:00 PM';
-
     setApproveForm({
       date: req.preferredDate ? format(req.preferredDate.toDate(), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-      timeSlot: initialSlot,
+      timeSlot: '12:00 PM - 2:00 PM',
       notes: ''
     });
     setApproveModalReq(req);
@@ -204,7 +188,7 @@ export default function DoctorHome() {
     setIsProcessing(true);
     try {
       const batch = writeBatch(db);
-      const tokenStr = await generateUniqueToken(db);
+      const tokenStr = makeToken();
       const appDate = parseISO(approveForm.date);
       
       const appRef = doc(db, 'appointments', approveModalReq.id);
@@ -299,7 +283,7 @@ export default function DoctorHome() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Doctor OPD Beacon</span>
               <span className="text-xs text-gray-300">•</span>
-              <span className="text-xs text-gray-500 font-medium">Broadcasts live cabin delay to Rep passes & Reception desk</span>
+              <span className="text-xs text-gray-500 font-medium">Broadcasts live cabin delay to Rep passes</span>
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
@@ -360,16 +344,6 @@ export default function DoctorHome() {
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${doctorProfile?.opdBeacon?.status === 'emergency' ? 'bg-rose-600 text-white shadow-sm' : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'}`}
             >
               Emergency
-            </button>
-
-            <div className="h-6 w-px bg-gray-200 hidden sm:block mx-1"></div>
-
-            <button
-              onClick={() => navigate('/admin/desk')}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-sm transition-all flex items-center gap-1.5"
-            >
-              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-              Reception Desk
             </button>
           </div>
         </div>
@@ -584,7 +558,7 @@ export default function DoctorHome() {
         ) : (
           <div className="space-y-4">
             {filteredAppointments.map((app) => {
-              const isArchived = isAppointmentArchived(app);
+              const isArchived = isPastSlot(app);
               const isPending = app.status === 'pending';
               const isConfirmed = app.status === 'approved' || app.status === 'confirmed';
               const isCompleted = app.status === 'completed' && !isArchived;
@@ -790,20 +764,11 @@ export default function DoctorHome() {
                     onChange={e => setApproveForm({...approveForm, timeSlot: e.target.value})}
                     className="w-full border border-gray-200 rounded-[1rem] pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium bg-premium-50 text-premium-900 appearance-none text-sm"
                   >
-                    {doctorShifts.length > 0 ? (
-                      doctorShifts.map(s => {
-                        const label = `${s.title} (${formatTime12(s.startTime)} - ${formatTime12(s.endTime)})`;
-                        return <option key={s.id} value={label}>{label}</option>;
-                      })
-                    ) : (
-                      <>
-                        <option>8:00 AM - 10:00 AM</option>
-                        <option>10:00 AM - 12:00 PM</option>
-                        <option>12:00 PM - 2:00 PM</option>
-                        <option>2:00 PM - 4:00 PM</option>
-                        <option>4:00 PM - 6:00 PM</option>
-                      </>
-                    )}
+                    <option>8:00 AM - 10:00 AM</option>
+                    <option>10:00 AM - 12:00 PM</option>
+                    <option>12:00 PM - 2:00 PM</option>
+                    <option>2:00 PM - 4:00 PM</option>
+                    <option>4:00 PM - 6:00 PM</option>
                   </select>
                   <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>

@@ -3,16 +3,16 @@ import { collection, query, where, orderBy, onSnapshot, doc, writeBatch, serverT
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
-import { generateUniqueToken } from '../../utils/generateToken';
 import { getMidnightIST } from '../../utils/dateUtils';
 import { Check, X, Star, Slash, XCircle, Search, Calendar, MapPin, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+
+const makeToken = () => 'RM' + Math.floor(1000 + Math.random() * 9000);
 
 export default function DoctorPendingRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [doctorShifts, setDoctorShifts] = useState([]);
   
   // Modal state
   const [approveModalReq, setApproveModalReq] = useState(null);
@@ -21,14 +21,6 @@ export default function DoctorPendingRequests() {
 
   useEffect(() => {
     if (!user) return;
-
-    // Load doctor shifts
-    getDoc(doc(db, 'doctors', user.uid)).then(snap => {
-      if (snap.exists() && snap.data().shifts) {
-        const activeShifts = snap.data().shifts.filter(s => s.active);
-        setDoctorShifts(activeShifts);
-      }
-    }).catch(e => console.error(e));
 
     const q = query(
       collection(db, 'appointments'),
@@ -59,13 +51,9 @@ export default function DoctorPendingRequests() {
   };
 
   const handleApproveClick = (req) => {
-     const initialSlot = doctorShifts.length > 0
-       ? `${doctorShifts[0].title} (${formatTime12(doctorShifts[0].startTime)} - ${formatTime12(doctorShifts[0].endTime)})`
-       : '12:00 PM - 2:00 PM';
-
      setApproveForm({
         date: req.preferredDate ? format(req.preferredDate.toDate(), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-        timeSlot: initialSlot,
+        timeSlot: '12:00 PM - 2:00 PM',
         notes: ''
      });
      setApproveModalReq(req);
@@ -75,7 +63,7 @@ export default function DoctorPendingRequests() {
      setIsProcessing(true);
      try {
         const batch = writeBatch(db);
-        const tokenStr = await generateUniqueToken(db);
+        const tokenStr = makeToken();
         const appDate = parseISO(approveForm.date);
         
         const appRef = doc(db, 'appointments', approveModalReq.id);
@@ -256,20 +244,11 @@ export default function DoctorPendingRequests() {
                            onChange={e => setApproveForm({...approveForm, timeSlot: e.target.value})}
                            className="w-full border border-gray-200 rounded-[1rem] pl-4 pr-10 py-3 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium bg-premium-50 shadow-inner text-premium-900 appearance-none transition-all text-sm"
                         >
-                           {doctorShifts.length > 0 ? (
-                             doctorShifts.map(s => {
-                               const label = `${s.title} (${formatTime12(s.startTime)} - ${formatTime12(s.endTime)})`;
-                               return <option key={s.id} value={label}>{label}</option>;
-                             })
-                           ) : (
-                             <>
-                               <option>8:00 AM - 10:00 AM</option>
-                               <option>10:00 AM - 12:00 PM</option>
-                               <option>12:00 PM - 2:00 PM</option>
-                               <option>2:00 PM - 4:00 PM</option>
-                               <option>4:00 PM - 6:00 PM</option>
-                             </>
-                           )}
+                           <option>8:00 AM - 10:00 AM</option>
+                           <option>10:00 AM - 12:00 PM</option>
+                           <option>12:00 PM - 2:00 PM</option>
+                           <option>2:00 PM - 4:00 PM</option>
+                           <option>4:00 PM - 6:00 PM</option>
                         </select>
                         <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                       </div>

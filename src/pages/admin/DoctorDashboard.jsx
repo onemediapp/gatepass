@@ -13,8 +13,6 @@ import DoctorProfileEdit from './DoctorProfileEdit';
 import DoctorSettings from './DoctorSettings';
 import DoctorClinics from './DoctorClinics';
 import DoctorProfileLinks from './DoctorProfileLinks';
-import DoctorShifts from './DoctorShifts';
-import ReceptionDesk from '../ReceptionDesk';
 
 export default function DoctorDashboard() {
   const { userData, user } = useAuth();
@@ -29,14 +27,12 @@ export default function DoctorDashboard() {
 
   const navItems = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
-    { to: '/admin/desk', icon: Building2, label: 'Reception Desk', exact: true },
     { to: '/admin/pending', icon: Clock, label: 'Pending', exact: true },
     { to: '/admin/approved', icon: CheckCircle, label: 'Approved', exact: true },
     { to: '/admin/rejected', icon: XCircle, label: 'Rejected', exact: true },
     { to: '/admin/reps', icon: Users, label: 'My Reps', exact: false },
     { to: '/admin/edit-profile', icon: User, label: 'Edit Profile', exact: true },
     { to: '/admin/profile', icon: QrCode, label: 'Profile Links', exact: false },
-    { to: '/admin/shifts', icon: Clock, label: 'Shift Manager', exact: true },
     { to: '/admin/clinics', icon: Building2, label: 'Clinics', exact: true },
     { to: '/admin/settings', icon: SettingsIcon, label: 'Settings', exact: false },
   ];
@@ -133,14 +129,12 @@ export default function DoctorDashboard() {
       <main className="flex-1 w-full max-w-5xl mx-auto p-5 sm:p-10 h-[100dvh] overflow-y-auto relative z-10 scroll-smooth">
          <Routes>
             <Route path="/" element={<DoctorHome />} />
-            <Route path="/desk" element={<ReceptionDesk />} />
             <Route path="/pending" element={<DoctorPendingRequests />} />
             <Route path="/approved" element={<DoctorApprovedRequests />} />
             <Route path="/rejected" element={<DoctorRejectedRequests />} />
             <Route path="/reps" element={<DoctorReps />} />
             <Route path="/edit-profile" element={<DoctorProfileEdit />} />
             <Route path="/profile" element={<DoctorProfileLinks />} />
-            <Route path="/shifts" element={<DoctorShifts />} />
             <Route path="/clinics" element={<DoctorClinics />} />
             <Route path="/settings" element={<DoctorSettings />} />
          </Routes>

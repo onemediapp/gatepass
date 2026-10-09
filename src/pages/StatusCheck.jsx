@@ -30,7 +30,7 @@ export default function StatusCheck() {
       `👨‍⚕️ *Doctor:* Dr. ${doctor.name} (${doctor.specialty || 'Consultant'})\n` +
       `📍 *Location:* ${clinicName}\n` +
       `🎫 *Token:* #${token}\n` +
-      `⏰ *Shift:* ${slot}\n` +
+      `⏰ *Slot:* ${slot}\n` +
       `👤 *Medical Rep:* ${repName} (${repCompany})\n` +
       `🔗 *Live Gatepass Link:* ${passUrl}\n\n` +
       `_Presented via Gatepass India Medical Protocol._`;

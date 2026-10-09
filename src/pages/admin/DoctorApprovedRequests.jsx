@@ -6,19 +6,12 @@ import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors'
 import { CheckCircle2, Clock, UserCheck, Filter, Archive } from 'lucide-react';
 import { format } from 'date-fns';
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-function isAppointmentArchived(app) {
+function isPastSlot(app) {
   if (app.status === 'archived') return true;
-  if (app.status === 'completed') {
-    const completedTime = app.completedAt?.toMillis
-      ? app.completedAt.toMillis()
-      : (app.completedAt instanceof Date ? app.completedAt.getTime() : null);
-    
-    const refTime = completedTime || (app.approvedDate?.toMillis ? app.approvedDate.toMillis() : (app.createdAt?.toMillis ? app.createdAt.toMillis() : null));
-    if (refTime && (Date.now() - refTime > SEVEN_DAYS_MS)) {
-      return true;
-    }
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  if (app.slotDate) return app.slotDate < todayStr;
+  if (app.approvedDate?.toDate) {
+    return format(app.approvedDate.toDate(), 'yyyy-MM-dd') < todayStr;
   }
   return false;
 }
@@ -62,11 +55,11 @@ export default function DoctorApprovedRequests() {
   };
 
   const filteredRequests = requests.filter(req => {
-    const archived = isAppointmentArchived(req);
-    if (subFilter === 'confirmed') return (req.status === 'approved' || req.status === 'confirmed') && !archived;
-    if (subFilter === 'completed') return req.status === 'completed' && !archived;
-    if (subFilter === 'archived') return archived;
-    if (subFilter === 'all') return !archived;
+    const isPast = isPastSlot(req);
+    if (subFilter === 'confirmed') return (req.status === 'approved' || req.status === 'confirmed') && !isPast;
+    if (subFilter === 'completed') return req.status === 'completed' && !isPast;
+    if (subFilter === 'past') return isPast;
+    if (subFilter === 'all') return !isPast;
     return true;
   });
 
@@ -88,7 +81,7 @@ export default function DoctorApprovedRequests() {
               subFilter === 'all' ? 'bg-premium-900 text-white shadow-2xs' : 'text-gray-500 hover:text-premium-900'
             }`}
           >
-            All ({requests.filter(r => !isAppointmentArchived(r)).length})
+            All ({requests.filter(r => !isPastSlot(r)).length})
           </button>
           <button
             onClick={() => setSubFilter('confirmed')}
@@ -96,7 +89,7 @@ export default function DoctorApprovedRequests() {
               subFilter === 'confirmed' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-gray-500 hover:text-emerald-700'
             }`}
           >
-            Confirmed ({requests.filter(r => (r.status === 'approved' || r.status === 'confirmed') && !isAppointmentArchived(r)).length})
+            Confirmed ({requests.filter(r => (r.status === 'approved' || r.status === 'confirmed') && !isPastSlot(r)).length})
           </button>
           <button
             onClick={() => setSubFilter('completed')}
@@ -104,15 +97,15 @@ export default function DoctorApprovedRequests() {
               subFilter === 'completed' ? 'bg-blue-600 text-white shadow-2xs' : 'text-gray-500 hover:text-blue-700'
             }`}
           >
-            Completed ({requests.filter(r => r.status === 'completed' && !isAppointmentArchived(r)).length})
+            Completed ({requests.filter(r => r.status === 'completed' && !isPastSlot(r)).length})
           </button>
           <button
-            onClick={() => setSubFilter('archived')}
+            onClick={() => setSubFilter('past')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              subFilter === 'archived' ? 'bg-purple-700 text-white shadow-2xs' : 'text-purple-700 hover:bg-purple-50'
+              subFilter === 'past' ? 'bg-purple-700 text-white shadow-2xs' : 'text-purple-700 hover:bg-purple-50'
             }`}
           >
-            Archived ({requests.filter(r => isAppointmentArchived(r)).length})
+            Past ({requests.filter(r => isPastSlot(r)).length})
           </button>
         </div>
       </div>
@@ -124,8 +117,8 @@ export default function DoctorApprovedRequests() {
       ) : (
         <div className="space-y-4">
           {filteredRequests.map(req => {
-            const isArchived = isAppointmentArchived(req);
-            const isCompleted = req.status === 'completed' && !isArchived;
+            const isPast = isPastSlot(req);
+            const isCompleted = req.status === 'completed' && !isPast;
 
             return (
               <div key={req.id} className="bg-white rounded-[1.5rem] p-6 shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-gray-100 items-start flex flex-col sm:flex-row justify-between gap-4 transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] hover:border-gray-200 group">
@@ -137,9 +130,9 @@ export default function DoctorApprovedRequests() {
                     {req.repSnapshot?.designation && (
                       <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-[0.5rem] bg-premium-100 text-gray-500">{req.repSnapshot.designation}</span>
                     )}
-                    {isArchived ? (
+                    {isPast ? (
                       <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
-                        <Archive className="w-2.5 h-2.5" /> Archived
+                        <Archive className="w-2.5 h-2.5" /> Past
                       </span>
                     ) : isCompleted ? (
                       <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Completed</span>

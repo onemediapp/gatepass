@@ -1,70 +1,157 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function isAuth()      { return request.auth != null; }
-    function uid()         { return request.auth.uid; }
-    function userDoc()     { 
-      return exists(/databases/$(db)/documents/users/$(uid())) ? get(/databases/$(db)/documents/users/$(uid())).data : null; 
-    }
-    function hasRole(r)    { 
-      let uDoc = userDoc();
-      let hasItCurrently = uDoc != null && uDoc.role.hasAny([r]);
-      
-      let afterDoc = existsAfter(/databases/$(db)/documents/users/$(uid())) ? getAfter(/databases/$(db)/documents/users/$(uid())).data : null;
-      let hasItAfter = afterDoc != null && afterDoc.role.hasAny([r]);
-      
-      return isAuth() && (hasItCurrently || hasItAfter); 
-    }
-    function isRep()       { return hasRole('rep'); }
-    function isDoctor()    { return hasRole('doctor'); }
-    function isPlatAdmin() { return hasRole('platform_admin'); }
-    function isTargetDoctor(did) {
-      return isDoctor() && uid() == did;
+
+    // ── Helpers ───────────────────────────────────────────
+    function isAuth()  { return request.auth != null; }
+    function uid()     { return request.auth.uid; }
+    function userDoc() { return get(/databases/$(db)/documents/users/$(uid())).data; }
+    function hasRole(r){ return isAuth() && exists(/databases/$(db)/documents/users/$(uid())) && userDoc().role.hasAny([r]); }
+    function isRep()    { return hasRole('rep'); }
+    function isDoctor() { return hasRole('doctor'); }
+    function isAdmin()  { return hasRole('platform_admin'); }
+    function emailKey() { return request.auth.token.email.lower(); }
+
+    // ── Invites (doctor onboarding). Written only from Console ──
+    match /invites/{email} {
+      allow get: if isAuth() && email == emailKey();
+      allow list, write: if false;
     }
 
+    // ── Users ─────────────────────────────────────────────
+    // Self-create only as rep, or as doctor if invited. Role is immutable by the user.
     match /users/{userId} {
-      allow read:  if true; // Public user profiles (doctors/reps) needed for kiosk, search, pass verification
-      allow write: if isAuth() && (uid() == userId || isPlatAdmin());
+      allow get: if isAuth() && (uid() == userId || isAdmin());
+      allow create: if isAuth() && uid() == userId
+        && request.resource.data.role.size() == 1
+        && (
+          request.resource.data.role[0] == 'rep'
+          || (request.resource.data.role[0] == 'doctor'
+              && exists(/databases/$(db)/documents/invites/$(emailKey())))
+        );
+      allow update: if isAuth() && uid() == userId
+        && request.resource.data.role == resource.data.role;
+      allow delete: if false;
     }
+
+    // ── Rep profiles ──────────────────────────────────────
+    // Owner always. A doctor may read only reps who have contacted them.
     match /reps/{repId} {
-      allow read:  if isAuth();
-      allow write: if isAuth() && (uid() == repId || isPlatAdmin());
-    }
-    match /doctors/{doctorId} {
-      allow read:  if true; // Public doctor directory and live OPD Beacon status
-      allow write: if isAuth() && (uid() == doctorId || isPlatAdmin());
-      allow update: if (isAuth() && (uid() == doctorId || isPlatAdmin())) ||
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['opdBeacon', 'updatedAt']);
-    }
-    match /clinics/{clinicId} {
-      allow read:  if true;
-      allow create: if isAuth() && request.resource.data.ownerDoctorId == uid();
-      allow update, delete: if isAuth() &&
-        (get(/databases/$(db)/documents/clinics/$(clinicId)).data.ownerDoctorId == uid() || isPlatAdmin());
-    }
-    match /doctorClinics/{junctionId} {
-      allow read:  if true;
-      allow create: if isAuth();
-      allow update: if isAuth() && (resource.data.doctorId == uid() || isPlatAdmin());
-    }
-    match /appointments/{appointmentId} {
-      allow create: if isAuth() && uid() == request.resource.data.repId;
-      allow read:   if true;
-      allow list:   if true; // Required for Reception Desk live queue display & pass lookup
-      allow update: if (isAuth() && (isTargetDoctor(resource.data.doctorId) || isPlatAdmin() || uid() == resource.data.repId))
-        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'admittedAt', 'completedAt', 'updatedAt']);
-    }
-    match /tokens/{tokenCode} {
-      allow read:  if true;
-      allow write: if isAuth() && (isDoctor() || isPlatAdmin());
-    }
-    match /visitHistory/{visitId} {
       allow read: if isAuth() && (
-        uid() == resource.data.repId ||
-        uid() == resource.data.doctorId ||
-        isPlatAdmin()
+        uid() == repId
+        || isAdmin()
+        || (isDoctor() && exists(/databases/$(db)/documents/doctorRepLinks/$(uid() + '_' + repId)))
       );
-      allow write: if isAuth() && (uid() == request.resource.data.doctorId || isPlatAdmin());
+      allow create, update: if isAuth() && uid() == repId && isRep();
+    }
+
+    // ── Doctor public profile (no phone, no private lists) ─
+    match /doctors/{doctorId} {
+      allow read: if isAuth();
+      allow create, update: if isAuth() && uid() == doctorId && isDoctor();
+    }
+
+    // ── Doctor private contact (WhatsApp/phone) ───────────
+    // Owner, or a rep the doctor has approved (contactGrants).
+    match /doctorContacts/{doctorId} {
+      allow read: if isAuth() && (
+        uid() == doctorId
+        || exists(/databases/$(db)/documents/contactGrants/$(doctorId + '_' + uid()))
+      );
+      allow write: if isAuth() && uid() == doctorId && isDoctor();
+    }
+    match /contactGrants/{id} {
+      allow read: if isAuth() && (id.matches(uid() + '_.*') || id.matches('.*_' + uid()));
+      allow create, delete: if isAuth() && isDoctor() && id.matches(uid() + '_.*');
+      allow update: if false;
+    }
+
+    // ── Doctor's private rep relations (preferred/blocked/notes/counts) ──
+    match /repRelations/{id} {
+      allow read, write: if isAuth() && isDoctor() && id.matches(uid() + '_.*');
+    }
+
+    // ── Rep contacted-doctor marker (lets a doctor read that rep) ──
+    match /doctorRepLinks/{id} {
+      allow create: if isAuth() && isRep()
+        && id == (request.resource.data.doctorId + '_' + uid())
+        && request.resource.data.repId == uid();
+      allow read: if isAuth() && (id.matches(uid() + '_.*') || id.matches('.*_' + uid()));
+      allow update, delete: if false;
+    }
+
+    // ── Clinics (public read for QR landing) ──────────────
+    match /clinics/{clinicId} {
+      allow read: if true;
+      allow create: if isAuth() && isDoctor() && request.resource.data.ownerDoctorId == uid();
+      allow update, delete: if isAuth() && isDoctor() && resource.data.ownerDoctorId == uid();
+    }
+    match /doctorSlugs/{slug} {
+      allow read: if true;
+      allow create: if isAuth() && isDoctor() && request.resource.data.uid == uid();
+      allow update, delete: if isAuth() && isDoctor() && resource.data.uid == uid();
+    }
+    match /doctorClinics/{id} {
+      allow read: if isAuth();
+      allow create, update: if isAuth() && isDoctor() && request.resource.data.doctorId == uid();
+    }
+
+    // ── Appointments: ONLY the rep and the target doctor ──
+    match /appointments/{appointmentId} {
+      allow create: if isAuth() && isRep()
+        && request.resource.data.repId == uid()
+        && request.resource.data.status == 'pending';
+      allow get: if isAuth() && (
+        uid() == resource.data.repId || uid() == resource.data.doctorId || isAdmin());
+      allow list: if isAuth() && (
+        uid() == resource.data.repId || uid() == resource.data.doctorId || isAdmin());
+      allow update: if isAuth() && (
+        uid() == resource.data.doctorId
+        // rep may only cancel their own request
+        || (uid() == resource.data.repId
+            && request.resource.data.status == 'cancelled'
+            && resource.data.status in ['pending', 'approved'])
+      );
+      allow delete: if false;
+    }
+
+    // ── Tokens: only the owning rep and doctor ────────────
+    match /tokens/{tokenCode} {
+      allow read: if isAuth() && (uid() == resource.data.repId || uid() == resource.data.doctorId);
+      allow create, update: if isAuth() && isDoctor() && request.resource.data.doctorId == uid();
+      allow delete: if false;
+    }
+
+    // ── Ledgers (public read, no personal data) ───────────
+    // Doctor writes own. Rep may only DECREMENT by 1 (cancellation).
+    // Known beta limitation: move to a Cloud Function before open signup.
+    match /slotLedger/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && isDoctor() && id.matches(uid() + '_.*');
+      allow update: if isAuth() && (
+        (isDoctor() && id.matches(uid() + '_.*'))
+        || (isRep() && request.resource.data.approvedCount == resource.data.approvedCount - 1));
+    }
+    match /dayLedger/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && isDoctor() && id.matches(uid() + '_.*');
+      allow update: if isAuth() && (
+        (isDoctor() && id.matches(uid() + '_.*'))
+        || (isRep() && request.resource.data.approvedCount == resource.data.approvedCount - 1));
+    }
+
+    // ── Notices: any signed-in user reads, doctor owns ────
+    match /notices/{noticeId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && isDoctor() && request.resource.data.doctorId == uid();
+      allow update, delete: if isAuth() && isDoctor() && resource.data.doctorId == uid();
+    }
+
+    // ── Visit history: owner rep or doctor ────────────────
+    match /visitHistory/{visitId} {
+      allow read: if isAuth() && (uid() == resource.data.repId || uid() == resource.data.doctorId);
+      allow create: if isAuth() && isDoctor() && request.resource.data.doctorId == uid();
+      allow update, delete: if false;
     }
   }
 }

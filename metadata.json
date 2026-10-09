@@ -1,6 +1,6 @@
 {
-  "name": "GATEPASS",
-  "description": "India's Clinic Protocol and Medical Representative Detailing Operating System for Doctors, Reception Desks, and Pharma Reps.",
+  "name": "gatepass",
+  "description": "Structured appointment platform for doctors and pharma medical representatives.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
