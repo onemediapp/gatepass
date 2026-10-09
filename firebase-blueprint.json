@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing identity, role and contact details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "array" },
+        "mobile": { "type": "string", "maxLength": 20 },
+        "photoUrl": { "type": "string", "maxLength": 500 },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["name", "role"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Professional medical practitioner profile and OPD Beacon settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "specialty": { "type": "string", "maxLength": 100 },
+        "qualifications": { "type": "string", "maxLength": 100 },
+        "city": { "type": "string", "maxLength": 100 },
+        "state": { "type": "string", "maxLength": 100 },
+        "whatsappNumber": { "type": "string", "maxLength": 20 },
+        "repHours": { "type": "string", "maxLength": 100 },
+        "opdBeacon": { "type": "object" },
+        "privacy": { "type": "object" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "specialty"]
+    },
+    "Clinic": {
+      "title": "Clinic",
+      "description": "Physical healthcare facility or consulting room",
+      "type": "object",
+      "properties": {
+        "clinicId": { "type": "string", "maxLength": 128 },
+        "ownerDoctorId": { "type": "string", "maxLength": 128 },
+        "clinicName": { "type": "string", "maxLength": 150 },
+        "address": { "type": "string", "maxLength": 300 },
+        "city": { "type": "string", "maxLength": 100 },
+        "state": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 20 },
+        "slug": { "type": "string", "maxLength": 150 },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["clinicName", "ownerDoctorId", "slug"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Medical detailing gatepass request and visit queue record",
+      "type": "object",
+      "properties": {
+        "repId": { "type": "string", "maxLength": 128 },
+        "doctorId": { "type": "string", "maxLength": 128 },
+        "clinicId": { "type": "string", "maxLength": 128 },
+        "doctorName": { "type": "string", "maxLength": 100 },
+        "clinicName": { "type": "string", "maxLength": 150 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "in_cabin", "completed", "cancelled", "expired"] },
+        "token": { "type": "string", "maxLength": 20 },
+        "shift": { "type": "string", "maxLength": 50 },
+        "productFocus": { "type": "string", "maxLength": 200 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string" },
+        "approvedDate": { "type": "string" },
+        "admittedAt": { "type": "string" },
+        "completedAt": { "type": "string" }
+      },
+      "required": ["repId", "doctorId", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Master user profiles for doctors, reps and clinic staff"
+    },
+    "/doctors/{doctorId}": {
+      "schema": "Doctor",
+      "description": "Public doctor profiles, specialties and real-time OPD Beacon states"
+    },
+    "/clinics/{clinicId}": {
+      "schema": "Clinic",
+      "description": "Clinic facilities and location directories"
+    },
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Digital gatepass records, tokens and queue state"
+    }
+  }
+}

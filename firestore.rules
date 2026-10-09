@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function isAuth()      { return request.auth != null; }
+    function uid()         { return request.auth.uid; }
+    function userDoc()     { 
+      return exists(/databases/$(db)/documents/users/$(uid())) ? get(/databases/$(db)/documents/users/$(uid())).data : null; 
+    }
+    function hasRole(r)    { 
+      let uDoc = userDoc();
+      let hasItCurrently = uDoc != null && uDoc.role.hasAny([r]);
+      
+      let afterDoc = existsAfter(/databases/$(db)/documents/users/$(uid())) ? getAfter(/databases/$(db)/documents/users/$(uid())).data : null;
+      let hasItAfter = afterDoc != null && afterDoc.role.hasAny([r]);
+      
+      return isAuth() && (hasItCurrently || hasItAfter); 
+    }
+    function isRep()       { return hasRole('rep'); }
+    function isDoctor()    { return hasRole('doctor'); }
+    function isPlatAdmin() { return hasRole('platform_admin'); }
+    function isTargetDoctor(did) {
+      return isDoctor() && uid() == did;
+    }
+
+    match /users/{userId} {
+      allow read:  if true; // Public user profiles (doctors/reps) needed for kiosk, search, pass verification
+      allow write: if isAuth() && (uid() == userId || isPlatAdmin());
+    }
+    match /reps/{repId} {
+      allow read:  if isAuth();
+      allow write: if isAuth() && (uid() == repId || isPlatAdmin());
+    }
+    match /doctors/{doctorId} {
+      allow read:  if true; // Public doctor directory and live OPD Beacon status
+      allow write: if isAuth() && (uid() == doctorId || isPlatAdmin());
+      allow update: if (isAuth() && (uid() == doctorId || isPlatAdmin())) ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['opdBeacon', 'updatedAt']);
+    }
+    match /clinics/{clinicId} {
+      allow read:  if true;
+      allow create: if isAuth() && request.resource.data.ownerDoctorId == uid();
+      allow update, delete: if isAuth() &&
+        (get(/databases/$(db)/documents/clinics/$(clinicId)).data.ownerDoctorId == uid() || isPlatAdmin());
+    }
+    match /doctorClinics/{junctionId} {
+      allow read:  if true;
+      allow create: if isAuth();
+      allow update: if isAuth() && (resource.data.doctorId == uid() || isPlatAdmin());
+    }
+    match /appointments/{appointmentId} {
+      allow create: if isAuth() && uid() == request.resource.data.repId;
+      allow read:   if true;
+      allow list:   if true; // Required for Reception Desk live queue display & pass lookup
+      allow update: if (isAuth() && (isTargetDoctor(resource.data.doctorId) || isPlatAdmin() || uid() == resource.data.repId))
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'admittedAt', 'completedAt', 'updatedAt']);
+    }
+    match /tokens/{tokenCode} {
+      allow read:  if true;
+      allow write: if isAuth() && (isDoctor() || isPlatAdmin());
+    }
+    match /visitHistory/{visitId} {
+      allow read: if isAuth() && (
+        uid() == resource.data.repId ||
+        uid() == resource.data.doctorId ||
+        isPlatAdmin()
+      );
+      allow write: if isAuth() && (uid() == request.resource.data.doctorId || isPlatAdmin());
+    }
+  }
+}

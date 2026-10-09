@@ -1,0 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-premium-50: #f8fafc;
+  --color-premium-100: #f1f5f9;
+  --color-premium-200: #e2e8f0;
+  --color-premium-800: #102a45;
+  --color-premium-900: #0a192f;
+
+  --color-bharat-navy: #0A192F;
+  --color-bharat-navy-light: #102A45;
+  --color-bharat-emerald: #059669;
+  --color-bharat-amber: #D97706;
+  --color-bharat-slate: #F8FAFC;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #F8FAFC;
+  color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* Linear-like inputs */
+input, select, textarea {
+  transition: all 0.2s ease;
+}
+
+/* Ticket Notches for Physical Pass feel */
+.ticket-notch-l {
+  position: relative;
+}
+.ticket-notch-l::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background-color: #0F172A;
+  border-radius: 50%;
+  z-index: 10;
+}
+.ticket-notch-r {
+  position: relative;
+}
+.ticket-notch-r::after {
+  content: '';
+  position: absolute;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background-color: #0F172A;
+  border-radius: 50%;
+  z-index: 10;
+}
+
+/* Gatepass Pulse */
+@keyframes gatepassPulse {
+  0% {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.1);
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 1);
+    box-shadow: 0 0 24px rgba(16, 185, 129, 0.35), inset 0 0 10px rgba(16, 185, 129, 0.1);
+  }
+  100% {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.1);
+  }
+}
+
+.animate-gatepass-pulse {
+  animation: gatepassPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Custom Scrollbar for a premium clinical feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
