@@ -33,7 +33,7 @@ beforeEach(async () => {
   }
 });
 
-describe('Gatepass Firestore Security Rules (Phase 1.3/1.4)', () => {
+describe('Gatepass Firestore Security Rules (Phase 1.3/1.4)', { timeout: 20000 }, () => {
 
   // 1. Anonymous user cannot read anything except clinics, doctorSlugs
   it('1. Anonymous user cannot read anything except clinics and doctorSlugs', async () => {

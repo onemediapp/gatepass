@@ -19,6 +19,8 @@ import DoctorProfile from './pages/doctor/DoctorProfile';
 // Doctor Pages
 import DoctorRegister from './pages/doctor/DoctorRegister';
 import DoctorDashboard from './pages/admin/DoctorDashboard';
+import DoctorScheduleSettings from './pages/doctor/DoctorScheduleSettings';
+import ClinicPrintPoster from './pages/print/ClinicPrintPoster';
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, userData, loading } = useAuth();
@@ -66,6 +68,8 @@ export default function App() {
 
             {/* Doctor Routes */}
             <Route path="/doctor/register" element={<ProtectedRoute><DoctorRegister /></ProtectedRoute>} />
+            <Route path="/doctor/settings/schedule" element={<ProtectedRoute requiredRole="doctor"><DoctorScheduleSettings /></ProtectedRoute>} />
+            <Route path="/print/clinic/:clinicId" element={<ProtectedRoute requiredRole="doctor"><ClinicPrintPoster /></ProtectedRoute>} />
             <Route path="/admin/*" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboard /></ProtectedRoute>} />
 
             {/* Default fallback */}

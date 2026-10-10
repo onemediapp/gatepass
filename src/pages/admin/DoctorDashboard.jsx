@@ -13,6 +13,7 @@ import DoctorProfileEdit from './DoctorProfileEdit';
 import DoctorSettings from './DoctorSettings';
 import DoctorClinics from './DoctorClinics';
 import DoctorProfileLinks from './DoctorProfileLinks';
+import DoctorScheduleSettings from '../doctor/DoctorScheduleSettings';
 
 export default function DoctorDashboard() {
   const { userData } = useAuth();
@@ -35,6 +36,7 @@ export default function DoctorDashboard() {
   ];
 
   const secondaryNavItems = [
+    { to: '/admin/schedule', icon: Calendar, label: 'Rep Schedule' },
     { to: '/admin/edit-profile', icon: User, label: 'Doctor Profile' },
     { to: '/admin/clinics', icon: Building2, label: 'Clinics' },
   ];
@@ -182,6 +184,7 @@ export default function DoctorDashboard() {
           <Route path="/approved" element={<DoctorApprovedRequests />} />
           <Route path="/rejected" element={<DoctorRejectedRequests />} />
           <Route path="/reps" element={<DoctorReps />} />
+          <Route path="/schedule" element={<DoctorScheduleSettings />} />
           <Route path="/edit-profile" element={<DoctorProfileEdit />} />
           <Route path="/profile" element={<DoctorProfileLinks />} />
           <Route path="/clinics" element={<DoctorClinics />} />
