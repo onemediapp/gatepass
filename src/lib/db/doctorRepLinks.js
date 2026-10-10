@@ -55,3 +55,16 @@ export async function listDoctorRepLinks(doctorId) {
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
+
+/**
+ * Lists all doctor links for a rep
+ * @param {string} repId 
+ * @returns {Promise<Array<DoctorRepLinkDoc & { id: string }>>}
+ */
+export async function listRepDoctorLinks(repId) {
+  if (!repId) return [];
+  const q = query(collection(db, COLLECTION), where('repId', '==', repId));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+

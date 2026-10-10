@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Activity, Briefcase } from 'lucide-react';
 import { loginWithGoogle } from '../lib/firebase';
 import { useAuth } from '../lib/auth';
@@ -14,15 +14,23 @@ export default function LandingPage() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
 
+  const location = useLocation();
+
   useEffect(() => {
     if (!loading && user && userData) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname;
+      if (redirectUrl && redirectUrl !== '/') {
+        navigate(redirectUrl, { replace: true });
+        return;
+      }
       if (userData.role?.includes('doctor')) {
         navigate('/admin', { replace: true });
       } else if (userData.role?.includes('rep')) {
         navigate('/rep/home', { replace: true });
       }
     }
-  }, [user, userData, loading, navigate]);
+  }, [user, userData, loading, navigate, location]);
 
   // If user is authenticated with Google but has no users/{uid} document, show RoleChooser
   if (!loading && user && !userData) {

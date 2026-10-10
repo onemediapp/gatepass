@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth.jsx';
 import LandingPage from './pages/LandingPage';
 import StatusCheck from './pages/StatusCheck';
@@ -24,6 +24,7 @@ import ClinicPrintPoster from './pages/print/ClinicPrintPoster';
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, userData, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -32,7 +33,10 @@ function ProtectedRoute({ children, requiredRole }) {
       </div>
     );
   }
-  if (!user) return <Navigate to="/" replace />;
+  if (!user) {
+    const currentPath = location.pathname + location.search;
+    return <Navigate to={`/?redirect=${encodeURIComponent(currentPath)}`} state={{ from: location }} replace />;
+  }
 
   if (userData && requiredRole && !userData.role?.includes(requiredRole)) {
     return <Navigate to="/" replace />;
@@ -55,6 +59,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/status/:appointmentId" element={<StatusCheck />} />
+            <Route path="/clinic/:slug" element={<ClinicPage />} />
             <Route path="/clinic/:clinicSlug" element={<ClinicPage />} />
 
             {/* Rep Routes */}
@@ -63,6 +68,7 @@ export default function App() {
             <Route path="/rep/history" element={<ProtectedRoute requiredRole="rep"><RepHistory /></ProtectedRoute>} />
             <Route path="/rep/profile" element={<ProtectedRoute requiredRole="rep"><RepProfile /></ProtectedRoute>} />
             <Route path="/rep/search" element={<ProtectedRoute requiredRole="rep"><DoctorSearch /></ProtectedRoute>} />
+            <Route path="/dr/:slug" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
             <Route path="/dr/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
             <Route path="/doctor/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
 

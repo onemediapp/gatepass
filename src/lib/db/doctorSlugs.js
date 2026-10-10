@@ -19,7 +19,13 @@ export async function getDoctorUidBySlug(slug) {
   if (!slug) return null;
   const cleanSlug = slugify(slug);
   const snap = await getDoc(doc(db, COLLECTION, cleanSlug));
-  return snap.exists() ? snap.data().uid : null;
+  if (snap.exists()) return snap.data().uid;
+
+  // Fallback: check if slug is doctor's UID directly
+  const drSnap = await getDoc(doc(db, 'doctors', slug));
+  if (drSnap.exists()) return slug;
+
+  return null;
 }
 
 /**

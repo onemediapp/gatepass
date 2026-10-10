@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { nowIST, todayDateStr } from './time';
+
 export const DAYS_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export const DAY_LABELS = {
@@ -189,3 +191,54 @@ export function generatePlainLanguageSummary(schedule) {
 
   return `Reps can book ${visitsPhrase} across ${daysPhrase}, ${slotMinutes} min each.`;
 }
+
+/**
+ * Checks whether a doctor is currently open for rep visits in IST right now
+ * @param {Object} repSchedule 
+ * @returns {boolean}
+ */
+export function isDoctorOpenNow(repSchedule) {
+  if (!repSchedule || !repSchedule.weekly) return false;
+  const istDate = nowIST();
+  const todayStr = todayDateStr();
+
+  // If today is a blocked date
+  if (Array.isArray(repSchedule.blockedDates) && repSchedule.blockedDates.includes(todayStr)) {
+    return false;
+  }
+
+  // Get current weekday in IST (0=sun, 1=mon, ...)
+  const dayIndex = istDate.getDay();
+  const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const dayKey = dayKeys[dayIndex];
+
+  const ranges = repSchedule.weekly[dayKey];
+  if (!Array.isArray(ranges) || ranges.length === 0) return false;
+
+  const currentMinutes = istDate.getHours() * 60 + istDate.getMinutes();
+
+  return ranges.some(r => {
+    if (!r.start || !r.end) return false;
+    const sMin = timeToMinutes(r.start);
+    const eMin = timeToMinutes(r.end);
+    return currentMinutes >= sMin && currentMinutes < eMin;
+  });
+}
+
+/**
+ * Returns formatted response time bucket if doctor has at least 3 decisions
+ * Buckets: "<1 hr", "~3 hrs", "same day", "1–2 days"
+ * @param {Object} stats 
+ * @returns {string|null}
+ */
+export function formatResponseTimeBucket(stats) {
+  if (!stats || typeof stats.decisionsCount !== 'number' || stats.decisionsCount < 3) {
+    return null;
+  }
+  const mins = Number(stats.avgResponseMinutes) || 0;
+  if (mins < 60) return '<1 hr';
+  if (mins < 240) return '~3 hrs';
+  if (mins < 1440) return 'same day';
+  return '1–2 days';
+}
+
