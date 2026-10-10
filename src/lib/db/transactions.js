@@ -1,139 +1,172 @@
-import { doc, runTransaction, serverTimestamp, increment } from 'firebase/firestore';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { doc, runTransaction, serverTimestamp, collection, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { slotLedgerId, dayLedgerId, contactGrantId, tokenCandidate } from '../ids';
-import { tokenExpiryTimestamp } from '../time';
+import { makeDoctorToken } from '../ids';
+import { tokenExpiryTimestamp, parseSlotTimeToDate, toTimestamp } from '../time';
 
 /**
- * Atomically approves an appointment request:
- * 1. Generates and verifies uniqueness of tokenCode in tokens/
- * 2. Increments slotLedger/{doctorId}_{slotKey}
- * 3. Increments dayLedger/{doctorId}_{yyyy-MM-dd}
- * 4. Updates appointments/{id} to approved
- * 5. Creates tokens/{tokenCode}
- * 6. Creates contactGrants/{doctorId}_{repId} to grant WhatsApp access
+ * Atomically approves an appointment request using the exact Phase 8.2 specification.
+ * 
+ * 1. Reads appointment, slotLedger, dayLedger, and 3 token candidates in parallel within transaction
+ * 2. Validates appointment is still pending (throws 'ALREADY_DECIDED')
+ * 3. Enforces maxRepsPerSlot (throws 'SLOT_FULL')
+ * 4. Enforces maxRepsPerDay (throws 'DAY_FULL')
+ * 5. Allocates unused token candidate (throws 'TOKEN_RETRY' if conflict)
+ * 6. Atomically writes:
+ *    - appointments/{id}: status='approved', token, tokenIssuedAt, tokenExpiresAt, decidedAt
+ *    - tokens/{token}: tokenCode, appointmentId, doctorId, clinicId, repId, slotDate, expiresAt, isUsed
+ *    - slotLedger/{doctorId}_{slotKey}: approvedCount + 1
+ *    - dayLedger/{doctorId}_{slotDate}: approvedCount + 1
+ *    - contactGrants/{doctorId}_{repId}: grantedAt
+ *    - visitHistory/{newId}: appointmentId, doctorId, clinicId, repId, repSnapshot, productsDiscussed, therapeuticCategory, visitDate, token
  * 
  * @param {Object} params
  * @param {string} params.appointmentId
  * @param {string} params.doctorId
+ * @param {number} [params.maxRepsPerSlot=1]
+ * @param {number} [params.maxRepsPerDay=3]
  * @returns {Promise<{ tokenCode: string }>}
  */
-export async function approveAppointmentTransaction({ appointmentId, doctorId }) {
+export async function approveAppointmentTransaction({
+  appointmentId,
+  doctorId,
+  maxRepsPerSlot = 1,
+  maxRepsPerDay = 3,
+}) {
   if (!appointmentId || !doctorId) {
     throw new Error('appointmentId and doctorId are required');
   }
 
-  const apptRef = doc(db, 'appointments', appointmentId);
+  // Caller retries up to 3 times on TOKEN_RETRY
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const result = await runTransaction(db, async (tx) => {
+        const apptRef = doc(db, 'appointments', appointmentId);
 
-  return await runTransaction(db, async (txn) => {
-    const apptSnap = await txn.get(apptRef);
-    if (!apptSnap.exists()) {
-      throw new Error('Appointment does not exist');
-    }
+        // Pre-fetch appointment to construct ledger keys if needed
+        const apptSnapPre = await tx.get(apptRef);
+        if (!apptSnapPre.exists()) throw new Error('ALREADY_DECIDED');
+        const apptData = apptSnapPre.data();
 
-    const appt = apptSnap.data();
-    if (appt.doctorId !== doctorId) {
-      throw new Error('Unauthorized: Doctor mismatch');
-    }
-    if (appt.status !== 'pending') {
-      throw new Error(`Appointment is already ${appt.status}`);
-    }
+        if (apptData.doctorId !== doctorId) throw new Error('Unauthorized');
+        if (apptData.status !== 'pending') throw new Error('ALREADY_DECIDED');
 
-    // Generate and ensure unique token candidate
-    let code = tokenCandidate(6);
-    let tokenRef = doc(db, 'tokens', code);
-    let tokenSnap = await txn.get(tokenRef);
-    let attempts = 0;
-    while (tokenSnap.exists() && attempts < 5) {
-      code = tokenCandidate(6);
-      tokenRef = doc(db, 'tokens', code);
-      tokenSnap = await txn.get(tokenRef);
-      attempts++;
-    }
-    if (tokenSnap.exists()) {
-      throw new Error('Failed to allocate unique token code. Please retry.');
-    }
+        const { slotKey, slotDate, slotStart, slotEnd, clinicId, repId, repSnapshot, productFocus, therapeuticCategory } = apptData;
 
-    // Check slot ledger
-    const sLedgerRef = doc(db, 'slotLedger', slotLedgerId(doctorId, appt.slotKey));
-    const sLedgerSnap = await txn.get(sLedgerRef);
-    const currentSlotCount = sLedgerSnap.exists() ? (sLedgerSnap.data().approvedCount || 0) : 0;
+        const slotRef = doc(db, 'slotLedger', `${doctorId}_${slotKey}`);
+        const dayRef = doc(db, 'dayLedger', `${doctorId}_${slotDate}`);
 
-    // Check day ledger
-    const dLedgerRef = doc(db, 'dayLedger', dayLedgerId(doctorId, appt.slotDate));
-    const dLedgerSnap = await txn.get(dLedgerRef);
-    const currentDayCount = dLedgerSnap.exists() ? (dLedgerSnap.data().approvedCount || 0) : 0;
+        // Generate 3 candidate tokens: 'RM' + 4 digits
+        const candidates = [makeDoctorToken(), makeDoctorToken(), makeDoctorToken()];
+        const candRefs = candidates.map(t => doc(db, 'tokens', t));
 
-    const expiresAt = tokenExpiryTimestamp(appt.slotDate, appt.slotEnd, 30);
+        // Read all documents in parallel
+        const [appt, slot, day, ...cand] = await Promise.all([
+          tx.get(apptRef),
+          tx.get(slotRef),
+          tx.get(dayRef),
+          ...candRefs.map(r => tx.get(r))
+        ]);
 
-    // 1. Update appointment
-    txn.update(apptRef, {
-      status: 'approved',
-      token: code,
-      tokenIssuedAt: serverTimestamp(),
-      tokenExpiresAt: expiresAt,
-      decidedAt: serverTimestamp()
-    });
+        if (appt.data().status !== 'pending') throw new Error('ALREADY_DECIDED');
 
-    // 2. Write tokens document
-    txn.set(tokenRef, {
-      tokenCode: code,
-      appointmentId,
-      doctorId,
-      clinicId: appt.clinicId,
-      repId: appt.repId,
-      slotDate: appt.slotDate,
-      expiresAt,
-      isUsed: false,
-      createdAt: serverTimestamp()
-    });
+        const slotCount = slot.exists() ? (slot.data().approvedCount || 0) : 0;
+        const dayCount = day.exists() ? (day.data().approvedCount || 0) : 0;
 
-    // 3. Write/update slotLedger
-    if (!sLedgerSnap.exists()) {
-      txn.set(sLedgerRef, {
-        doctorId,
-        slotKey: appt.slotKey,
-        slotDate: appt.slotDate,
-        approvedCount: 1
+        if (slotCount >= maxRepsPerSlot) throw new Error('SLOT_FULL');
+        if (maxRepsPerDay > 0 && dayCount >= maxRepsPerDay) throw new Error('DAY_FULL');
+
+        const idx = cand.findIndex(s => !s.exists());
+        if (idx < 0) throw new Error('TOKEN_RETRY');
+
+        const token = candidates[idx];
+        const slotEndPlus30 = tokenExpiryTimestamp(slotDate, slotEnd, 30);
+        const slotStartAt = apptData.slotStartAt || toTimestamp(parseSlotTimeToDate(slotDate, slotStart));
+
+        // 1. Update appointment
+        tx.update(apptRef, {
+          status: 'approved',
+          token,
+          tokenIssuedAt: serverTimestamp(),
+          tokenExpiresAt: slotEndPlus30,
+          decidedAt: serverTimestamp()
+        });
+
+        // 2. Set tokens doc
+        tx.set(candRefs[idx], {
+          tokenCode: token,
+          appointmentId,
+          doctorId,
+          clinicId: clinicId || '',
+          repId,
+          slotDate,
+          expiresAt: slotEndPlus30,
+          isUsed: false,
+          createdAt: serverTimestamp()
+        });
+
+        // 3. Set slotLedger
+        tx.set(slotRef, {
+          doctorId,
+          slotKey,
+          slotDate,
+          approvedCount: slotCount + 1
+        });
+
+        // 4. Set dayLedger
+        tx.set(dayRef, {
+          doctorId,
+          slotDate,
+          approvedCount: dayCount + 1
+        });
+
+        // 5. Grant contact permission
+        tx.set(doc(db, 'contactGrants', `${doctorId}_${repId}`), {
+          doctorId,
+          repId,
+          grantedAt: serverTimestamp()
+        });
+
+        // 6. Record visit history
+        tx.set(doc(collection(db, 'visitHistory')), {
+          appointmentId,
+          doctorId,
+          clinicId: clinicId || '',
+          repId,
+          repSnapshot: repSnapshot || {},
+          productsDiscussed: productFocus ? [productFocus] : [],
+          therapeuticCategory: therapeuticCategory || '',
+          visitDate: slotStartAt,
+          token
+        });
+
+        return { tokenCode: token, createdAt: apptData.createdAt };
       });
-    } else {
-      txn.update(sLedgerRef, {
-        approvedCount: currentSlotCount + 1
-      });
+
+      // After transaction (separate write): update doctor decision stats
+      updateDoctorStatsAfterDecision(doctorId, result.createdAt).catch(console.error);
+
+      return { tokenCode: result.tokenCode };
+
+    } catch (err) {
+      if (err.message === 'TOKEN_RETRY' && attempt < 2) {
+        lastError = err;
+        continue; // Retry with fresh candidate tokens
+      }
+      throw err;
     }
+  }
 
-    // 4. Write/update dayLedger
-    if (!dLedgerSnap.exists()) {
-      txn.set(dLedgerRef, {
-        doctorId,
-        slotDate: appt.slotDate,
-        approvedCount: 1
-      });
-    } else {
-      txn.update(dLedgerRef, {
-        approvedCount: currentDayCount + 1
-      });
-    }
-
-    // 5. Grant contact permissions to rep
-    const grantRef = doc(db, 'contactGrants', contactGrantId(doctorId, appt.repId));
-    txn.set(grantRef, {
-      doctorId,
-      repId: appt.repId,
-      grantedAt: serverTimestamp()
-    }, { merge: true });
-
-    // 6. Update doctor decision stats
-    const doctorRef = doc(db, 'doctors', doctorId);
-    txn.update(doctorRef, {
-      'stats.decisionsCount': increment(1)
-    });
-
-    return { tokenCode: code };
-  });
+  throw lastError || new Error('TOKEN_RETRY');
 }
 
 /**
- * Atomically declines an appointment
+ * Atomically declines an appointment request
  * @param {Object} params
  * @param {string} params.appointmentId
  * @param {string} params.doctorId
@@ -145,22 +178,57 @@ export async function declineAppointmentTransaction({ appointmentId, doctorId, d
   }
 
   const apptRef = doc(db, 'appointments', appointmentId);
-  const doctorRef = doc(db, 'doctors', doctorId);
 
-  await runTransaction(db, async (txn) => {
-    const apptSnap = await txn.get(apptRef);
-    if (!apptSnap.exists()) throw new Error('Appointment does not exist');
+  const createdAt = await runTransaction(db, async (tx) => {
+    const apptSnap = await tx.get(apptRef);
+    if (!apptSnap.exists()) throw new Error('ALREADY_DECIDED');
     const appt = apptSnap.data();
-    if (appt.doctorId !== doctorId) throw new Error('Unauthorized');
 
-    txn.update(apptRef, {
+    if (appt.doctorId !== doctorId) throw new Error('Unauthorized');
+    if (appt.status !== 'pending') throw new Error('ALREADY_DECIDED');
+
+    tx.update(apptRef, {
       status: 'declined',
-      declineReason: declineReason || '',
+      declineReason: declineReason.trim(),
       decidedAt: serverTimestamp()
     });
 
-    txn.update(doctorRef, {
-      'stats.decisionsCount': increment(1)
-    });
+    return appt.createdAt;
   });
+
+  // After transaction: update doctor decision stats
+  updateDoctorStatsAfterDecision(doctorId, createdAt).catch(console.error);
+}
+
+/**
+ * Helper to update doctor stats after decision (avgResponseMinutes and decisionsCount)
+ * @param {string} doctorId 
+ * @param {any} createdAtTimestamp 
+ */
+async function updateDoctorStatsAfterDecision(doctorId, createdAtTimestamp) {
+  try {
+    const docRef = doc(db, 'doctors', doctorId);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) return;
+
+    const stats = snap.data().stats || { avgResponseMinutes: 0, decisionsCount: 0 };
+    const avg = stats.avgResponseMinutes || 0;
+    const n = stats.decisionsCount || 0;
+
+    let minutesSinceCreated = 30; // fallback
+    if (createdAtTimestamp) {
+      const createdMs = createdAtTimestamp.toMillis ? createdAtTimestamp.toMillis() : new Date(createdAtTimestamp).getTime();
+      const diffMs = Math.max(0, Date.now() - createdMs);
+      minutesSinceCreated = Math.round(diffMs / 60000);
+    }
+
+    const newAvg = Math.round((avg * n + minutesSinceCreated) / (n + 1));
+    await updateDoc(docRef, {
+      'stats.avgResponseMinutes': newAvg,
+      'stats.decisionsCount': n + 1,
+      updatedAt: serverTimestamp()
+    });
+  } catch (err) {
+    console.error('Failed to update doctor stats:', err);
+  }
 }

@@ -1,17 +1,35 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState } from 'react';
-import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Clock, Calendar, CalendarDays, Users, Bell, Settings as SettingsIcon, Menu, X, QrCode, User, Building2 } from 'lucide-react';
+import { Routes, Route, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { 
+  LogOut, 
+  Clock, 
+  Calendar, 
+  CalendarDays, 
+  Users, 
+  Bell, 
+  Settings as SettingsIcon, 
+  Menu, 
+  X, 
+  QrCode, 
+  User, 
+  Building2 
+} from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { logout } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
-import DoctorHome from './DoctorHome';
 import DoctorPendingRequests from './DoctorPendingRequests';
-import DoctorApprovedRequests from './DoctorApprovedRequests';
-import DoctorRejectedRequests from './DoctorRejectedRequests';
+import DoctorToday from './DoctorToday';
+import DoctorUpcoming from './DoctorUpcoming';
 import DoctorReps from './DoctorReps';
-import DoctorProfileEdit from './DoctorProfileEdit';
+import DoctorNotices from './DoctorNotices';
 import DoctorSettings from './DoctorSettings';
 import DoctorClinics from './DoctorClinics';
+import DoctorProfileEdit from './DoctorProfileEdit';
 import DoctorProfileLinks from './DoctorProfileLinks';
 import DoctorScheduleSettings from '../doctor/DoctorScheduleSettings';
 
@@ -28,17 +46,18 @@ export default function DoctorDashboard() {
 
   const navItems = [
     { to: '/admin', icon: Clock, label: 'Pending', exact: true },
-    { to: '/admin/approved', icon: Calendar, label: 'Today', exact: true },
-    { to: '/admin/rejected', icon: CalendarDays, label: 'Upcoming', exact: true },
+    { to: '/admin/today', icon: Calendar, label: 'Today', exact: true },
+    { to: '/admin/upcoming', icon: CalendarDays, label: 'Upcoming', exact: true },
     { to: '/admin/reps', icon: Users, label: 'My Reps', exact: false },
-    { to: '/admin/profile', icon: Bell, label: 'Notices', exact: false },
+    { to: '/admin/notices', icon: Bell, label: 'Notices', exact: false },
     { to: '/admin/settings', icon: SettingsIcon, label: 'Settings', exact: false },
   ];
 
   const secondaryNavItems = [
     { to: '/admin/schedule', icon: Calendar, label: 'Rep Schedule' },
-    { to: '/admin/edit-profile', icon: User, label: 'Doctor Profile' },
     { to: '/admin/clinics', icon: Building2, label: 'Clinics' },
+    { to: '/admin/edit-profile', icon: User, label: 'Doctor Profile' },
+    { to: '/admin/profile', icon: QrCode, label: 'QR & Poster' },
   ];
 
   return (
@@ -115,10 +134,10 @@ export default function DoctorDashboard() {
           <div className="px-3 py-1 font-mono text-[0.625rem] uppercase tracking-wider text-ink-mute font-semibold">
             Overview
           </div>
-          {navItems.map(item => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.exact
-              ? location.pathname === item.to
+              ? location.pathname === item.to || (item.to === '/admin' && location.pathname === '/admin/pending')
               : location.pathname.startsWith(item.to);
 
             return (
@@ -142,7 +161,7 @@ export default function DoctorDashboard() {
           <div className="pt-3 px-3 py-1 font-mono text-[0.625rem] uppercase tracking-wider text-ink-mute font-semibold">
             Practice
           </div>
-          {secondaryNavItems.map(item => {
+          {secondaryNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.to;
             return (
@@ -179,16 +198,22 @@ export default function DoctorDashboard() {
       {/* Main Content Area */}
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-8 h-[100dvh] overflow-y-auto scroll-smooth">
         <Routes>
-          <Route path="/" element={<DoctorHome />} />
+          <Route path="/" element={<DoctorPendingRequests />} />
           <Route path="/pending" element={<DoctorPendingRequests />} />
-          <Route path="/approved" element={<DoctorApprovedRequests />} />
-          <Route path="/rejected" element={<DoctorRejectedRequests />} />
+          <Route path="/today" element={<DoctorToday />} />
+          <Route path="/upcoming" element={<DoctorUpcoming />} />
           <Route path="/reps" element={<DoctorReps />} />
+          <Route path="/notices" element={<DoctorNotices />} />
+          <Route path="/settings" element={<DoctorSettings />} />
           <Route path="/schedule" element={<DoctorScheduleSettings />} />
+          <Route path="/clinics" element={<DoctorClinics />} />
           <Route path="/edit-profile" element={<DoctorProfileEdit />} />
           <Route path="/profile" element={<DoctorProfileLinks />} />
-          <Route path="/clinics" element={<DoctorClinics />} />
-          <Route path="/settings" element={<DoctorSettings />} />
+          
+          {/* Fallback & Redirections */}
+          <Route path="/approved" element={<Navigate to="/admin/today" replace />} />
+          <Route path="/rejected" element={<Navigate to="/admin/upcoming" replace />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
     </div>

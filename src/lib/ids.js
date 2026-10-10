@@ -92,3 +92,12 @@ export function tokenCandidate(length = 6) {
   }
   return result;
 }
+
+/**
+ * Generates a 6-character token in canonical doctor format: 'RM' + 4 digits (e.g. 'RM4729')
+ * @returns {string}
+ */
+export function makeDoctorToken() {
+  const digits = Math.floor(1000 + Math.random() * 9000);
+  return `RM${digits}`;
+}
