@@ -77,3 +77,36 @@ export async function getSlotLedgersForDate(doctorId, slotDate) {
   });
   return map;
 }
+
+/**
+ * Subscribes to slot ledgers across a date range for a doctor
+ * @param {string} doctorId 
+ * @param {string} startDate yyyy-MM-dd
+ * @param {string} endDate yyyy-MM-dd
+ * @param {(ledgers: Record<string, number>) => void} callback 
+ * @returns {() => void}
+ */
+export function subscribeSlotLedgersForDateRange(doctorId, startDate, endDate, callback) {
+  if (!doctorId || !startDate || !endDate) {
+    callback({});
+    return () => {};
+  }
+  const q = query(
+    collection(db, COLLECTION),
+    where('doctorId', '==', doctorId),
+    where('slotDate', '>=', startDate),
+    where('slotDate', '<=', endDate)
+  );
+  return onSnapshot(q, (snap) => {
+    const map = {};
+    snap.docs.forEach(d => {
+      const data = d.data();
+      map[data.slotKey] = data.approvedCount || 0;
+    });
+    callback(map);
+  }, (err) => {
+    console.error('subscribeSlotLedgersForDateRange error:', err);
+    callback({});
+  });
+}
+

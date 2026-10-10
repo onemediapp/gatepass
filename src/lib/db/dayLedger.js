@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { dayLedgerId } from '../ids';
 
@@ -43,3 +43,36 @@ export function subscribeDayLedger(doctorId, slotDate, callback) {
     callback(0);
   });
 }
+
+/**
+ * Subscribes to day ledgers across a date range for a doctor
+ * @param {string} doctorId 
+ * @param {string} startDate yyyy-MM-dd
+ * @param {string} endDate yyyy-MM-dd
+ * @param {(ledgers: Record<string, number>) => void} callback 
+ * @returns {() => void}
+ */
+export function subscribeDayLedgersForDateRange(doctorId, startDate, endDate, callback) {
+  if (!doctorId || !startDate || !endDate) {
+    callback({});
+    return () => {};
+  }
+  const q = query(
+    collection(db, COLLECTION),
+    where('doctorId', '==', doctorId),
+    where('slotDate', '>=', startDate),
+    where('slotDate', '<=', endDate)
+  );
+  return onSnapshot(q, (snap) => {
+    const map = {};
+    snap.docs.forEach(d => {
+      const data = d.data();
+      map[data.slotDate] = data.approvedCount || 0;
+    });
+    callback(map);
+  }, (err) => {
+    console.error('subscribeDayLedgersForDateRange error:', err);
+    callback({});
+  });
+}
+

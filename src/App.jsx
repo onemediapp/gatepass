@@ -16,6 +16,8 @@ import RepHistory from './pages/rep/RepHistory';
 import RepProfile from './pages/rep/RepProfile';
 import DoctorSearch from './pages/rep/DoctorSearch';
 import DoctorProfile from './pages/doctor/DoctorProfile';
+import SlotPicker from './pages/rep/SlotPicker';
+import RequestDetails from './pages/rep/RequestDetails';
 // Doctor Pages
 import DoctorRegister from './pages/doctor/DoctorRegister';
 import DoctorDashboard from './pages/admin/DoctorDashboard';
@@ -69,6 +71,8 @@ export default function App() {
             <Route path="/rep/profile" element={<ProtectedRoute requiredRole="rep"><RepProfile /></ProtectedRoute>} />
             <Route path="/rep/search" element={<ProtectedRoute requiredRole="rep"><DoctorSearch /></ProtectedRoute>} />
             <Route path="/dr/:slug" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
+            <Route path="/dr/:slug/slots" element={<ProtectedRoute requiredRole="rep"><SlotPicker /></ProtectedRoute>} />
+            <Route path="/dr/:slug/request" element={<ProtectedRoute requiredRole="rep"><RequestDetails /></ProtectedRoute>} />
             <Route path="/dr/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
             <Route path="/doctor/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
 

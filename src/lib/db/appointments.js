@@ -1,6 +1,7 @@
 import {
   doc, getDoc, setDoc, addDoc, updateDoc, onSnapshot,
-  collection, query, where, orderBy, serverTimestamp, runTransaction
+  collection, query, where, orderBy, serverTimestamp, runTransaction,
+  writeBatch, getDocs
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { slotKey, slotLedgerId, dayLedgerId } from '../ids';
@@ -141,6 +142,99 @@ export async function createAppointment(data) {
 
   const docRef = await addDoc(collection(db, COLLECTION), payload);
   return docRef.id;
+}
+
+/**
+ * Checks if a rep already has an active (pending or approved) request with a doctor on a specific slot date
+ * @param {string} repId 
+ * @param {string} doctorId 
+ * @param {string} slotDate yyyy-MM-dd
+ * @returns {Promise<(AppointmentDoc & { id: string })|null>}
+ */
+export async function checkExistingActiveRequest(repId, doctorId, slotDate) {
+  if (!repId || !doctorId || !slotDate) return null;
+  const q = query(
+    collection(db, COLLECTION),
+    where('repId', '==', repId),
+    where('doctorId', '==', doctorId),
+    where('slotDate', '==', slotDate)
+  );
+  const snap = await getDocs(q);
+  const active = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .find(a => ['pending', 'approved'].includes(a.status));
+  return active || null;
+}
+
+/**
+ * Submits an appointment request and links doctor-rep in one atomic batched write
+ * @param {Partial<AppointmentDoc>} data 
+ * @returns {Promise<string>} created appointment ID
+ */
+export async function submitAppointmentWithLink(data) {
+  const { slotDate, slotStart, slotEnd, doctorId, repId } = data;
+  if (!slotDate || !slotStart || !slotEnd || !doctorId || !repId) {
+    throw new Error('slotDate, slotStart, slotEnd, doctorId, and repId are required');
+  }
+
+  const sKey = data.slotKey || slotKey(slotDate, slotStart);
+  const { slotStartAt, slotEndAt } = slotToTimestamps(slotDate, slotStart, slotEnd);
+
+  const batch = writeBatch(db);
+  const apptRef = doc(collection(db, COLLECTION));
+
+  const payload = {
+    doctorId,
+    clinicId: data.clinicId || '',
+    repId,
+    repSnapshot: {
+      name: data.repSnapshot?.name || '',
+      company: data.repSnapshot?.company || '',
+      designation: data.repSnapshot?.designation || '',
+      mobile: data.repSnapshot?.mobile || '',
+      therapeuticCategory: data.repSnapshot?.therapeuticCategory || ''
+    },
+    doctorSnapshot: {
+      name: data.doctorSnapshot?.name || '',
+      specialty: data.doctorSnapshot?.specialty || '',
+      clinicName: data.doctorSnapshot?.clinicName || '',
+      city: data.doctorSnapshot?.city || ''
+    },
+    productFocus: (data.productFocus || '').slice(0, 300),
+    therapeuticCategory: data.therapeuticCategory || '',
+    message: (data.message || '').slice(0, 500),
+    samplesFlag: Boolean(data.samplesFlag),
+    noticeId: data.noticeId || '',
+    slotDate,
+    slotStart,
+    slotEnd,
+    slotKey: sKey,
+    slotStartAt,
+    slotEndAt,
+    status: 'pending',
+    declineReason: '',
+    token: '',
+    tokenIssuedAt: null,
+    tokenExpiresAt: null,
+    decidedAt: null,
+    outcome: '',
+    outcomeAt: null,
+    doctorNotes: '',
+    createdAt: toTimestamp(data.createdAt || serverTimestamp())
+  };
+
+  batch.set(apptRef, payload);
+
+  const linkId = `${doctorId}_${repId}`;
+  const linkRef = doc(db, 'doctorRepLinks', linkId);
+  batch.set(linkRef, {
+    doctorId,
+    repId,
+    firstContactAt: serverTimestamp()
+  }, { merge: true });
+
+  await batch.commit();
+  return apptRef.id;
 }
 
 /**
