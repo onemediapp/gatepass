@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeDoctorAppointments } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { Search, Star, Slash } from 'lucide-react';
@@ -12,39 +11,29 @@ export default function DoctorReps() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadReps() {
-       if (!user) return;
-       try {
-          const q = query(
-             collection(db, 'appointments'),
-             where('doctorId', '==', user.uid),
-             where('status', 'in', ['approved', 'expired'])
-          );
-          const snap = await getDocs(q);
-          const repMap = new Map();
-          snap.docs.forEach(d => {
-             const data = d.data();
-             if (!repMap.has(data.repId)) {
-                repMap.set(data.repId, {
-                   id: data.repId,
-                   snapshot: data.repSnapshot,
-                   visits: 1,
-                   lastVisit: data.approvedDate
-                });
-             } else {
-                const existing = repMap.get(data.repId);
-                existing.visits += 1;
-                if (data.approvedDate > existing.lastVisit) existing.lastVisit = data.approvedDate;
-             }
+    if (!user) return;
+
+    const unsub = subscribeDoctorAppointments(user.uid, (appointments) => {
+      const repMap = new Map();
+      appointments.forEach((data) => {
+        if (!['approved', 'expired', 'completed'].includes(data.status)) return;
+        if (!repMap.has(data.repId)) {
+          repMap.set(data.repId, {
+            id: data.repId,
+            snapshot: data.repSnapshot,
+            visits: 1,
+            lastVisit: data.slotDate || data.approvedDate
           });
-          setReps(Array.from(repMap.values()));
-       } catch (error) {
-          handleFirestoreError(error, OperationType.LIST, 'appointments_reps');
-       } finally {
-          setLoading(false);
-       }
-    }
-    loadReps();
+        } else {
+          const existing = repMap.get(data.repId);
+          existing.visits += 1;
+        }
+      });
+      setReps(Array.from(repMap.values()));
+      setLoading(false);
+    });
+
+    return () => unsub();
   }, [user]);
 
   if (loading) return <div className="text-gray-500 font-medium font-sans flex items-center gap-2 p-4">Loading network...</div>;

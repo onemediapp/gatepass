@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { serverTimestamp, doc, writeBatch, collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { createUser } from '../../lib/db/users';
+import { createDoctor } from '../../lib/db/doctors';
+import { setDoctorContact } from '../../lib/db/doctorContacts';
+import { createClinic } from '../../lib/db/clinics';
+import { linkDoctorClinic } from '../../lib/db/doctorClinics';
+import { setDoctorSlug } from '../../lib/db/doctorSlugs';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { SearchableSelect } from '../../components/ui/SearchableSelect';
@@ -91,75 +95,56 @@ export default function DoctorRegister() {
     setIsSubmitting(true);
     
     try {
-      const batch = writeBatch(db);
-      
-      const userRef = doc(db, 'users', user.uid);
-      const doctorRef = doc(db, 'doctors', user.uid);
-      
       const generatedUserData = {
-        name: user.displayName || 'Unknown',
+        name: user.displayName || 'Doctor',
         email: user.email || '',
         photoUrl: user.photoURL || '',
         mobile: profileData.mobile,
         role: ['doctor'],
         isActive: true,
-        createdAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
       };
-      batch.set(userRef, generatedUserData);
+      await createUser(user.uid, generatedUserData);
 
       let createdClinicId = null;
 
       if (clinicOption === 'A' && clinicData.clinicName && clinicData.address) {
-        const newClinicRef = doc(collection(db, 'clinics'));
-        createdClinicId = newClinicRef.id;
-        
         let baseSlug = generateSlug(`${clinicData.clinicName}-${profileData.city}`);
-        const slugQuery = query(collection(db, 'clinics'), where('slug', '==', baseSlug));
-        const slugSnap = await getDocs(slugQuery);
-        if (!slugSnap.empty) {
-          baseSlug = `${baseSlug}-${Math.floor(Math.random() * 1000)}`;
-        }
-
-        const newClinicData = {
-          clinicId: baseSlug,
-          ownerDoctorId: user.uid,
+        createdClinicId = await createClinic({
           clinicName: clinicData.clinicName,
           address: clinicData.address,
           city: profileData.city,
           state: profileData.state,
           phone: clinicData.phone,
           slug: baseSlug,
+          ownerDoctorId: user.uid,
           qrCodeData: `${window.location.origin}/clinic/${baseSlug}`,
-          isActive: true,
-          createdAt: serverTimestamp(),
-        };
-        batch.set(newClinicRef, newClinicData);
+          isActive: true
+        });
 
-        const newJunctionRef = doc(collection(db, 'doctorClinics'));
-        batch.set(newJunctionRef, {
-          doctorId: user.uid,
-          clinicId: createdClinicId,
-          role: 'owner',
-          schedule: clinicData.repHours,
-          isActive: true,
-          attachedAt: serverTimestamp(),
+        await linkDoctorClinic(user.uid, createdClinicId);
+      }
+
+      if (profileData.mobile) {
+        await setDoctorContact(user.uid, {
+          whatsappNumber: profileData.mobile,
+          phone: profileData.mobile
         });
       }
-      
-      const generatedDoctorData = {
+
+      const drSlug = generateSlug(user.displayName || 'doctor') + '-' + user.uid.slice(0, 4);
+      await setDoctorSlug(drSlug, user.uid);
+
+      await createDoctor(user.uid, {
         uid: user.uid,
+        name: user.displayName || 'Doctor',
         specialty: profileData.specialty,
         qualifications: profileData.qualifications,
-        regNumber: profileData.regNumber || null,
+        regNumber: profileData.regNumber || '',
+        yearsExperience: Number(profileData.experience || 0),
         city: profileData.city,
         state: profileData.state,
         clinicIds: createdClinicId ? [createdClinicId] : [],
-        preferredRepIds: [],
-        blockedRepIds: [],
-        repHours: clinicData.repHours || '',
-        whatsappNumber: profileData.mobile,
-        subscriptionPlan: 'free',
+        profileSlug: drSlug,
         privacy: {
           visibleInSearch: true,
           showFullName: true,
@@ -168,18 +153,10 @@ export default function DoctorRegister() {
           showClinicName: true,
           showRepHours: true,
           allowAppointmentRequest: true,
-          phoneVisibility: 'hidden',
           allowWhatsAppRedirect: true,
-          autoApprovePreferred: false,
-          blockListEnforcement: true,
-          maxApprovalsPerDay: 0,
-        },
-        updatedAt: serverTimestamp(),
-      };
-      
-      batch.set(doctorRef, generatedDoctorData);
-      
-      await batch.commit();
+          rejectionReasonsEnabled: true
+        }
+      });
       
       setUserData(generatedUserData);
       navigate('/admin/settings');

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, limit, getDocs, where, orderBy } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { listVisibleDoctors } from '../../lib/db/doctors';
+import { getUser } from '../../lib/db/users';
 import { Search, MapPin, SearchX, Filter, ArrowLeft, Clock, Activity, ChevronRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
@@ -24,35 +24,25 @@ export default function DoctorSearch() {
     setHasSearched(true);
     
     try {
-      let q = query(collection(db, 'doctors'), where('privacy.visibleInSearch', '==', true), limit(50));
-      const snap = await getDocs(q);
-      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const docs = await listVisibleDoctors({
+        city: filterCity || undefined,
+        specialty: filterSpecialty || undefined
+      });
       
       const searchLower = searchTerm.toLowerCase().trim();
       const filtered = docs.filter(d => {
          const nameMatch = d.name?.toLowerCase().includes(searchLower) || false;
          const specMatch = d.specialty?.toLowerCase().includes(searchLower) || false;
          const cityMatch = d.city?.toLowerCase().includes(searchLower) || false;
-         
-         const termMatch = !searchLower || nameMatch || specMatch || cityMatch;
-         const fCityMatch = !filterCity || d.city?.toLowerCase() === filterCity.toLowerCase().trim();
-         const fSpecMatch = !filterSpecialty || d.specialty === filterSpecialty;
-         
-         return termMatch && fCityMatch && fSpecMatch;
+         return !searchLower || nameMatch || specMatch || cityMatch;
       });
 
       const enriched = await Promise.all(filtered.map(async (d) => {
          try {
-           const uSnap = await getDocs(query(collection(db, 'users'), where('__name__', '==', d.id)));
-           const uData = uSnap.empty ? {} : uSnap.docs[0].data();
-           
-           const userName = uData.name || 'Doctor';
-           if (searchLower && !nameMatch && !specMatch && !cityMatch) {
-              if (!userName.toLowerCase().includes(searchLower)) return null;
-           }
-
-           return { ...d, name: userName, photoUrl: uData.photoUrl || null };
-         } catch(e) { return null; }
+           const uData = await getUser(d.id);
+           const userName = uData?.name || d.name || 'Doctor';
+           return { ...d, name: userName, photoUrl: uData?.photoUrl || d.photoUrl || null };
+         } catch(e) { return d; }
       }));
 
       setResults(enriched.filter(Boolean));

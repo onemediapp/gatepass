@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
-import { db, logout } from '../../lib/firebase';
+import { logout } from '../../lib/firebase';
 import { useAuth } from '../../lib/auth';
+import { checkDoctorInvite } from '../../lib/db/invites';
 import { Activity, Briefcase, AlertCircle, ArrowRight, LogOut, CheckCircle2 } from 'lucide-react';
 
 export default function RoleChooser() {
@@ -21,11 +21,9 @@ export default function RoleChooser() {
     setInviteError('');
 
     try {
-      const emailKey = user.email.trim().toLowerCase();
-      const inviteRef = doc(db, 'invites', emailKey);
-      const inviteSnap = await getDoc(inviteRef);
+      const isInvited = await checkDoctorInvite(user.email);
 
-      if (inviteSnap.exists()) {
+      if (isInvited) {
         navigate('/doctor/register');
       } else {
         setInviteError('Doctor accounts are invite-only during beta. Ask Dr. Karthik for an invite.');

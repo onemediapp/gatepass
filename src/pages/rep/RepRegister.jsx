@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { serverTimestamp, doc, writeBatch } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { createUser } from '../../lib/db/users';
+import { createRep } from '../../lib/db/reps';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { SearchableSelect } from '../../components/ui/SearchableSelect';
@@ -95,23 +95,15 @@ export default function RepRegister() {
     setIsSubmitting(true);
     
     try {
-      const batch = writeBatch(db);
-      
-      const userRef = doc(db, 'users', user.uid);
-      const repRef = doc(db, 'reps', user.uid);
-      
       const userData = {
-        name: user.displayName || 'Unknown',
+        name: user.displayName || 'Rep',
         email: user.email || '',
         photoUrl: user.photoURL || '',
         mobile: formData.mobile,
         role: ['rep'],
         isActive: true,
-        createdAt: serverTimestamp(),
-        lastLoginAt: serverTimestamp(),
       };
-      
-      batch.set(userRef, userData);
+      await createUser(user.uid, userData);
       
       const repData = {
         uid: user.uid,
@@ -120,19 +112,15 @@ export default function RepRegister() {
         division: formData.division,
         designation: formData.designation,
         therapeuticCategory: formData.therapeuticCategory,
-        therapeuticCategory2: formData.therapeuticCategory2 || null,
+        therapeuticCategory2: formData.therapeuticCategory2 || '',
         productNames: formData.productNames,
         molecules: formData.molecules,
         dosageForms: formData.dosageForms,
         samplesAvailable: formData.samplesAvailable,
-        companyOffice: formData.companyOffice || null,
-        medInfoHelpline: formData.medInfoHelpline || null,
-        updatedAt: serverTimestamp(),
+        companyOffice: formData.companyOffice || '',
+        medInfoHelpline: formData.medInfoHelpline || '',
       };
-      
-      batch.set(repRef, repData);
-      
-      await batch.commit();
+      await createRep(user.uid, repData);
       
       setUserData(userData);
       navigate('/rep/home');

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { listClinicsByDoctor, createClinic, updateClinic } from '../../lib/db/clinics';
+import { linkDoctorClinic } from '../../lib/db/doctorClinics';
+import { getDoctor, updateDoctor } from '../../lib/db/doctors';
 import { useAuth } from '../../lib/auth';
 import { Building2, Plus, Edit2, X, Check } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
@@ -30,12 +31,7 @@ export default function DoctorClinics() {
   async function loadClinics() {
     if (!user) return;
     try {
-      const q = query(
-        collection(db, 'clinics'),
-        where('ownerDoctorId', '==', user.uid)
-      );
-      const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const data = await listClinicsByDoctor(user.uid);
       setClinics(data);
     } catch (err) {
       console.error(err);
@@ -73,7 +69,7 @@ export default function DoctorClinics() {
     
     try {
       if (editingClinic) {
-        await updateDoc(doc(db, 'clinics', editingClinic.id), {
+        await updateClinic(editingClinic.id, {
           clinicName: formData.clinicName,
           address: formData.address,
           city: formData.city,
@@ -82,14 +78,8 @@ export default function DoctorClinics() {
           repHours: formData.repHours
         });
       } else {
-        const batch = writeBatch(db);
-        
         const baseSlug = generateSlug(formData.clinicName);
-        const newClinicRef = doc(collection(db, 'clinics'));
-        
-        const newClinicData = {
-          clinicId: baseSlug,
-          ownerDoctorId: user.uid,
+        const newClinicId = await createClinic({
           clinicName: formData.clinicName,
           address: formData.address,
           city: formData.city,
@@ -97,33 +87,20 @@ export default function DoctorClinics() {
           phone: formData.phone,
           repHours: formData.repHours,
           slug: baseSlug,
+          ownerDoctorId: user.uid,
           qrCodeData: `${window.location.origin}/clinic/${baseSlug}`,
-          isActive: true,
-          createdAt: serverTimestamp(),
-        };
-        batch.set(newClinicRef, newClinicData);
-        
-        const newJunctionRef = doc(collection(db, 'doctorClinics'));
-        batch.set(newJunctionRef, {
-          doctorId: user.uid,
-          clinicId: newClinicRef.id,
-          role: 'owner',
-          schedule: formData.repHours,
-          isActive: true,
-          attachedAt: serverTimestamp(),
+          isActive: true
         });
-        
-        // Update doctor clinicIds array
-        const drSnap = await getDocs(query(collection(db, 'doctors'), where('uid', '==', user.uid)));
-        if (!drSnap.empty) {
-            const drRef = drSnap.docs[0].ref;
-            const currentIds = drSnap.docs[0].data().clinicIds || [];
-            batch.update(drRef, {
-                clinicIds: [...currentIds, newClinicRef.id]
-            });
+
+        await linkDoctorClinic(user.uid, newClinicId);
+
+        const dr = await getDoctor(user.uid);
+        if (dr) {
+          const currentIds = dr.clinicIds || [];
+          await updateDoctor(user.uid, {
+            clinicIds: [...currentIds, newClinicId]
+          });
         }
-        
-        await batch.commit();
       }
       
       setShowModal(false);

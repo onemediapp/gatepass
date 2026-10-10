@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDocs, collection, query, where, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getClinicBySlug } from '../lib/db/clinics';
+import { getDoctor } from '../lib/db/doctors';
+import { getUser } from '../lib/db/users';
 import { useAuth } from '../lib/auth';
 import { MapPin, Phone, Clock, ArrowRight, User } from 'lucide-react';
 
@@ -17,24 +18,15 @@ export default function ClinicPage() {
   useEffect(() => {
     async function fetchClinic() {
       try {
-        const q = query(collection(db, 'clinics'), where('slug', '==', clinicSlug));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const clinicData = snap.docs[0].data();
-          setClinic({ id: snap.docs[0].id, ...clinicData });
+        const clinicData = await getClinicBySlug(clinicSlug);
+        if (clinicData) {
+          setClinic(clinicData);
           
           if (clinicData.ownerDoctorId) {
-            const drQuery = query(collection(db, 'doctors'), where('uid', '==', clinicData.ownerDoctorId));
-            const drSnap = await getDocs(drQuery);
-            if (!drSnap.empty) {
-              const drData = drSnap.docs[0].data();
-              // also get user doc to get the doctor's name
-              const usrDoc = await getDoc(doc(db, 'users', clinicData.ownerDoctorId));
-              if(usrDoc.exists()) {
-                 setDoctor({ ...drData, name: usrDoc.data().name });
-              } else {
-                 setDoctor(drData);
-              }
+            const drData = await getDoctor(clinicData.ownerDoctorId);
+            if (drData) {
+              const usrDoc = await getUser(clinicData.ownerDoctorId);
+              setDoctor({ ...drData, name: usrDoc?.name || drData.name });
             }
           }
         }

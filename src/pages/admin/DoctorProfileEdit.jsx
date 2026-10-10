@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { getDoctor, updateDoctor } from '../../lib/db/doctors';
+import { updateUser } from '../../lib/db/users';
+import { getDoctorContact, setDoctorContact } from '../../lib/db/doctorContacts';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { Check } from 'lucide-react';
@@ -15,11 +16,13 @@ export default function DoctorProfileEdit() {
     async function loadData() {
        if (!user) return;
        try {
-         const snap = await getDoc(doc(db, 'doctors', user.uid));
-         if (snap.exists()) {
+         const dr = await getDoctor(user.uid);
+         const contact = await getDoctorContact(user.uid);
+         if (dr) {
             setFormData({
-              ...snap.data(),
-              name: userData?.name || ''
+              ...dr,
+              name: userData?.name || dr.name || '',
+              whatsappNumber: contact?.whatsappNumber || ''
             });
          }
        } catch (error) {}
@@ -34,16 +37,21 @@ export default function DoctorProfileEdit() {
     if (!formData) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'doctors', user.uid), {
+      await updateDoctor(user.uid, {
+        name: formData.name,
         specialty: formData.specialty,
         qualifications: formData.qualifications,
-        whatsappNumber: formData.whatsappNumber,
         city: formData.city,
         state: formData.state
       });
-      await updateDoc(doc(db, 'users', user.uid), {
+      await updateUser(user.uid, {
         name: formData.name
       });
+      if (formData.whatsappNumber) {
+        await setDoctorContact(user.uid, {
+          whatsappNumber: formData.whatsappNumber
+        });
+      }
       if (setUserData) {
         setUserData(prev => ({ ...prev, name: formData.name }));
       }

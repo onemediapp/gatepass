@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { listClinicsByDoctor } from '../../lib/db/clinics';
 import { useAuth } from '../../lib/auth';
 import { Copy, Check, QrCode, ExternalLink } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -15,12 +14,7 @@ export default function DoctorProfileLinks() {
     async function loadClinics() {
       if (!user) return;
       try {
-        const q = query(
-          collection(db, 'clinics'),
-          where('doctorId', '==', user.uid)
-        );
-        const snap = await getDocs(q);
-        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const data = await listClinicsByDoctor(user.uid);
         setClinics(data);
       } catch (err) {
         console.error(err);

@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, writeBatch, serverTimestamp, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeDoctorPendingAppointments } from '../../lib/db/appointments';
+import { approveAppointmentTransaction, declineAppointmentTransaction } from '../../lib/db/transactions';
+import { updateRepRelation } from '../../lib/db/repRelations';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
-import { getMidnightIST } from '../../utils/dateUtils';
 import { Check, X, Star, Slash, XCircle, Search, Calendar, MapPin, ChevronDown } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
-
-const makeToken = () => 'RM' + Math.floor(1000 + Math.random() * 9000);
+import { format } from 'date-fns';
 
 export default function DoctorPendingRequests() {
   const { user } = useAuth();
@@ -22,18 +20,8 @@ export default function DoctorPendingRequests() {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, 'appointments'),
-      where('doctorId', '==', user.uid),
-      where('status', '==', 'pending'),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
-      setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    }, error => {
-      handleFirestoreError(error, OperationType.LIST, 'appointments');
+    const unsub = subscribeDoctorPendingAppointments(user.uid, (data) => {
+      setRequests(data);
       setLoading(false);
     });
 
@@ -60,40 +48,16 @@ export default function DoctorPendingRequests() {
   };
 
   const confirmApprove = async () => {
+     if (!approveModalReq) return;
      setIsProcessing(true);
      try {
-        const batch = writeBatch(db);
-        const tokenStr = makeToken();
-        const appDate = parseISO(approveForm.date);
-        
-        const appRef = doc(db, 'appointments', approveModalReq.id);
-        const tokenRef = doc(db, 'tokens', tokenStr);
-        
-        batch.update(appRef, {
-           status: 'approved',
-           token: tokenStr,
-           approvedDate: appDate,
-           approvedTimeSlot: approveForm.timeSlot,
-           tokenIssuedAt: serverTimestamp(),
-           tokenExpiresAt: getMidnightIST(appDate),
-           doctorNotes: approveForm.notes || null,
-           approvedAt: serverTimestamp(),
-        });
-
-        batch.set(tokenRef, {
-           tokenCode: tokenStr,
+        await approveAppointmentTransaction({
            appointmentId: approveModalReq.id,
-           doctorId: user.uid,
-           clinicId: approveModalReq.clinicId,
-           repId: approveModalReq.repId,
-           approvedDate: appDate,
-           expiresAt: getMidnightIST(appDate),
-           isUsed: false
+           doctorId: user.uid
         });
-
-        await batch.commit();
         setApproveModalReq(null);
      } catch (error) {
+        console.error('Approve error:', error);
         handleFirestoreError(error, OperationType.UPDATE, `appointments/${approveModalReq?.id}`);
      } finally {
         setIsProcessing(false);
@@ -102,12 +66,11 @@ export default function DoctorPendingRequests() {
 
   const confirmReject = async (reqId) => {
      try {
-       const batch = writeBatch(db);
-       batch.update(doc(db, 'appointments', reqId), {
-          status: 'rejected',
-          approvedAt: serverTimestamp()
+       await declineAppointmentTransaction({
+          appointmentId: reqId,
+          doctorId: user.uid,
+          declineReason: 'Declined by doctor'
        });
-       await batch.commit();
      } catch (error) {
        handleFirestoreError(error, OperationType.UPDATE, `appointments/${reqId}`);
      }
@@ -115,16 +78,11 @@ export default function DoctorPendingRequests() {
 
   const markPreferred = async (repId) => {
      try {
-        const dRef = doc(db, 'doctors', user.uid);
-        const snap = await getDoc(dRef);
-        const arr = snap.data()?.preferredRepIds || [];
-        if (!arr.includes(repId)) {
-           const batch = writeBatch(db);
-           batch.update(dRef, { preferredRepIds: [...arr, repId] });
-           await batch.commit();
-           alert('Marked as Preferred rep');
-        }
-     } catch(e) {}
+        await updateRepRelation(user.uid, repId, { preferred: true });
+        alert('Marked as Preferred rep');
+     } catch(e) {
+        console.error(e);
+     }
   };
 
   if (loading) return <div className="text-gray-400 font-medium font-sans flex items-center justify-center p-8 animate-pulse">Loading requests...</div>;

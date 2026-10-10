@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
-import { collection, query, where, orderBy, getDocs, limit, onSnapshot } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeRepAppointments } from '../../lib/db/appointments';
 import { RepBottomNav } from '../../components/layout/RepBottomNav';
 import { 
   Search, Bell, Clock, Building2, MapPin, Activity, Stethoscope, 
@@ -25,54 +24,15 @@ export default function RepHome() {
   useEffect(() => {
     if (!user) return;
     
-    // Listen to active (pending or approved but unused) appointments
-    const q = query(
-      collection(db, 'appointments'),
-      where('repId', '==', user.uid),
-      where('status', 'in', ['pending', 'approved']),
-      orderBy('createdAt', 'desc'),
-      limit(5)
-    );
-
-    const unsubscribe = onSnapshot(q, async (snap) => {
-      const requests = [];
-      for (const reqDoc of snap.docs) {
-         const requestData = reqDoc.data();
-         requests.push({ id: reqDoc.id, ...requestData });
-      }
-      setActiveRequests(requests);
+    const unsubscribe = subscribeRepAppointments(user.uid, (all) => {
+      const active = all.filter(a => ['pending', 'approved'].includes(a.status)).slice(0, 5);
+      setActiveRequests(active);
+      setRecentUpdates(all.slice(0, 10));
+      setTodayAppointments(all.slice(0, 20));
       setLoading(false);
     });
 
-    // Listen to recent status updates for notifications
-    const notifQ = query(
-      collection(db, 'appointments'),
-      where('repId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(10)
-    );
-
-    const notifUnsub = onSnapshot(notifQ, (snap) => {
-      const updates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setRecentUpdates(updates);
-    });
-
-    // Listen to all appointments for DCR generation
-    const dcrQ = query(
-      collection(db, 'appointments'),
-      where('repId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
-    const dcrUnsub = onSnapshot(dcrQ, (snap) => {
-      setTodayAppointments(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
-
-    return () => {
-      unsubscribe();
-      notifUnsub();
-      dcrUnsub();
-    };
+    return () => unsubscribe();
   }, [user]);
 
   const generateDcrText = () => {

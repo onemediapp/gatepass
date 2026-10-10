@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeDoctor, updateDoctor } from '../../lib/db/doctors';
+import { subscribeDoctorAppointments, updateAppointment } from '../../lib/db/appointments';
+import { approveAppointmentTransaction, declineAppointmentTransaction } from '../../lib/db/transactions';
 import { useAuth } from '../../lib/auth';
 import { getMidnightIST } from '../../utils/dateUtils';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
@@ -37,20 +38,11 @@ export default function DoctorHome() {
     if (!user) return;
 
     // Load and listen to doctor profile
-    const unsubDoc = onSnapshot(doc(db, 'doctors', user.uid), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        setDoctorProfile(data);
-      }
-    }, (err) => console.error(err));
+    const unsubDoc = subscribeDoctor(user.uid, (data) => {
+      setDoctorProfile(data);
+    });
 
-    const q = query(
-      collection(db, 'appointments'),
-      where('doctorId', '==', user.uid)
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const unsubAppts = subscribeDoctorAppointments(user.uid, (data) => {
       // Sort newest created or approved first
       data.sort((a, b) => {
         const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
@@ -59,25 +51,22 @@ export default function DoctorHome() {
       });
       setAppointments(data);
       setLoading(false);
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'appointments');
-      setLoading(false);
     });
 
     return () => {
       unsubDoc();
-      unsub();
+      unsubAppts();
     };
   }, [user]);
 
   const updateOpdBeacon = async (beaconStatus, message = '') => {
     if (!user) return;
     try {
-      await updateDoc(doc(db, 'doctors', user.uid), {
+      await updateDoctor(user.uid, {
         opdBeacon: {
           status: beaconStatus,
           message: message,
-          updatedAt: serverTimestamp()
+          updatedAt: new Date()
         }
       });
     } catch (e) {
@@ -187,38 +176,13 @@ export default function DoctorHome() {
     if (!approveModalReq) return;
     setIsProcessing(true);
     try {
-      const batch = writeBatch(db);
-      const tokenStr = makeToken();
-      const appDate = parseISO(approveForm.date);
-      
-      const appRef = doc(db, 'appointments', approveModalReq.id);
-      const tokenRef = doc(db, 'tokens', tokenStr);
-      
-      batch.update(appRef, {
-        status: 'approved',
-        token: tokenStr,
-        approvedDate: appDate,
-        approvedTimeSlot: approveForm.timeSlot,
-        tokenIssuedAt: serverTimestamp(),
-        tokenExpiresAt: getMidnightIST(appDate),
-        doctorNotes: approveForm.notes || null,
-        approvedAt: serverTimestamp(),
-      });
-
-      batch.set(tokenRef, {
-        tokenCode: tokenStr,
+      await approveAppointmentTransaction({
         appointmentId: approveModalReq.id,
-        doctorId: user.uid,
-        clinicId: approveModalReq.clinicId,
-        repId: approveModalReq.repId,
-        approvedDate: appDate,
-        expiresAt: getMidnightIST(appDate),
-        isUsed: false
+        doctorId: user.uid
       });
-
-      await batch.commit();
       setApproveModalReq(null);
     } catch (error) {
+      console.error('Approval error:', error);
       handleFirestoreError(error, OperationType.UPDATE, `appointments/${approveModalReq?.id}`);
     } finally {
       setIsProcessing(false);
@@ -227,9 +191,10 @@ export default function DoctorHome() {
 
   const confirmReject = async (reqId) => {
     try {
-      await updateDoc(doc(db, 'appointments', reqId), {
-        status: 'rejected',
-        rejectedAt: serverTimestamp()
+      await declineAppointmentTransaction({
+        appointmentId: reqId,
+        doctorId: user.uid,
+        declineReason: 'Declined by doctor'
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `appointments/${reqId}`);
@@ -238,9 +203,8 @@ export default function DoctorHome() {
 
   const markCompleted = async (reqId) => {
     try {
-      await updateDoc(doc(db, 'appointments', reqId), {
-        status: 'completed',
-        completedAt: serverTimestamp()
+      await updateAppointment(reqId, {
+        status: 'completed'
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `appointments/${reqId}`);

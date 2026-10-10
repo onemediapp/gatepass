@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { subscribeAppointment } from '../lib/db/appointments';
+import { getDoctor } from '../lib/db/doctors';
+import { getUser } from '../lib/db/users';
+import { getClinic } from '../lib/db/clinics';
 import { handleFirestoreError, OperationType } from '../utils/firebaseErrors';
 import { Clock, CheckCircle2, XCircle, MapPin, Calendar, ExternalLink, ShieldCheck, ChevronLeft, Ticket, Share2, AlertTriangle, Coffee } from 'lucide-react';
 import { format } from 'date-fns';
@@ -42,45 +44,37 @@ export default function StatusCheck() {
   useEffect(() => {
     if (!appointmentId) return;
 
-    const unsub = onSnapshot(
-      doc(db, 'appointments', appointmentId),
-      async (snap) => {
-        if (!snap.exists()) {
-          setLoading(false);
-          setErrorStatus('not_found');
-          return;
-        }
-        
-        const data = snap.data();
-        let currentStatus = data.status;
-
-        // Auto expire if approved but past midnight
-        if (data.status === 'approved' && data.tokenExpiresAt) {
-           if (new Date() > data.tokenExpiresAt.toDate()) {
-              currentStatus = 'expired';
-           }
-        }
-        
-        setAppointment({ id: snap.id, ...data, computedStatus: currentStatus });
-        
-        // Fetch relations if not already fetched
-        if (!doctor && data.doctorId) {
-           const [dSnap, uSnap, cSnap] = await Promise.all([
-             getDoc(doc(db, 'doctors', data.doctorId)),
-             getDoc(doc(db, 'users', data.doctorId)),
-             data.clinicId ? getDoc(doc(db, 'clinics', data.clinicId)) : Promise.resolve({ exists: () => false })
-           ]);
-           if (dSnap.exists()) setDoctor({ ...dSnap.data(), name: uSnap.exists() ? uSnap.data().name : 'Unknown' });
-           if (cSnap.exists()) setClinic(cSnap.data());
-        }
+    const unsub = subscribeAppointment(appointmentId, async (data) => {
+      if (!data) {
         setLoading(false);
-      },
-      (error) => {
-         handleFirestoreError(error, OperationType.GET, `appointments/${appointmentId}`);
-         setLoading(false);
-         setErrorStatus('error');
+        setErrorStatus('not_found');
+        return;
       }
-    );
+      
+      let currentStatus = data.status;
+
+      // Auto expire if approved but past midnight
+      if (data.status === 'approved' && data.tokenExpiresAt) {
+         const expDate = data.tokenExpiresAt.toDate ? data.tokenExpiresAt.toDate() : new Date(data.tokenExpiresAt);
+         if (new Date() > expDate) {
+            currentStatus = 'expired';
+         }
+      }
+      
+      setAppointment({ ...data, computedStatus: currentStatus });
+      
+      // Fetch relations if not already fetched
+      if (!doctor && data.doctorId) {
+         const [drData, uData, cData] = await Promise.all([
+           getDoctor(data.doctorId),
+           getUser(data.doctorId),
+           data.clinicId ? getClinic(data.clinicId) : Promise.resolve(null)
+         ]);
+         if (drData) setDoctor({ ...drData, name: uData?.name || drData.name || 'Unknown' });
+         if (cData) setClinic(cData);
+      }
+      setLoading(false);
+    });
 
     return () => unsub();
   }, [appointmentId]); 

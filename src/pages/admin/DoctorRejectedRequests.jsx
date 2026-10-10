@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeDoctorAppointments } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { XCircle } from 'lucide-react';
@@ -13,17 +12,11 @@ export default function DoctorRejectedRequests() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'appointments'),
-      where('doctorId', '==', user.uid),
-      where('status', '==', 'rejected'),
-    );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setRequests(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => b.createdAt?.toMillis() - a.createdAt?.toMillis()));
-      setLoading(false);
-    }, error => {
-      handleFirestoreError(error, OperationType.LIST, 'appointments');
+    const unsub = subscribeDoctorAppointments(user.uid, (allAppointments) => {
+      const rejected = allAppointments.filter(a => a.status === 'declined' || a.status === 'rejected');
+      rejected.sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0));
+      setRequests(rejected);
       setLoading(false);
     });
 

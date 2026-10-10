@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { getDoctor } from '../../lib/db/doctors';
+import { getUser } from '../../lib/db/users';
+import { getClinic } from '../../lib/db/clinics';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { MapPin, Clock, Phone, MessageCircle, Calendar, ArrowLeft, ShieldCheck, Building2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -17,31 +18,27 @@ export default function DoctorProfile() {
   useEffect(() => {
     async function fetchDoctor() {
       try {
-        const docRef = doc(db, 'doctors', doctorId);
-        const docSnap = await getDoc(docRef);
-        
-        if (!docSnap.exists()) {
+        const data = await getDoctor(doctorId);
+        if (!data) {
           setDoctor(null);
           setLoading(false);
           return;
         }
         
-        const data = docSnap.data();
-        const uSnap = await getDoc(doc(db, 'users', doctorId));
-        const uData = uSnap.exists() ? uSnap.data() : {};
+        const uData = await getUser(doctorId);
         
         setDoctor({
-           id: docSnap.id,
+           id: doctorId,
            ...data,
-           name: uData.name || 'Doctor',
-           photoUrl: uData.photoUrl || null
+           name: uData?.name || data.name || 'Doctor',
+           photoUrl: uData?.photoUrl || data.photoUrl || null
         });
 
         if (data.privacy?.showClinicName && data.clinicIds?.length > 0) {
            const clinicsData = [];
            for (const cid of data.clinicIds) {
-             const cSnap = await getDoc(doc(db, 'clinics', cid));
-             if (cSnap.exists()) clinicsData.push({ id: cSnap.id, ...cSnap.data() });
+             const cData = await getClinic(cid);
+             if (cData) clinicsData.push(cData);
            }
            setClinics(clinicsData);
         }

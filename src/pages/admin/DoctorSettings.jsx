@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { getDoctor, updateDoctor } from '../../lib/db/doctors';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
@@ -14,9 +13,9 @@ export default function DoctorSettings() {
     async function load() {
        if (!user) return;
        try {
-         const snap = await getDoc(doc(db, 'doctors', user.uid));
-         if (snap.exists()) {
-            setPrivacy(snap.data().privacy);
+         const dr = await getDoctor(user.uid);
+         if (dr) {
+            setPrivacy(dr.privacy || {});
          }
        } catch (error) {}
        setLoading(false);
@@ -28,10 +27,9 @@ export default function DoctorSettings() {
      const newPrivacy = { ...privacy, [field]: value };
      setPrivacy(newPrivacy);
      try {
-       await updateDoc(doc(db, 'doctors', user.uid), {
-         [`privacy.${field}`]: value
+       await updateDoctor(user.uid, {
+         privacy: newPrivacy
        });
-       // Optional: show a toast
      } catch (error) {
        handleFirestoreError(error, OperationType.UPDATE, 'doctors');
      }

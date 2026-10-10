@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeDoctorAppointments } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
 import { BarChart3, Users, CheckCircle, Clock } from 'lucide-react';
 
@@ -10,35 +9,27 @@ export default function DoctorAnalytics() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadStats() {
-       if (!user) return;
-       try {
-         const q = query(collection(db, 'appointments'), where('doctorId', '==', user.uid));
-         const snap = await getDocs(q);
-         
-         let approved = 0;
-         let pending = 0;
-         const reps = new Set();
-         
-         snap.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.status === 'approved') approved++;
-            if (data.status === 'pending') pending++;
-            if (data.repId) reps.add(data.repId);
-         });
-         
-         setStats({
-            totalApproved: approved,
-            pending,
-            uniqueReps: reps.size
-         });
-       } catch (e) {
-         console.error(e);
-       } finally {
-         setLoading(false);
-       }
-    }
-    loadStats();
+    if (!user) return;
+    const unsub = subscribeDoctorAppointments(user.uid, (appointments) => {
+      let approved = 0;
+      let pending = 0;
+      const reps = new Set();
+
+      appointments.forEach((data) => {
+        if (data.status === 'approved') approved++;
+        if (data.status === 'pending') pending++;
+        if (data.repId) reps.add(data.repId);
+      });
+
+      setStats({
+        totalApproved: approved,
+        pending,
+        uniqueReps: reps.size
+      });
+      setLoading(false);
+    });
+
+    return () => unsub();
   }, [user]);
 
   if (loading) return <div className="text-gray-500 font-medium font-sans flex items-center justify-center p-8">Loading analytics...</div>;

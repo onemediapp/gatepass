@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeRepAppointments } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
 import { Clock, Calendar, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -12,24 +11,12 @@ export default function RepHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadHistory() {
-      if (!user) return;
-      try {
-        const q = query(
-          collection(db, 'appointments'),
-          where('repId', '==', user.uid),
-          // orderBy('createdAt', 'desc') // requires composite index usually, skipping for MVP unless needed
-        );
-        const snap = await getDocs(q);
-        const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a,b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-        setHistory(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadHistory();
+    if (!user) return;
+    const unsub = subscribeRepAppointments(user.uid, (data) => {
+      setHistory(data);
+      setLoading(false);
+    });
+    return () => unsub();
   }, [user]);
 
   if (loading) return <div className="text-gray-400 font-medium p-4 font-sans text-center animate-pulse mt-10">Loading history...</div>;

@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { getDoctor } from '../../lib/db/doctors';
+import { getUser } from '../../lib/db/users';
+import { getClinic } from '../../lib/db/clinics';
+import { getRep } from '../../lib/db/reps';
+import { createAppointment } from '../../lib/db/appointments';
+import { ensureDoctorRepLink } from '../../lib/db/doctorRepLinks';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { Check, Calendar, ChevronLeft, MapPin, Copy, ExternalLink, Package } from 'lucide-react';
@@ -42,18 +46,16 @@ export default function AppointmentRequest() {
       if (!doctorId || !user) return;
       setLoading(true);
       try {
-        const dSnap = await getDoc(doc(db, 'doctors', doctorId));
-        const uSnap = await getDoc(doc(db, 'users', doctorId));
-        if (dSnap.exists()) {
-           const dData = dSnap.data();
-           const uData = uSnap.exists() ? uSnap.data() : {};
-           setDoctor({ ...dData, name: uData.name || 'Doctor', privacy: dData.privacy || { showFullName: true } });
+        const dData = await getDoctor(doctorId);
+        const uData = await getUser(doctorId);
+        if (dData) {
+           setDoctor({ ...dData, name: uData?.name || dData.name || 'Doctor', privacy: dData.privacy || { showFullName: true } });
            
            if (dData.clinicIds?.length > 0) {
              const cData = [];
              for (const cid of dData.clinicIds) {
-                const cDoc = await getDoc(doc(db, 'clinics', cid));
-                if (cDoc.exists()) cData.push({ id: cDoc.id, ...cDoc.data() });
+                const cDoc = await getClinic(cid);
+                if (cDoc) cData.push(cDoc);
              }
              setClinics(cData);
              if (!form.clinicId && cData.length > 0) {
@@ -62,9 +64,8 @@ export default function AppointmentRequest() {
            }
         }
         
-        const rSnap = await getDoc(doc(db, 'reps', user.uid));
-        if (rSnap.exists()) {
-           const rData = rSnap.data();
+        const rData = await getRep(user.uid);
+        if (rData) {
            setRepInfo(rData);
            setForm(prev => ({ ...prev, samplesFlag: rData.samplesAvailable }));
         } else {
@@ -86,38 +87,40 @@ export default function AppointmentRequest() {
     
     try {
       const repSnapshot = {
-         name: userData.name,
-         company: repInfo.companyName,
-         designation: repInfo.designation,
-         mobile: userData.mobile,
-         therapeuticCategory: repInfo.therapeuticCategory
+         name: userData?.name || '',
+         company: repInfo?.companyName || '',
+         designation: repInfo?.designation || 'MR',
+         mobile: userData?.mobile || '',
+         therapeuticCategory: repInfo?.therapeuticCategory || ''
       };
 
-      const appointmentData = {
-         doctorId: doctorId,
+      const selectedClinic = clinics.find(c => c.id === form.clinicId);
+
+      const doctorSnapshot = {
+         name: doctor?.name || 'Doctor',
+         specialty: doctor?.specialty || '',
+         clinicName: selectedClinic?.clinicName || '',
+         city: selectedClinic?.city || doctor?.city || ''
+      };
+
+      await ensureDoctorRepLink(doctorId, user.uid);
+
+      const apptId = await createAppointment({
+         doctorId,
          clinicId: form.clinicId || '',
          repId: user.uid,
          repSnapshot,
+         doctorSnapshot,
          productFocus: form.productFocus,
-         therapeuticCategory: repInfo.therapeuticCategory,
-         message: form.message || null,
+         therapeuticCategory: repInfo?.therapeuticCategory || '',
+         message: form.message || '',
          samplesFlag: form.samplesFlag,
-         preferredDate: new Date(form.preferredDate),
-         status: 'pending',
-         token: null,
-         approvedDate: null,
-         approvedTimeSlot: null,
-         approvedEndTime: null,
-         tokenIssuedAt: null,
-         tokenExpiresAt: null,
-         doctorNotes: null,
-         createdAt: serverTimestamp(),
-         approvedAt: null,
-         billingStatus: 'pending_charge'
-      };
+         slotDate: form.preferredDate,
+         slotStart: '14:00',
+         slotEnd: '14:20'
+      });
 
-      const docRef = await addDoc(collection(db, 'appointments'), appointmentData);
-      setGeneratedId(docRef.id);
+      setGeneratedId(apptId);
       setIsSuccess(true);
       
     } catch (error) {

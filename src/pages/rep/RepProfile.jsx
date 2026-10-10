@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db, logout } from '../../lib/firebase';
+import { getRep, updateRep } from '../../lib/db/reps';
+import { logout } from '../../lib/firebase';
 import { useAuth } from '../../lib/auth';
 import { Check, Edit2, LogOut, BriefcaseMedical } from 'lucide-react';
 import { TagInput } from '../../components/ui/TagInput';
@@ -18,9 +18,9 @@ export default function RepProfile() {
     async function loadData() {
       if (!user) return;
       try {
-        const snap = await getDoc(doc(db, 'reps', user.uid));
-        if (snap.exists()) {
-          setFormData(snap.data());
+        const data = await getRep(user.uid);
+        if (data) {
+          setFormData(data);
         }
       } catch (err) {
         console.error(err);
@@ -37,7 +37,7 @@ export default function RepProfile() {
     if (!formData) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'reps', user.uid), formData);
+      await updateRep(user.uid, formData);
       alert('Profile updated successfully');
     } catch (err) {
       console.error(err);

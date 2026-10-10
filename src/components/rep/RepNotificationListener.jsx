@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeRepAppointmentChanges } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
 import { CheckCircle2, UserCheck, XCircle, Bell, ChevronRight, X, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -17,17 +16,11 @@ export default function RepNotificationListener({ children }) {
   useEffect(() => {
     if (!user || !userData?.role?.includes('rep')) return;
 
-    const q = query(
-      collection(db, 'appointments'),
-      where('repId', '==', user.uid)
-    );
-
-    const unsub = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const data = change.doc.data();
-        const id = change.doc.id;
-        const newStatus = data.status;
-        const prevStatus = prevStatusesRef.current[id];
+    const unsub = subscribeRepAppointmentChanges(user.uid, (change) => {
+      const data = change.data;
+      const id = change.id;
+      const newStatus = data.status;
+      const prevStatus = prevStatusesRef.current[id];
 
         // On initial snapshot load, store all current statuses
         if (initialLoadRef.current) {
@@ -83,10 +76,11 @@ export default function RepNotificationListener({ children }) {
       });
 
       initialLoadRef.current = false;
-    });
 
-    return () => unsub();
-  }, [user, userData]);
+      return () => {
+        if (unsub) unsub();
+      };
+    }, [user, userData]);
 
   return (
     <>

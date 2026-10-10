@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { subscribeDoctorAppointments, updateAppointment } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { CheckCircle2, Clock, UserCheck, Filter, Archive } from 'lucide-react';
@@ -24,19 +23,12 @@ export default function DoctorApprovedRequests() {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'appointments'),
-      where('doctorId', '==', user.uid),
-      where('status', 'in', ['approved', 'confirmed', 'completed', 'archived'])
-    );
 
-    const unsub = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsub = subscribeDoctorAppointments(user.uid, (allAppointments) => {
+      const allowed = ['approved', 'confirmed', 'completed', 'archived'];
+      const docs = allAppointments.filter(a => allowed.includes(a.status));
       docs.sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0));
       setRequests(docs);
-      setLoading(false);
-    }, error => {
-      handleFirestoreError(error, OperationType.LIST, 'appointments');
       setLoading(false);
     });
 
@@ -45,9 +37,8 @@ export default function DoctorApprovedRequests() {
 
   const markCompleted = async (reqId) => {
     try {
-      await updateDoc(doc(db, 'appointments', reqId), {
-        status: 'completed',
-        completedAt: serverTimestamp()
+      await updateAppointment(reqId, {
+        status: 'completed'
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `appointments/${reqId}`);
