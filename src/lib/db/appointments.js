@@ -374,7 +374,7 @@ export function subscribeRepAppointmentChanges(repId, onDocChange) {
 
 /**
  * Rep cancels their own appointment
- * If approved, atomics decrement slotLedger
+ * If approved, atomics decrement slotLedger, dayLedger, and release token doc
  * @param {string} appointmentId 
  * @param {string} repId 
  */
@@ -383,24 +383,57 @@ export async function cancelAppointment(appointmentId, repId) {
   const apptRef = doc(db, COLLECTION, appointmentId);
 
   await runTransaction(db, async (txn) => {
+    // 1. All reads must occur first
     const snap = await txn.get(apptRef);
     if (!snap.exists()) throw new Error('Appointment not found');
     const data = snap.data();
     if (data.repId !== repId) throw new Error('Unauthorized');
     if (data.status === 'cancelled') return;
 
+    let sSnap = null;
+    let dSnap = null;
+    let tSnap = null;
+    let sLedgerRef = null;
+    let dLedgerRef = null;
+    let tokenRef = null;
+
+    if (data.status === 'approved') {
+      if (data.doctorId && data.slotKey) {
+        sLedgerRef = doc(db, 'slotLedger', slotLedgerId(data.doctorId, data.slotKey));
+        sSnap = await txn.get(sLedgerRef);
+      }
+      if (data.doctorId && data.slotDate) {
+        dLedgerRef = doc(db, 'dayLedger', dayLedgerId(data.doctorId, data.slotDate));
+        dSnap = await txn.get(dLedgerRef);
+      }
+      if (data.token) {
+        const cleanToken = data.token.trim().toUpperCase();
+        tokenRef = doc(db, 'tokens', cleanToken);
+        tSnap = await txn.get(tokenRef);
+      }
+    }
+
+    // 2. All writes executed after all reads
     txn.update(apptRef, {
       status: 'cancelled',
+      cancelledAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
 
-    // If it was already approved, decrement the slotLedger per rules
-    if (data.status === 'approved' && data.slotKey) {
-      const sLedgerRef = doc(db, 'slotLedger', slotLedgerId(data.doctorId, data.slotKey));
-      const sSnap = await txn.get(sLedgerRef);
-      if (sSnap.exists() && sSnap.data().approvedCount > 0) {
+    if (data.status === 'approved') {
+      if (sLedgerRef && sSnap && sSnap.exists() && (sSnap.data().approvedCount || 0) > 0) {
         txn.update(sLedgerRef, {
           approvedCount: sSnap.data().approvedCount - 1
+        });
+      }
+      if (dLedgerRef && dSnap && dSnap.exists() && (dSnap.data().approvedCount || 0) > 0) {
+        txn.update(dLedgerRef, {
+          approvedCount: dSnap.data().approvedCount - 1
+        });
+      }
+      if (tokenRef && tSnap && tSnap.exists()) {
+        txn.update(tokenRef, {
+          isUsed: true
         });
       }
     }

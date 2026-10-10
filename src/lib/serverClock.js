@@ -9,9 +9,13 @@ let cachedOffsetMs = 0;
 let isSynced = false;
 let initPromise = null;
 
+let baseServerMs = 0;
+let basePerfMs = 0;
+
 /**
  * Initializes server time synchronization by sending a HEAD request to the origin
  * Reads the Date header, calculates offset against device time, and caches it.
+ * Anchors to performance.now() to prevent client clock tampering during session.
  * Falls back to device clock if request fails.
  * @returns {Promise<{ offsetMs: number, isSynced: boolean }>}
  */
@@ -20,6 +24,7 @@ export async function initServerClock() {
 
   initPromise = (async () => {
     try {
+      const perfBefore = typeof performance !== 'undefined' ? performance.now() : 0;
       // Use origin or current path with cache-busting
       const targetUrl = typeof window !== 'undefined' && window.location?.origin 
         ? `${window.location.origin}/?_ts=${Date.now()}`
@@ -36,6 +41,8 @@ export async function initServerClock() {
         if (!isNaN(serverMs)) {
           const clientMs = Date.now();
           cachedOffsetMs = serverMs - clientMs;
+          baseServerMs = serverMs;
+          basePerfMs = typeof performance !== 'undefined' ? performance.now() : 0;
           isSynced = true;
           setServerClockOffset(cachedOffsetMs);
           console.log(`[ServerClock] Synced with server clock. Offset: ${cachedOffsetMs}ms (Date: ${serverDateHeader})`);
@@ -48,6 +55,8 @@ export async function initServerClock() {
 
     // Fallback: device clock
     cachedOffsetMs = 0;
+    baseServerMs = Date.now();
+    basePerfMs = typeof performance !== 'undefined' ? performance.now() : 0;
     isSynced = false;
     setServerClockOffset(0);
     return { offsetMs: 0, isSynced: false };
@@ -58,9 +67,13 @@ export async function initServerClock() {
 
 /**
  * Returns current timestamp in milliseconds, adjusted by server offset
+ * Uses monotonic performance.now() when available to resist client clock adjustments
  * @returns {number}
  */
 export function serverNow() {
+  if (isSynced && baseServerMs > 0 && typeof performance !== 'undefined') {
+    return Math.round(baseServerMs + (performance.now() - basePerfMs));
+  }
   return Date.now() + cachedOffsetMs;
 }
 

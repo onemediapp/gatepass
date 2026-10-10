@@ -118,7 +118,11 @@ service cloud.firestore {
     // ── Tokens: only the owning rep and doctor ────────────
     match /tokens/{tokenCode} {
       allow read: if isAuth() && (uid() == resource.data.repId || uid() == resource.data.doctorId);
-      allow create, update: if isAuth() && isDoctor() && request.resource.data.doctorId == uid();
+      allow create: if isAuth() && isDoctor() && request.resource.data.doctorId == uid();
+      allow update: if isAuth() && (
+        (isDoctor() && request.resource.data.doctorId == uid())
+        || (isRep() && resource.data.repId == uid() && request.resource.data.isUsed == true)
+      );
       allow delete: if false;
     }
 

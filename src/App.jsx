@@ -60,7 +60,7 @@ export default function App() {
         <RepNotificationListener>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/status/:appointmentId" element={<StatusCheck />} />
+            <Route path="/status/:appointmentId" element={<ProtectedRoute><StatusCheck /></ProtectedRoute>} />
             <Route path="/clinic/:slug" element={<ClinicPage />} />
             <Route path="/clinic/:clinicSlug" element={<ClinicPage />} />
 

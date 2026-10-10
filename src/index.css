@@ -86,3 +86,34 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-ink-mute);
 }
+
+/* Phase 7 Anti-Fraud Gatepass Animations */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-150%); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: translateX(250%); opacity: 0; }
+}
+
+@keyframes draw-checkmark {
+  0% { stroke-dashoffset: 48; opacity: 0; }
+  50% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+
+@keyframes seal-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-shimmer-sweep {
+  animation: shimmer-sweep 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-draw-check {
+  stroke-dasharray: 48;
+  animation: draw-checkmark 0.75s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.animate-seal-spin {
+  animation: seal-spin 12s linear infinite;
+}
