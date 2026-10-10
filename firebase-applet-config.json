@@ -1,12 +1,11 @@
 {
-  "projectId": "gen-lang-client-0092884586",
-  "appId": "1:967981966650:web:663f93ced0fa20e73d9c03",
-  "apiKey": "AIzaSyCKTfxfchF2HIYr-6cP3bAUWFggC2joCRc",
-  "authDomain": "gen-lang-client-0092884586.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-gatepass-37801941-9eb3-46ba-aa14-bd22632f79cb",
-  "storageBucket": "gen-lang-client-0092884586.firebasestorage.app",
-  "messagingSenderId": "967981966650",
+  "projectId": "gatepass-kurnool",
+  "appId": "1:777959305579:web:50e3bf6ff6ebd3c0c19c2e",
+  "apiKey": "AIzaSyDdMGJzuy5DErkL2YUyDivGUeVf9XccTuI",
+  "authDomain": "gatepass-kurnool.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "gatepass-kurnool.firebasestorage.app",
+  "messagingSenderId": "777959305579",
   "measurementId": "",
-  "oAuthClientId": "967981966650-egftuv4mas8fdsjlbof0a1q2d7k2gc7o.apps.googleusercontent.com",
   "recaptchaSiteKey": ""
 }
