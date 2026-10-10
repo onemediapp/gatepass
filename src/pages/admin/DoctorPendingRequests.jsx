@@ -115,33 +115,33 @@ export default function DoctorPendingRequests() {
                            {req.repSnapshot?.name?.[0]}
                         </div>
                         <div>
-                           <h3 className="font-bold text-premium-900 text-[16px] leading-tight flex items-center gap-2 mb-1 tracking-tight">
+                           <h3 className="font-bold text-premium-900 text-base leading-tight flex items-center gap-2 mb-1 tracking-tight">
                              {req.repSnapshot?.name}
-                             {req.repSnapshot?.designation && <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-[0.5rem] bg-premium-100 text-gray-500">{req.repSnapshot.designation}</span>}
+                             {req.repSnapshot?.designation && <span className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-[0.5rem] bg-premium-100 text-gray-500">{req.repSnapshot.designation}</span>}
                            </h3>
                            <p className="text-sm font-medium text-gray-500">{req.repSnapshot?.company}</p>
                         </div>
                      </div>
-                     <div className="flex flex-col items-end text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-premium-50 px-2.5 py-1 rounded-md border border-gray-100">
+                     <div className="flex flex-col items-end text-xs text-gray-400 font-bold uppercase tracking-widest bg-premium-50 px-2.5 py-1 rounded-md border border-gray-100">
                         <span>{format(req.createdAt?.toDate() || new Date(), 'HH:mm')}</span>
                      </div>
                    </div>
 
                    <div className="bg-premium-50/50 rounded-[1rem] p-5 mb-5 space-y-3.5 text-sm border border-gray-100/50">
                      <div className="flex gap-3 text-gray-700 items-start">
-                       <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px] w-14 flex-shrink-0 mt-0.5">Focus</span> 
+                       <span className="font-bold text-gray-400 uppercase tracking-widest text-xs w-14 flex-shrink-0 mt-0.5">Focus</span> 
                        <span className="font-semibold text-premium-900">{req.productFocus}</span>
                      </div>
                      {req.message && (
                        <div className="flex gap-3 text-gray-700 items-start">
-                         <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px] w-14 flex-shrink-0 mt-0.5">Note</span> 
+                         <span className="font-bold text-gray-400 uppercase tracking-widest text-xs w-14 flex-shrink-0 mt-0.5">Note</span> 
                          <span className="font-medium text-gray-600 italic">"{req.message}"</span>
                        </div>
                      )}
                      <div className="flex gap-2 items-center flex-wrap pt-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md shadow-sm">{req.therapeuticCategory}</span>
-                        {req.samplesFlag && <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-md shadow-sm">Samples</span>}
-                        <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 bg-white border border-gray-200 text-gray-600 rounded-md flex items-center gap-1.5 shadow-sm"><Calendar className="w-3 h-3 opacity-70"/> {format(req.preferredDate?.toDate() || new Date(), 'dd MMM')}</span>
+                        <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 bg-indigo-50 border border-indigo-100 text-indigo-700 rounded-md shadow-sm">{req.therapeuticCategory}</span>
+                        {req.samplesFlag && <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-md shadow-sm">Samples</span>}
+                        <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1 bg-white border border-gray-200 text-gray-600 rounded-md flex items-center gap-1.5 shadow-sm"><Calendar className="w-3 h-3 opacity-70"/> {format(req.preferredDate?.toDate() || new Date(), 'dd MMM')}</span>
                      </div>
                    </div>
 
@@ -186,7 +186,7 @@ export default function DoctorPendingRequests() {
                 
                 <div className="space-y-5 mb-8">
                    <div className="space-y-2">
-                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Confirmed Date</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Confirmed Date</label>
                       <input 
                          type="date"
                          value={approveForm.date}
@@ -195,7 +195,7 @@ export default function DoctorPendingRequests() {
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Time Slot</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Time Slot</label>
                       <div className="relative">
                         <select 
                            value={approveForm.timeSlot}
@@ -212,7 +212,7 @@ export default function DoctorPendingRequests() {
                       </div>
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
                         <span>Internal Notes</span>
                         <span className="text-gray-300">Optional</span>
                       </label>
@@ -229,7 +229,7 @@ export default function DoctorPendingRequests() {
                 <button 
                   onClick={confirmApprove}
                   disabled={isProcessing}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 rounded-[1.25rem] shadow-[0_4px_14px_rgba(5,150,105,0.3)] transition-all active:scale-[0.98] disabled:opacity-50 text-[15px]"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 rounded-[1.25rem] shadow-[0_4px_14px_rgba(5,150,105,0.3)] transition-all active:scale-[0.98] disabled:opacity-50 text-sm"
                 >
                   {isProcessing ? 'Generating Token...' : 'Confirm & Generate Gatepass'}
                 </button>

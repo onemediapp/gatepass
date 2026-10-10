@@ -476,7 +476,7 @@ export default function DoctorHome() {
 
         {/* Secondary Date Filter */}
         <div className="flex items-center gap-2 mb-6">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mr-2 flex items-center gap-1">
+          <span className="text-xs font-bold uppercase tracking-widest text-gray-400 mr-2 flex items-center gap-1">
             <Filter className="w-3 h-3" /> Date:
           </span>
           {['all', 'today', 'upcoming', 'past'].map((df) => (
@@ -553,27 +553,27 @@ export default function DoctorHome() {
 
                           {/* Status Badge */}
                           {isPending && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200/80">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-200/80">
                               Pending
                             </span>
                           )}
                           {isConfirmed && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-200/80">
                               Confirmed
                             </span>
                           )}
                           {isCompleted && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-200/80">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-200/80">
                               Completed
                             </span>
                           )}
                           {isRejected && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-200/80">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-200/80">
                               Rejected
                             </span>
                           )}
                           {isArchived && (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-purple-50 text-purple-700 border border-purple-200/80 flex items-center gap-1">
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-widest bg-purple-50 text-purple-700 border border-purple-200/80 flex items-center gap-1">
                               <Archive className="w-3 h-3" /> Archived
                             </span>
                           )}
@@ -587,21 +587,21 @@ export default function DoctorHome() {
                     {/* Product & Time details */}
                     <div className="bg-premium-50/60 rounded-xl p-3.5 space-y-2 text-xs font-medium text-gray-700 border border-gray-100/60">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold uppercase tracking-wider text-[10px] text-gray-400 w-16">Focus:</span>
+                        <span className="font-bold uppercase tracking-wider text-xs text-gray-400 w-16">Focus:</span>
                         <span className="font-semibold text-premium-900">{app.productFocus}</span>
                       </div>
 
                       {app.therapeuticCategory && (
                         <div className="flex items-center gap-2">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-gray-400 w-16">Category:</span>
-                          <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-700 font-semibold text-[11px]">
+                          <span className="font-bold uppercase tracking-wider text-xs text-gray-400 w-16">Category:</span>
+                          <span className="px-2 py-0.5 bg-white border border-gray-200 rounded text-gray-700 font-semibold text-xs">
                             {app.therapeuticCategory}
                           </span>
                         </div>
                       )}
 
                       <div className="flex items-center gap-2">
-                        <span className="font-bold uppercase tracking-wider text-[10px] text-gray-400 w-16">Schedule:</span>
+                        <span className="font-bold uppercase tracking-wider text-xs text-gray-400 w-16">Schedule:</span>
                         <span className="font-semibold text-premium-900 flex items-center gap-1.5">
                           <Calendar className="w-3.5 h-3.5 text-gray-400" />
                           {appDate ? format(appDate, 'MMM dd, yyyy') : 'N/A'}
@@ -611,7 +611,7 @@ export default function DoctorHome() {
 
                       {app.token && (
                         <div className="flex items-center gap-2 pt-1">
-                          <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-600 w-16">Token:</span>
+                          <span className="font-bold uppercase tracking-wider text-xs text-emerald-600 w-16">Token:</span>
                           <div className="inline-flex items-center gap-1.5 font-mono font-bold bg-white px-2.5 py-1 rounded-md border border-emerald-200 text-emerald-800 shadow-2xs">
                             {app.token}
                             <button 
@@ -711,7 +711,7 @@ export default function DoctorHome() {
             
             <div className="space-y-4 mb-6">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Confirmed Date</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Confirmed Date</label>
                 <input 
                   type="date"
                   value={approveForm.date}
@@ -721,7 +721,7 @@ export default function DoctorHome() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Time Slot</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Time Slot</label>
                 <div className="relative">
                   <select 
                     value={approveForm.timeSlot}
@@ -739,7 +739,7 @@ export default function DoctorHome() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
                   <span>Internal Notes</span>
                   <span className="text-gray-300">Optional</span>
                 </label>

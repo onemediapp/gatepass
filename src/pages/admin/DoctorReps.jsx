@@ -47,11 +47,11 @@ export default function DoctorReps() {
 
        <div className="bg-white rounded-[1.25rem] shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-gray-100 p-4 mb-8 flex items-center gap-3 transition-colors focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20">
           <Search className="w-5 h-5 text-gray-400 ml-1" />
-          <input type="text" placeholder="Search by name or company..." className="flex-1 bg-transparent border-none outline-none font-medium placeholder:text-gray-400 text-premium-900 text-[15px]" />
+          <input type="text" placeholder="Search by name or company..." className="flex-1 bg-transparent border-none outline-none font-medium placeholder:text-gray-400 text-premium-900 text-sm" />
        </div>
 
        {reps.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 font-medium bg-white rounded-[1.5rem] border border-gray-100 border-dashed text-[15px]">No representatives in your network yet.</div>
+          <div className="text-center py-16 text-gray-400 font-medium bg-white rounded-[1.5rem] border border-gray-100 border-dashed text-sm">No representatives in your network yet.</div>
        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
              {reps.map(rep => (
@@ -61,23 +61,23 @@ export default function DoctorReps() {
                        {rep.snapshot?.name?.[0]}
                      </div>
                      <div className="flex-1 min-w-0 pt-0.5">
-                        <h3 className="font-bold text-premium-900 truncate text-[16px] leading-tight mb-1">{rep.snapshot?.name}</h3>
-                        <p className="font-medium text-gray-500 text-[13px] truncate">{rep.snapshot?.company}</p>
+                        <h3 className="font-bold text-premium-900 truncate text-base leading-tight mb-1">{rep.snapshot?.name}</h3>
+                        <p className="font-medium text-gray-500 text-xs truncate">{rep.snapshot?.company}</p>
                      </div>
                   </div>
                   
                   <div className="mb-6 flex flex-wrap items-center gap-2">
-                     <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 bg-gray-50 text-gray-600 rounded-[0.5rem] border border-gray-100">
+                     <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1.5 bg-gray-50 text-gray-600 rounded-[0.5rem] border border-gray-100">
                        {rep.snapshot?.designation}
                      </span>
-                     <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-[0.5rem] border border-emerald-100">
+                     <span className="text-xs font-bold uppercase tracking-widest px-2.5 py-1.5 bg-emerald-50 text-emerald-700 rounded-[0.5rem] border border-emerald-100">
                        {rep.snapshot?.therapeuticCategory}
                      </span>
                   </div>
                   
                   <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
                      <div className="flex flex-col">
-                       <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Total Visits</span>
+                       <span className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Total Visits</span>
                        <span className="font-black text-premium-900 text-lg leading-none">{rep.visits}</span>
                      </div>
                      

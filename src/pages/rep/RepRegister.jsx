@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUser } from '../../lib/db/users';
 import { createRep } from '../../lib/db/reps';
@@ -9,6 +9,8 @@ import { TagInput } from '../../components/ui/TagInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import { ChevronRight, ChevronLeft, Briefcase, Pill, Building2, Check } from 'lucide-react';
+import EdgeCard from '../../components/ui/EdgeCard';
+import MonoTag from '../../components/ui/MonoTag';
 import { cn } from '../../lib/utils';
 
 const designationOptions = [
@@ -78,7 +80,6 @@ export default function RepRegister() {
   };
 
   const handleNext = () => {
-    // Basic validation
     if (step === 1) {
       if (!formData.companyName || !formData.designation || formData.mobile.length < 10) return;
     }
@@ -135,151 +136,162 @@ export default function RepRegister() {
   const StepIcon = stepIcons[step - 1];
 
   return (
-    <div className="min-h-screen bg-premium-50 flex flex-col font-sans selection:bg-emerald-100">
-      <div className="bg-white/80 backdrop-blur-2xl px-6 py-5 shadow-[0_4px_40px_rgb(0,0,0,0.03)] flex-shrink-0 sticky top-0 z-20 border-b border-gray-100">
+    <div className="min-h-screen bg-cream-50 flex flex-col font-sans selection:bg-amber-100 selection:text-sand-600">
+      
+      {/* Top Header & Progress */}
+      <div className="bg-white px-5 py-4 shadow-sm flex-shrink-0 sticky top-0 z-20 border-b border-line">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-[1rem] bg-premium-900 flex items-center justify-center text-white shadow-sm">
-              <StepIcon className="w-6 h-6" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[0.75rem] bg-navy-900 flex items-center justify-center text-white shadow-sm">
+              <StepIcon className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <h1 className="font-display font-black text-premium-900 leading-none text-xl tracking-tight">Setup Profile</h1>
-              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">
+              <h1 className="font-display font-bold text-ink leading-none text-lg">Setup Rep Profile</h1>
+              <p className="font-mono text-[0.6875rem] font-bold text-teal-600 uppercase tracking-wider mt-1">
                 Step {step} of 3
               </p>
             </div>
           </div>
+          <MonoTag variant="neutral">MR Pass</MonoTag>
         </div>
-        <div className="max-w-md mx-auto mt-6 h-1.5 bg-premium-100 rounded-full overflow-hidden">
+        <div className="max-w-md mx-auto mt-4 h-1 bg-line rounded-full overflow-hidden">
           <div 
-            className="h-full bg-premium-900 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="h-full bg-navy-900 transition-all duration-300"
             style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
       </div>
 
-      <div className="flex-1 max-w-md w-full mx-auto p-6 sm:p-8 flex flex-col pt-10 relative z-10">
+      <div className="flex-1 max-w-md w-full mx-auto p-4 sm:p-6 flex flex-col pt-6 relative z-10">
         {step === 1 && (
-          <div className="space-y-8 animate-in slide-in-from-right-8 fade-in duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
             <div>
-              <h2 className="text-[2rem] leading-none font-display font-black text-premium-900 tracking-tight">Professional ID</h2>
-              <p className="text-gray-500 mt-2 font-medium">Let's set up your primary identity.</p>
+              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Professional ID</h2>
+              <p className="text-ink-soft text-sm mt-1">Set up your company and designation identity.</p>
             </div>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Company Name <span className="text-red-500">*</span></label>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Company Name <span className="text-coral-600">*</span>
+                </label>
                 <input 
                   type="text" 
-                  className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                  className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
                   placeholder="e.g. Sun Pharma"
                   value={formData.companyName}
                   onChange={(e) => updateForm('companyName', e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Division / Brand Team</label>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Division / Brand Team
+                </label>
                 <input 
                   type="text" 
-                  className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                  className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
                   placeholder="e.g. Cardio-Diab"
                   value={formData.division}
                   onChange={(e) => updateForm('division', e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Designation <span className="text-red-500">*</span></label>
-                <div className="bg-white rounded-[1rem] border border-gray-200 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 shadow-sm transition-all p-1">
-                  <SearchableSelect 
-                    options={designationOptions}
-                    value={formData.designation}
-                    onChange={(val) => updateForm('designation', val)}
-                    placeholder="Select designation"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Designation <span className="text-coral-600">*</span>
+                </label>
+                <SearchableSelect 
+                  options={designationOptions}
+                  value={formData.designation}
+                  onChange={(val) => updateForm('designation', val)}
+                  placeholder="Select designation"
+                />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Mobile / WhatsApp Number <span className="text-red-500">*</span></label>
-                <div className="bg-white rounded-[1rem] shadow-sm border border-gray-200 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                  <PhoneInput 
-                    value={formData.mobile}
-                    onChange={(val) => updateForm('mobile', val)}
-                    required
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Mobile / WhatsApp Number <span className="text-coral-600">*</span>
+                </label>
+                <PhoneInput 
+                  value={formData.mobile}
+                  onChange={(val) => updateForm('mobile', val)}
+                  required
+                />
               </div>
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-8 animate-in slide-in-from-right-8 fade-in duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
             <div>
-              <h2 className="text-[2rem] leading-none font-display font-black text-premium-900 tracking-tight">Portfolio</h2>
-              <p className="text-gray-500 mt-2 font-medium">What do you typically discuss with doctors?</p>
+              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Portfolio</h2>
+              <p className="text-ink-soft text-sm mt-1">What do you typically detail to doctors?</p>
             </div>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Primary Therapeutic Category <span className="text-red-500">*</span></label>
-                <div className="bg-white rounded-[1rem] border border-gray-200 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 shadow-sm transition-all p-1">
-                  <SearchableSelect 
-                    options={therapeuticOptions}
-                    value={formData.therapeuticCategory}
-                    onChange={(val) => updateForm('therapeuticCategory', val)}
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Primary Therapeutic Category <span className="text-coral-600">*</span>
+                </label>
+                <SearchableSelect 
+                  options={therapeuticOptions}
+                  value={formData.therapeuticCategory}
+                  onChange={(val) => updateForm('therapeuticCategory', val)}
+                />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Secondary Category <span className="text-gray-300 font-medium">(Opt)</span></label>
-                <div className="bg-white rounded-[1rem] border border-gray-200 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 shadow-sm transition-all p-1">
-                  <SearchableSelect 
-                    options={therapeuticOptions.filter(o => o.value !== formData.therapeuticCategory)}
-                    value={formData.therapeuticCategory2}
-                    onChange={(val) => updateForm('therapeuticCategory2', val)}
-                    placeholder="Select secondary category"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Secondary Category <span className="text-ink-mute font-normal">(Opt)</span>
+                </label>
+                <SearchableSelect 
+                  options={therapeuticOptions.filter(o => o.value !== formData.therapeuticCategory)}
+                  value={formData.therapeuticCategory2}
+                  onChange={(val) => updateForm('therapeuticCategory2', val)}
+                  placeholder="Select secondary category"
+                />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Key Brands You Carry <span className="text-red-500">*</span></label>
-                <div className="bg-white rounded-[1rem] border border-gray-200 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 shadow-sm transition-all p-1">
-                  <TagInput 
-                    tags={formData.productNames}
-                    onChange={(tags) => updateForm('productNames', tags)}
-                    placeholder="Type brand name & press Enter"
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Key Brands You Carry <span className="text-coral-600">*</span>
+                </label>
+                <TagInput 
+                  tags={formData.productNames}
+                  onChange={(tags) => updateForm('productNames', tags)}
+                  placeholder="Type brand name & press Enter"
+                />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Key Molecules</label>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Key Molecules
+                </label>
                 <textarea 
-                  className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none resize-none min-h-[80px] font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                  className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none resize-none min-h-[5rem] font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
                   placeholder="e.g. Metformin, Sitagliptin..."
                   value={formData.molecules}
                   onChange={(e) => updateForm('molecules', e.target.value)}
                 />
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Dosage Forms</label>
-                <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Dosage Forms
+                </label>
+                <div className="flex flex-wrap gap-1.5">
                   {dosageFormsList.map(form => (
                     <button
                       key={form}
                       type="button"
                       onClick={() => toggleDosageForm(form)}
                       className={cn(
-                        "px-4 py-2 rounded-[0.75rem] text-[13px] font-bold transition-all border outline-none",
+                        "px-3 py-1.5 rounded-[0.625rem] text-xs font-mono font-medium transition-all border outline-none",
                         formData.dosageForms.includes(form)
-                          ? "bg-premium-900 text-white border-premium-900 shadow-sm"
-                          : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                          ? "bg-navy-900 text-white border-navy-900 shadow-sm"
+                          : "bg-white text-ink-soft border-line hover:border-ink-mute"
                       )}
                     >
                       {form}
@@ -288,8 +300,8 @@ export default function RepRegister() {
                 </div>
               </div>
 
-              <div className="pt-4 pb-2">
-                <div className="bg-white rounded-[1.25rem] shadow-sm border border-gray-200 overflow-hidden px-6 py-4">
+              <div className="pt-2">
+                <div className="bg-white rounded-[1rem] shadow-sm border border-line px-4 py-3">
                   <ToggleSwitch 
                     label="Samples Available"
                     description="I usually carry product samples on my visits."
@@ -303,73 +315,79 @@ export default function RepRegister() {
         )}
 
         {step === 3 && (
-          <div className="space-y-8 animate-in slide-in-from-right-8 fade-in duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]">
+          <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
             <div>
-              <h2 className="text-[2rem] leading-none font-display font-black text-premium-900 tracking-tight">Final Details</h2>
-              <p className="text-gray-500 mt-2 font-medium">Optional company info for your profile.</p>
+              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Final Details</h2>
+              <p className="text-ink-soft text-sm mt-1">Optional office contact information for your profile.</p>
             </div>
 
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Company Regional Office</label>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Company Regional Office
+                </label>
                 <input 
                   type="text" 
-                  className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                  placeholder="e.g. Mumbai, Maharashtra"
+                  className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
+                  placeholder="e.g. Hyderabad / Vijayawada"
                   value={formData.companyOffice}
                   onChange={(e) => updateForm('companyOffice', e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Medical Information Helpline</label>
-                <div className="bg-white rounded-[1rem] shadow-sm border border-gray-200 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
-                  <PhoneInput 
-                    value={formData.medInfoHelpline}
-                    onChange={(val) => updateForm('medInfoHelpline', val)}
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
+                  Medical Information Helpline
+                </label>
+                <PhoneInput 
+                  value={formData.medInfoHelpline}
+                  onChange={(val) => updateForm('medInfoHelpline', val)}
+                />
               </div>
             </div>
 
-            <div className="mt-8 bg-premium-900 p-[1.5px] rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-              <div className="bg-white rounded-[1.45rem] p-6">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Profile Preview</p>
-                <div className="flex items-center gap-4 mb-5">
-                  <div className="w-14 h-14 bg-premium-50 rounded-[1rem] overflow-hidden flex-shrink-0 shadow-inner flex items-center justify-center border border-gray-100">
+            {/* Profile Boarding Pass Preview */}
+            <div className="mt-6">
+              <p className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold mb-2">
+                Gatepass Preview
+              </p>
+              <EdgeCard edge="amber" className="p-4">
+                <div className="flex items-center gap-3.5 mb-3">
+                  <div className="w-12 h-12 bg-navy-100 rounded-[0.75rem] overflow-hidden flex-shrink-0 flex items-center justify-center border border-navy-500/20">
                     {user?.photoURL ? (
-                      <img src={user?.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                      <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-display font-black text-xl text-emerald-600">{user?.displayName?.charAt(0) || 'U'}</span>
+                      <span className="font-display font-bold text-lg text-navy-900">{user?.displayName?.charAt(0) || 'R'}</span>
                     )}
                   </div>
-                  <div className="pt-1 overflow-hidden">
-                    <h3 className="font-bold text-premium-900 text-lg leading-tight truncate">{user?.displayName || 'User Name'}</h3>
-                    <p className="text-gray-500 font-medium text-sm truncate">{formData.designation || 'Designation'} · {formData.companyName || 'Company'}</p>
+                  <div className="overflow-hidden">
+                    <h3 className="font-bold text-ink text-base truncate">{user?.displayName || 'Pharma Rep'}</h3>
+                    <p className="text-ink-soft text-xs truncate">{formData.designation || 'MR'} · {formData.companyName || 'Company'}</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md border border-emerald-100">
+                <div className="flex flex-wrap gap-1.5">
+                  <MonoTag variant="neutral">
                     {formData.therapeuticCategory || 'Category'}
-                  </span>
+                  </MonoTag>
                   {formData.samplesAvailable && (
-                    <span className="bg-emerald-50 text-emerald-700 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded-md border border-emerald-200/60">
+                    <MonoTag variant="teal">
                       Has Samples
-                    </span>
+                    </MonoTag>
                   )}
                 </div>
-              </div>
+              </EdgeCard>
             </div>
           </div>
         )}
 
-        <div className="mt-12 pt-8 pb-4 flex gap-3">
+        {/* Navigation Buttons */}
+        <div className="mt-8 pt-6 pb-4 flex gap-3">
           {step > 1 && (
             <button
               onClick={handleBack}
-              className="flex-shrink-0 bg-white text-gray-700 border border-gray-200 font-bold rounded-[1.25rem] w-14 h-14 hover:bg-gray-50 transition-all active:scale-95 flex items-center justify-center shadow-sm"
+              className="flex-shrink-0 bg-white text-ink border border-line font-bold rounded-[0.875rem] w-12 h-12 hover:bg-cream-50 transition-all active:scale-95 flex items-center justify-center shadow-sm"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-5 h-5" />
             </button>
           )}
           
@@ -380,17 +398,17 @@ export default function RepRegister() {
                 (step === 1 && (!formData.companyName || !formData.designation || formData.mobile.length < 10)) ||
                 (step === 2 && (!formData.therapeuticCategory || formData.productNames.length === 0))
               }
-              className="flex-1 bg-premium-900 text-white font-bold rounded-[1.25rem] px-6 py-4 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-30 disabled:active:scale-100 shadow-[0_4px_14px_rgba(15,23,42,0.2)] text-[15px]"
+              className="flex-1 bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 hover:bg-navy-700 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-40 shadow-sm text-sm"
             >
-              Continue <ChevronRight className="w-5 h-5" />
+              Continue <ChevronRight className="w-4 h-4 text-amber-500" />
             </button>
           ) : (
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 bg-emerald-600 text-white font-bold rounded-[1.25rem] px-6 py-4 transition-all active:scale-[0.98] hover:bg-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(5,150,105,0.3)] text-[15px]"
+              className="flex-1 bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 transition-all active:scale-[0.99] hover:bg-navy-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm text-sm"
             >
-              {isSubmitting ? 'Saving...' : 'Complete Profile'} <Check className="w-5 h-5" />
+              {isSubmitting ? 'Saving...' : 'Complete Profile'} <Check className="w-4 h-4 text-teal-50" />
             </button>
           )}
         </div>

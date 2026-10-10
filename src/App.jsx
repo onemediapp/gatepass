@@ -25,8 +25,8 @@ function ProtectedRoute({ children, requiredRole }) {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#FAFAF7]">
-        <div className="w-12 h-12 rounded-xl bg-[#0B1730]/10 animate-pulse" />
+      <div className="flex h-screen items-center justify-center bg-cream-50">
+        <div className="w-12 h-12 rounded-[0.875rem] bg-navy-900/10 animate-pulse" />
       </div>
     );
   }

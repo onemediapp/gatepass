@@ -119,21 +119,21 @@ export default function DoctorApprovedRequests() {
                       {req.repSnapshot?.name || 'Rep Name'}
                     </h3>
                     {req.repSnapshot?.designation && (
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-[0.5rem] bg-premium-100 text-gray-500">{req.repSnapshot.designation}</span>
+                      <span className="text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded-[0.5rem] bg-premium-100 text-gray-500">{req.repSnapshot.designation}</span>
                     )}
                     {isPast ? (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
+                      <span className="text-xs font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
                         <Archive className="w-2.5 h-2.5" /> Past
                       </span>
                     ) : isCompleted ? (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Completed</span>
+                      <span className="text-xs font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">Completed</span>
                     ) : (
-                      <span className="text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Confirmed</span>
+                      <span className="text-xs font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Confirmed</span>
                     )}
                   </div>
                   <p className="font-medium text-gray-500 text-xs">{req.repSnapshot?.company}</p>
                   
-                  <div className="flex items-center gap-2 mt-4 text-[13px] font-semibold text-gray-600 bg-premium-50 px-3 py-2 rounded-[0.75rem] border border-gray-100/50 w-fit">
+                  <div className="flex items-center gap-2 mt-4 text-xs font-semibold text-gray-600 bg-premium-50 px-3 py-2 rounded-[0.75rem] border border-gray-100/50 w-fit">
                     <Clock className="w-4 h-4 text-gray-400" />
                     Slot: {req.approvedTimeSlot || 'Standard'} on {req.approvedDate ? format(req.approvedDate.toDate(), 'MMM dd, yyyy') : 'N/A'}
                   </div>
@@ -141,7 +141,7 @@ export default function DoctorApprovedRequests() {
 
                 <div className="flex flex-col items-start sm:items-end gap-2.5 w-full sm:w-auto">
                   {req.token && (
-                    <div className="bg-emerald-50 text-emerald-700 font-bold px-3 py-1.5 text-[11px] uppercase tracking-widest rounded-lg border border-emerald-200/60 shadow-2xs font-mono">
+                    <div className="bg-emerald-50 text-emerald-700 font-bold px-3 py-1.5 text-xs uppercase tracking-widest rounded-lg border border-emerald-200/60 shadow-2xs font-mono">
                       Token: {req.token}
                     </div>
                   )}

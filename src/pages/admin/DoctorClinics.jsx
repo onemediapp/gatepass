@@ -1,10 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { listClinicsByDoctor, createClinic, updateClinic } from '../../lib/db/clinics';
 import { linkDoctorClinic } from '../../lib/db/doctorClinics';
 import { getDoctor, updateDoctor } from '../../lib/db/doctors';
 import { useAuth } from '../../lib/auth';
-import { Building2, Plus, Edit2, X, Check } from 'lucide-react';
+import { Building2, Plus, Edit2, X, Check, MapPin, Phone, Clock } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
+import EdgeCard from '../../components/ui/EdgeCard';
+import Skeleton from '../../components/ui/Skeleton';
+import MonoTag from '../../components/ui/MonoTag';
 
 export default function DoctorClinics() {
   const { user } = useAuth();
@@ -112,138 +115,174 @@ export default function DoctorClinics() {
     }
   };
 
-  if (loading) return <div className="text-gray-500 font-medium font-sans flex items-center gap-2 p-4">Loading clinics...</div>;
+  if (loading) {
+    return (
+      <div className="pb-10 max-w-4xl mx-auto space-y-4 font-sans">
+        <Skeleton className="w-48 h-8 rounded-[0.75rem]" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-40 rounded-[1.25rem]" />
+          <Skeleton className="h-40 rounded-[1.25rem]" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="pb-10 max-w-4xl mx-auto font-sans">
-      <div className="flex items-center justify-between mb-8">
+    <div className="pb-10 max-w-4xl mx-auto font-sans selection:bg-amber-100 selection:text-sand-600">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-display font-black text-premium-900 tracking-tight leading-tight">My Clinics</h1>
-          <p className="text-gray-500 font-medium mt-2">Manage your practice locations.</p>
+          <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Practice Locations</h1>
+          <p className="text-ink-soft text-xs mt-0.5">Manage clinics where medical representatives can visit you.</p>
         </div>
         <button 
           onClick={handleOpenNew}
-          className="bg-premium-900 text-white px-5 py-3 rounded-[1rem] font-bold text-[14px] flex items-center gap-2 shadow-[0_4px_14px_rgba(15,23,42,0.2)] hover:bg-black transition-all active:scale-95"
+          className="bg-navy-900 text-white px-4 py-2.5 rounded-[0.875rem] font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-navy-700 transition-all active:scale-[0.99]"
         >
-          <Plus className="w-4 h-4" /> Add Clinic
+          <Plus className="w-4 h-4 text-amber-500" /> Add Clinic
         </button>
       </div>
 
       {clinics.length === 0 ? (
-         <div className="text-center py-16 text-gray-400 font-medium bg-white rounded-[1.5rem] border border-gray-100 border-dashed text-[15px]">
-            You haven't set up any clinics yet. Click "Add Clinic" to get started.
-         </div>
+        <div className="text-center py-12 text-ink-mute font-medium bg-white rounded-[1.25rem] border border-line border-dashed text-xs">
+          You haven't set up any clinics yet. Click "Add Clinic" to get started.
+        </div>
       ) : (
-         <div className="grid gap-4 md:grid-cols-2">
-            {clinics.map(clinic => (
-              <div key={clinic.id} className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgb(0,0,0,0.02)] border border-gray-100 p-6 flex flex-col group">
-                 <div className="flex items-start justify-between mb-4">
-                    <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-[1rem] flex items-center justify-center border border-emerald-100/50">
-                       <Building2 className="w-6 h-6" />
-                    </div>
-                    <button 
-                      onClick={() => handleOpenEdit(clinic)}
-                      className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
-                    >
-                       <Edit2 className="w-4 h-4" />
-                    </button>
-                 </div>
-                 <h2 className="text-[18px] font-display font-black text-premium-900 mb-1">{clinic.clinicName}</h2>
-                 <p className="text-gray-500 font-medium text-[14px] line-clamp-2">{clinic.address}, {clinic.city}, {clinic.state}</p>
-                 
-                 <div className="mt-6 space-y-2">
-                    {clinic.phone && <div className="text-[13px] font-bold text-gray-600">Tel: {clinic.phone}</div>}
-                    {clinic.repHours && <div className="text-[13px] font-bold text-gray-600">MR Hours: {clinic.repHours}</div>}
-                 </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {clinics.map(clinic => (
+            <EdgeCard key={clinic.id} edge="teal" className="p-5 flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-[0.75rem] flex items-center justify-center border border-teal-600/20">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <button 
+                    onClick={() => handleOpenEdit(clinic)}
+                    className="p-1.5 text-ink-mute hover:text-navy-900 hover:bg-cream-50 rounded-[0.5rem] transition-all"
+                    title="Edit clinic"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <h2 className="text-base font-display font-bold text-ink mb-1">{clinic.clinicName}</h2>
+                <p className="text-ink-soft text-xs flex items-start gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <span>{clinic.address}, {clinic.city}, {clinic.state}</span>
+                </p>
               </div>
-            ))}
-         </div>
+              
+              <div className="mt-4 pt-3 border-t border-line space-y-1.5 text-xs text-ink-soft">
+                {clinic.phone && (
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="w-3 h-3 text-ink-mute" />
+                    <span className="font-mono text-[0.6875rem]">{clinic.phone}</span>
+                  </div>
+                )}
+                {clinic.repHours && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3 h-3 text-ink-mute" />
+                    <span className="font-mono text-[0.6875rem]">MR Hours: {clinic.repHours}</span>
+                  </div>
+                )}
+              </div>
+            </EdgeCard>
+          ))}
+        </div>
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-premium-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-           <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-[0_20px_60px_rgb(0,0,0,0.1)] overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-300">
-              <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/90 backdrop-blur-xl z-10">
-                 <h2 className="text-xl font-display font-black text-premium-900 tracking-tight">{editingClinic ? 'Edit Clinic' : 'Add New Clinic'}</h2>
-                 <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-premium-900 hover:bg-gray-100 rounded-xl transition-all active:scale-95">
-                    <X className="w-5 h-5" />
-                 </button>
+        <div className="fixed inset-0 bg-navy-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[1.75rem] w-full max-w-lg shadow-[0_20px_60px_rgba(11,23,48,0.2)] overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-line flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10">
+              <h2 className="text-lg font-display font-bold text-ink">
+                {editingClinic ? 'Edit Clinic' : 'Add New Clinic'}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-1.5 text-ink-mute hover:text-ink hover:bg-cream-50 rounded-[0.5rem] transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto space-y-4">
+              <div className="space-y-1">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Clinic Name *</label>
+                <input 
+                  type="text" 
+                  value={formData.clinicName}
+                  onChange={e => setFormData({...formData, clinicName: e.target.value})}
+                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
+                  placeholder="e.g. Remedi Clinic"
+                />
               </div>
               
-              <div className="p-6 overflow-y-auto space-y-5">
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Clinic Name *</label>
-                    <input 
-                      type="text" 
-                      value={formData.clinicName}
-                      onChange={e => setFormData({...formData, clinicName: e.target.value})}
-                      className="w-full border border-gray-200 rounded-[1rem] px-4 py-3.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                    />
-                 </div>
-                 
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Address *</label>
-                    <input 
-                      type="text" 
-                      value={formData.address}
-                      onChange={e => setFormData({...formData, address: e.target.value})}
-                      className="w-full border border-gray-200 rounded-[1rem] px-4 py-3.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                    />
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                       <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">City</label>
-                       <input 
-                         type="text" 
-                         value={formData.city}
-                         onChange={e => setFormData({...formData, city: e.target.value})}
-                         className="w-full border border-gray-200 rounded-[1rem] px-4 py-3.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                       />
-                    </div>
-                    <div className="space-y-2">
-                       <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">State</label>
-                       <input 
-                         type="text" 
-                         value={formData.state}
-                         onChange={e => setFormData({...formData, state: e.target.value})}
-                         className="w-full border border-gray-200 rounded-[1rem] px-4 py-3.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                       />
-                    </div>
-                 </div>
-
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Phone Number</label>
-                    <input 
-                      type="tel" 
-                      value={formData.phone}
-                      onChange={e => setFormData({...formData, phone: e.target.value})}
-                      className="w-full border border-gray-200 rounded-[1rem] px-4 py-3.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                    />
-                 </div>
-
-                 <div className="space-y-2">
-                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">MR Meeting Hours</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Mon-Fri 2PM-4PM"
-                      value={formData.repHours}
-                      onChange={e => setFormData({...formData, repHours: e.target.value})}
-                      className="w-full border border-gray-200 rounded-[1rem] px-4 py-3.5 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
-                    />
-                 </div>
+              <div className="space-y-1">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Address *</label>
+                <input 
+                  type="text" 
+                  value={formData.address}
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
+                  placeholder="e.g. Gayatri Estates, Kurnool"
+                />
               </div>
 
-              <div className="p-6 border-t border-gray-100 bg-gray-50/50 mt-auto">
-                 <button 
-                   onClick={handleSave}
-                   disabled={saving || !formData.clinicName || !formData.address}
-                   className="w-full bg-premium-900 text-white font-bold rounded-[1.25rem] px-6 py-4 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(15,23,42,0.2)] text-[15px] disabled:opacity-50"
-                 >
-                   {saving ? 'Saving...' : 'Save Clinic'} <Check className="w-5 h-5" />
-                 </button>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">City</label>
+                  <input 
+                    type="text" 
+                    value={formData.city}
+                    onChange={e => setFormData({...formData, city: e.target.value})}
+                    className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
+                    placeholder="Kurnool"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">State</label>
+                  <input 
+                    type="text" 
+                    value={formData.state}
+                    onChange={e => setFormData({...formData, state: e.target.value})}
+                    className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
+                    placeholder="Andhra Pradesh"
+                  />
+                </div>
               </div>
-           </div>
+
+              <div className="space-y-1">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Phone Number</label>
+                <input 
+                  type="tel" 
+                  value={formData.phone}
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
+                  placeholder="08518-..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">MR Meeting Hours</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Mon, Wed, Fri 2PM-4PM"
+                  value={formData.repHours}
+                  onChange={e => setFormData({...formData, repHours: e.target.value})}
+                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 border-t border-line bg-cream-50 mt-auto">
+              <button 
+                onClick={handleSave}
+                disabled={saving || !formData.clinicName || !formData.address}
+                className="w-full bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 hover:bg-navy-700 transition-all active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm text-xs disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Clinic'} <Check className="w-4 h-4 text-amber-500" />
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

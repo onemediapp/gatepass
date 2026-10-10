@@ -107,7 +107,7 @@ export default function RepHome() {
           className="bg-white/70 backdrop-blur-xl border border-white/80 rounded-[1.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04),0_1px_3px_rgb(0,0,0,0.02)] p-4 flex items-center gap-3 cursor-text hover:shadow-[0_12px_40px_rgb(0,0,0,0.08)] transition-all active:scale-[0.98]"
         >
           <Search className="w-5 h-5 text-gray-400 ml-1" />
-          <span className="text-gray-400 text-[15px] flex-1 font-medium">Search doctor, specialty...</span>
+          <span className="text-gray-400 text-sm flex-1 font-medium">Search doctor, specialty...</span>
           <div className="w-9 h-9 rounded-[1rem] bg-premium-50 border border-gray-100 text-premium-900 flex items-center justify-center pointer-events-none shadow-sm">
             <Activity className="w-4 h-4 opacity-70" />
           </div>
@@ -120,7 +120,7 @@ export default function RepHome() {
                key={filter} 
                onClick={() => navigate('/rep/search')}
                className={cn(
-                 "whitespace-nowrap px-5 py-2.5 rounded-[1rem] text-[13px] font-semibold transition-all active:scale-95 border",
+                 "whitespace-nowrap px-5 py-2.5 rounded-[1rem] text-xs font-semibold transition-all active:scale-95 border",
                  index === 0 
                    ? "bg-premium-900 text-white border-transparent shadow-[0_4px_14px_rgba(15,23,42,0.2)]" 
                    : "bg-white text-gray-600 border-gray-200 shadow-sm hover:bg-premium-50 hover:border-gray-300"
@@ -135,7 +135,7 @@ export default function RepHome() {
         <div>
            <div className="flex justify-between items-center mb-4 px-1">
              <h2 className="text-xl font-display font-bold text-premium-900 tracking-tight">Active Visits</h2>
-             <button onClick={() => navigate('/rep/history')} className="text-[13px] font-bold text-gray-400 hover:text-premium-900 active:scale-95 transition-all flex items-center gap-1">
+             <button onClick={() => navigate('/rep/history')} className="text-xs font-bold text-gray-400 hover:text-premium-900 active:scale-95 transition-all flex items-center gap-1">
                 View all <ChevronRight className="w-4 h-4" />
              </button>
            </div>
@@ -157,11 +157,11 @@ export default function RepHome() {
                        <Clock className="w-5 h-5 opacity-80" />
                      </div>
                      <div className="flex-1 min-w-0 pr-2">
-                       <h3 className="font-bold text-premium-900 text-[15px] line-clamp-1 tracking-tight">{req.doctorName || 'Doctor Request'}</h3>
-                       <p className="text-[13px] text-gray-500 truncate font-medium mt-0.5 mb-1.5">{req.clinicName || 'Clinic'}</p>
+                       <h3 className="font-bold text-premium-900 text-sm line-clamp-1 tracking-tight">{req.doctorName || 'Doctor Request'}</h3>
+                       <p className="text-xs text-gray-500 truncate font-medium mt-0.5 mb-1.5">{req.clinicName || 'Clinic'}</p>
                        
                        <span className={cn(
-                         "inline-flex items-center text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-md border",
+                         "inline-flex items-center text-xs uppercase tracking-widest font-bold px-2 py-1 rounded-md border",
                          req.status === 'pending' ? "bg-amber-50/50 text-amber-700 border-amber-200/60" : "bg-emerald-50/50 text-emerald-700 border-emerald-200/60"
                        )}>
                          <span className={cn("w-1 h-1 rounded-full mr-1.5", req.status === 'pending' ? 'bg-amber-500' : 'bg-emerald-500')}></span>
@@ -199,7 +199,7 @@ export default function RepHome() {
                </div>
                <div>
                  <h3 className="font-bold text-premium-900 text-sm">Daily Call Report (DCR)</h3>
-                 <p className="text-[11px] text-gray-500 font-medium">Auto-compiled for ASM reporting</p>
+                 <p className="text-xs text-gray-500 font-medium">Auto-compiled for ASM reporting</p>
                </div>
              </div>
              <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200/60">
@@ -266,11 +266,11 @@ export default function RepHome() {
 
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-premium-900 text-xs truncate">Dr. {up.doctorName || 'Doctor'}</p>
-                      <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                      <p className="text-xs font-medium text-gray-500 mt-0.5">
                         Status: <span className="font-bold capitalize">{up.status === 'approved' ? 'Gatepass Confirmed' : up.status}</span>
                       </p>
                       {up.token && (
-                        <span className="inline-block text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 mt-1">
+                        <span className="inline-block text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 mt-1">
                           Token: {up.token}
                         </span>
                       )}

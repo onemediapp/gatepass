@@ -161,7 +161,7 @@ export default function AppointmentRequest() {
                <div className="bg-transparent text-white truncate px-3 py-2 flex-1 text-sm font-medium pt-2.5">
                   {window.location.host}/status/{generatedId.substring(0,8)}...
                </div>
-               <button onClick={copyLink} className="bg-white text-emerald-600 p-2.5 rounded-xl ml-2 shadow-sm font-bold flex items-center gap-2 focus:outline-none active:scale-95 transition-all text-[14px]">
+               <button onClick={copyLink} className="bg-white text-emerald-600 p-2.5 rounded-xl ml-2 shadow-sm font-bold flex items-center gap-2 focus:outline-none active:scale-95 transition-all text-sm">
                   <Copy className="w-4 h-4" /> {copiedLink ? 'Copied!' : 'Copy'}
                </button>
              </div>
@@ -169,12 +169,12 @@ export default function AppointmentRequest() {
           
           <button 
              onClick={() => navigate(`/status/${generatedId}`)}
-             className="w-full max-w-sm bg-white text-emerald-700 font-bold py-4 rounded-[1.5rem] shadow-xl hover:shadow-2xl active:scale-[0.98] transition-all flex justify-center items-center gap-2 mb-6 text-[15px]"
+             className="w-full max-w-sm bg-white text-emerald-700 font-bold py-4 rounded-[1.5rem] shadow-xl hover:shadow-2xl active:scale-[0.98] transition-all flex justify-center items-center gap-2 mb-6 text-sm"
           >
              Track Progress <ExternalLink className="w-5 h-5" />
           </button>
           
-          <button onClick={() => navigate('/rep/home')} className="text-white/80 font-bold hover:text-white transition-colors py-2 px-4 rounded-full hover:bg-white/10 active:scale-95 text-[14px]">
+          <button onClick={() => navigate('/rep/home')} className="text-white/80 font-bold hover:text-white transition-colors py-2 px-4 rounded-full hover:bg-white/10 active:scale-95 text-sm">
              Return to Home
           </button>
        </div>
@@ -190,8 +190,8 @@ export default function AppointmentRequest() {
             <ChevronLeft className="w-6 h-6" />
           </button>
           <div className="flex-1 text-center pr-6">
-            <h1 className="font-display font-black text-premium-900 text-[18px] tracking-tight">Request Visit</h1>
-            <p className="text-[13px] text-gray-500 font-medium truncate px-2">{doctor.privacy?.showFullName ? `Dr. ${doctor.name}` : 'Doctor'}</p>
+            <h1 className="font-display font-black text-premium-900 text-base tracking-tight">Request Visit</h1>
+            <p className="text-xs text-gray-500 font-medium truncate px-2">{doctor.privacy?.showFullName ? `Dr. ${doctor.name}` : 'Doctor'}</p>
           </div>
        </div>
 
@@ -199,11 +199,11 @@ export default function AppointmentRequest() {
          {/* Read-Only Info */}
          <div className="bg-premium-900 p-6 rounded-[1.5rem] shadow-[0_4px_20px_rgb(0,0,0,0.08)] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400/10 rounded-full blur-[40px]"></div>
-            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-4">Sharing Profile Info</p>
+            <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-4">Sharing Profile Info</p>
             <div className="space-y-3 relative z-10">
-               <div className="flex gap-3 text-[14px] items-center"><span className="text-white/50 w-16 font-medium">From</span> <span className="font-bold text-white tracking-wide">{repInfo.companyName}</span></div>
-               <div className="flex gap-3 text-[14px] items-center"><span className="text-white/50 w-16 font-medium">As</span> <span className="font-medium text-white">{repInfo.designation}</span></div>
-               <div className="flex gap-3 text-[14px] items-center"><span className="text-white/50 w-16 font-medium">Focus</span> <span className="font-bold text-premium-900 bg-white px-2.5 py-1 rounded-[0.5rem] text-[11px] uppercase tracking-widest">{repInfo.therapeuticCategory}</span></div>
+               <div className="flex gap-3 text-sm items-center"><span className="text-white/50 w-16 font-medium">From</span> <span className="font-bold text-white tracking-wide">{repInfo.companyName}</span></div>
+               <div className="flex gap-3 text-sm items-center"><span className="text-white/50 w-16 font-medium">As</span> <span className="font-medium text-white">{repInfo.designation}</span></div>
+               <div className="flex gap-3 text-sm items-center"><span className="text-white/50 w-16 font-medium">Focus</span> <span className="font-bold text-premium-900 bg-white px-2.5 py-1 rounded-[0.5rem] text-xs uppercase tracking-widest">{repInfo.therapeuticCategory}</span></div>
             </div>
          </div>
 
@@ -211,12 +211,12 @@ export default function AppointmentRequest() {
          <div className="space-y-6">
             {clinics.length > 0 && (
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
                   <MapPin className="w-3.5 h-3.5 text-gray-400"/> Clinic Location
                 </label>
                 <div className="relative">
                   <select 
-                    className="w-full border border-gray-200 rounded-[1rem] pl-4 pr-10 py-3.5 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-premium-900 font-medium shadow-sm appearance-none transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] pl-4 pr-10 py-3.5 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-premium-900 font-medium shadow-sm appearance-none transition-all text-sm"
                     value={form.clinicId}
                     onChange={(e) => setForm({...form, clinicId: e.target.value})}
                   >
@@ -230,9 +230,9 @@ export default function AppointmentRequest() {
             )}
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Product Focus *</label>
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Product Focus *</label>
               <textarea 
-                className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-h-[100px] resize-none font-medium placeholder:text-gray-400 shadow-sm transition-all text-[15px] text-premium-900"
+                className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-h-[100px] resize-none font-medium placeholder:text-gray-400 shadow-sm transition-all text-sm text-premium-900"
                 placeholder="Which specific products do you want to discuss?"
                 value={form.productFocus}
                 onChange={(e) => setForm({...form, productFocus: e.target.value})}
@@ -240,25 +240,25 @@ export default function AppointmentRequest() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 px-1">
                 <Calendar className="w-3.5 h-3.5 text-gray-400"/> Preferred Date *
               </label>
               <input 
                  type="date"
                  min={minDate}
-                 className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-medium text-premium-900 shadow-sm transition-all text-[15px]"
+                 className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none font-medium text-premium-900 shadow-sm transition-all text-sm"
                  value={form.preferredDate}
                  onChange={(e) => setForm({...form, preferredDate: e.target.value})}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
+              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
                 <span>Notes to Doctor</span>
                 <span className="text-gray-300 font-medium">(Opt)</span>
               </label>
               <textarea 
-                className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-h-[80px] resize-none font-medium placeholder:text-gray-400 shadow-sm transition-all text-[15px] text-premium-900"
+                className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none min-h-[80px] resize-none font-medium placeholder:text-gray-400 shadow-sm transition-all text-sm text-premium-900"
                 placeholder="Any specific context for this visit..."
                 value={form.message}
                 onChange={(e) => setForm({...form, message: e.target.value})}
@@ -288,7 +288,7 @@ export default function AppointmentRequest() {
              <button
                onClick={handleSubmit}
                disabled={isSubmitting || !form.productFocus}
-               className="w-full bg-premium-900 text-white font-bold py-4 rounded-[1.25rem] shadow-[0_4px_14px_rgba(15,23,42,0.2)] hover:bg-black transition-all disabled:opacity-30 disabled:active:scale-100 active:scale-[0.98] flex items-center justify-center gap-2 text-[15px]"
+               className="w-full bg-premium-900 text-white font-bold py-4 rounded-[1.25rem] shadow-[0_4px_14px_rgba(15,23,42,0.2)] hover:bg-black transition-all disabled:opacity-30 disabled:active:scale-100 active:scale-[0.98] flex items-center justify-center gap-2 text-sm"
              >
                {isSubmitting ? 'Sending Request...' : 'Send Request'}
              </button>

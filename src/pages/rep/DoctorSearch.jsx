@@ -87,7 +87,7 @@ export default function DoctorSearch() {
             <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
               type="text" 
-              className="w-full bg-premium-100 rounded-[1.25rem] pl-12 pr-4 py-3.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white focus:border-emerald-500 border border-transparent transition-all text-[15px] font-medium placeholder:text-gray-400 text-premium-900 shadow-sm"
+              className="w-full bg-premium-100 rounded-[1.25rem] pl-12 pr-4 py-3.5 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white focus:border-emerald-500 border border-transparent transition-all text-sm font-medium placeholder:text-gray-400 text-premium-900 shadow-sm"
               placeholder="Search by name, specialty, or city"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -106,7 +106,7 @@ export default function DoctorSearch() {
                 <input 
                   type="text" 
                   placeholder="Any City" 
-                  className="w-full bg-white border border-gray-200 rounded-[1rem] pl-10 pr-3 py-3 text-[14px] font-medium outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm text-premium-900 placeholder:text-gray-400"
+                  className="w-full bg-white border border-gray-200 rounded-[1rem] pl-10 pr-3 py-3 text-sm font-medium outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm text-premium-900 placeholder:text-gray-400"
                   value={filterCity}
                   onChange={e => setFilterCity(e.target.value)}
                 />
@@ -114,7 +114,7 @@ export default function DoctorSearch() {
               <div className="relative flex-1">
                 <Activity className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
                 <select 
-                  className="w-full bg-white border border-gray-200 rounded-[1rem] pl-10 pr-8 py-3 text-[14px] font-medium outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm text-premium-900 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px_10px] bg-no-repeat bg-[position:right_12px_center]"
+                  className="w-full bg-white border border-gray-200 rounded-[1rem] pl-10 pr-8 py-3 text-sm font-medium outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all shadow-sm text-premium-900 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%239CA3AF%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:10px_10px] bg-no-repeat bg-[position:right_12px_center]"
                   value={filterSpecialty}
                   onChange={e => setFilterSpecialty(e.target.value)}
                 >
@@ -139,7 +139,7 @@ export default function DoctorSearch() {
               </div>
             </div>
             <h2 className="text-[1.75rem] font-display font-black text-premium-900 mb-3 tracking-tight leading-tight">Find Specialists</h2>
-            <p className="text-gray-500 max-w-[250px] mx-auto text-[15px] font-medium leading-relaxed">Search the GATEPASS network to find your target prescribers.</p>
+            <p className="text-gray-500 max-w-[250px] mx-auto text-sm font-medium leading-relaxed">Search the GATEPASS network to find your target prescribers.</p>
           </div>
         ) : isSearching ? (
           <div className="space-y-4">
@@ -162,7 +162,7 @@ export default function DoctorSearch() {
                </div>
              </div>
              <h2 className="text-[1.5rem] font-display font-black text-premium-900 mb-2">No doctors found</h2>
-             <p className="text-gray-500 text-[15px] font-medium">Try adjusting your filters or search terms.</p>
+             <p className="text-gray-500 text-sm font-medium">Try adjusting your filters or search terms.</p>
            </div>
         ) : (
           <div className="space-y-4">
@@ -189,10 +189,10 @@ export default function DoctorSearch() {
                       
                       {/* Info */}
                       <div className="flex-1 min-w-0 pt-1">
-                        <h3 className="font-display font-black text-premium-900 text-[17px] truncate tracking-tight mb-1 group-hover:text-emerald-600 transition-colors">
+                        <h3 className="font-display font-black text-premium-900 text-base truncate tracking-tight mb-1 group-hover:text-emerald-600 transition-colors">
                           {doctor.privacy?.showFullName ? `Dr. ${displayName}` : displayName}
                         </h3>
-                        <p className="text-[13px] font-bold text-emerald-600 mb-2 flex items-center gap-1.5 truncate">
+                        <p className="text-xs font-bold text-emerald-600 mb-2 flex items-center gap-1.5 truncate">
                           {doctor.privacy?.showSpecialty ? doctor.specialty : 'Specialist'} 
                           <span className="text-emerald-200 aspect-square w-1 h-1 rounded-full bg-emerald-300"></span>
                           <span className="text-gray-500 font-medium truncate">{doctor.qualifications}</span>
@@ -200,13 +200,13 @@ export default function DoctorSearch() {
                         
                         <div className="flex items-center gap-4 mt-2 mb-1">
                           {doctor.privacy?.showCity && (
-                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium whitespace-nowrap bg-gray-50 px-2 py-1 rounded-[0.5rem] border border-gray-100">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium whitespace-nowrap bg-gray-50 px-2 py-1 rounded-[0.5rem] border border-gray-100">
                               <MapPin className="w-3.5 h-3.5 text-gray-400" />
                               {doctor.city}
                             </div>
                           )}
                           {doctor.privacy?.showRepHours && doctor.repHours && (
-                            <div className="flex items-center gap-1.5 text-[12px] text-gray-500 font-medium truncate bg-gray-50 px-2 py-1 rounded-[0.5rem] border border-gray-100">
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium truncate bg-gray-50 px-2 py-1 rounded-[0.5rem] border border-gray-100">
                               <Clock className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                               <span className="truncate">{doctor.repHours}</span>
                             </div>

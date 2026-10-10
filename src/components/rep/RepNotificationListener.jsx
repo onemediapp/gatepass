@@ -1,15 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { subscribeRepAppointmentChanges } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
-import { CheckCircle2, UserCheck, XCircle, Bell, ChevronRight, X, Sparkles } from 'lucide-react';
+import { CheckCircle2, UserCheck, XCircle, ChevronRight, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import LiveDot from '../ui/LiveDot';
 
 export default function RepNotificationListener({ children }) {
   const { user, userData } = useAuth();
   const navigate = useNavigate();
   const [toast, setToast] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
   const prevStatusesRef = useRef({});
   const initialLoadRef = useRef(true);
 
@@ -22,65 +21,64 @@ export default function RepNotificationListener({ children }) {
       const newStatus = data.status;
       const prevStatus = prevStatusesRef.current[id];
 
-        // On initial snapshot load, store all current statuses
-        if (initialLoadRef.current) {
-          prevStatusesRef.current[id] = newStatus;
-          return;
-        }
-
-        // If modified and status actually changed
-        if (change.type === 'modified' && prevStatus && prevStatus !== newStatus) {
-          const docName = data.doctorName || 'Doctor';
-          let title = '';
-          let message = '';
-          let type = 'info'; // 'approved', 'completed', 'rejected'
-
-          if (newStatus === 'approved' || newStatus === 'confirmed') {
-            title = 'Gatepass Confirmed!';
-            message = `Dr. ${docName} approved your appointment request. Token: ${data.token || 'Issued'}`;
-            type = 'approved';
-          } else if (newStatus === 'completed') {
-            title = 'Visit Completed!';
-            message = `Dr. ${docName} marked your appointment as completed.`;
-            type = 'completed';
-          } else if (newStatus === 'rejected') {
-            title = 'Request Declined';
-            message = `Dr. ${docName} declined your appointment request.`;
-            type = 'rejected';
-          }
-
-          if (title) {
-            const newNotif = {
-              id: `${id}-${Date.now()}`,
-              appointmentId: id,
-              title,
-              message,
-              type,
-              timestamp: new Date(),
-              doctorName: docName,
-              token: data.token
-            };
-
-            setToast(newNotif);
-            setNotifications(prev => [newNotif, ...prev]);
-
-            // Auto dismiss toast after 6 seconds
-            setTimeout(() => {
-              setToast(current => current?.id === newNotif.id ? null : current);
-            }, 6000);
-          }
-        }
-
-        // Update ref
+      // On initial snapshot load, store all current statuses
+      if (initialLoadRef.current) {
         prevStatusesRef.current[id] = newStatus;
-      });
+        return;
+      }
 
-      initialLoadRef.current = false;
+      // If modified and status actually changed
+      if (change.type === 'modified' && prevStatus && prevStatus !== newStatus) {
+        const docName = data.doctorName || 'Doctor';
+        let title = '';
+        let message = '';
+        let type = 'approved'; // 'approved', 'completed', 'declined'
 
-      return () => {
-        if (unsub) unsub();
-      };
-    }, [user, userData]);
+        if (newStatus === 'approved' || newStatus === 'confirmed') {
+          title = 'Gatepass Confirmed';
+          message = `Dr. ${docName} approved your appointment request.`;
+          type = 'approved';
+        } else if (newStatus === 'completed') {
+          title = 'Visit Completed';
+          message = `Dr. ${docName} marked your appointment as completed.`;
+          type = 'completed';
+        } else if (newStatus === 'rejected' || newStatus === 'declined') {
+          title = 'Request Declined';
+          message = `Dr. ${docName} couldn't take this slot.`;
+          type = 'declined';
+        }
+
+        if (title) {
+          const newNotif = {
+            id: `${id}-${Date.now()}`,
+            appointmentId: id,
+            title,
+            message,
+            type,
+            timestamp: new Date(),
+            doctorName: docName,
+            token: data.token
+          };
+
+          setToast(newNotif);
+
+          // Auto dismiss toast after 6 seconds
+          setTimeout(() => {
+            setToast(current => current?.id === newNotif.id ? null : current);
+          }, 6000);
+        }
+      }
+
+      // Update ref
+      prevStatusesRef.current[id] = newStatus;
+    });
+
+    initialLoadRef.current = false;
+
+    return () => {
+      if (unsub) unsub();
+    };
+  }, [user, userData]);
 
   return (
     <>
@@ -88,52 +86,43 @@ export default function RepNotificationListener({ children }) {
 
       {/* Real-time Floating Toast Notification */}
       {toast && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-md animate-in slide-in-from-top-6 fade-in duration-500">
-          <div className={`rounded-[1.5rem] p-4 shadow-[0_12px_40px_rgba(0,0,0,0.15)] border flex items-start gap-3.5 backdrop-blur-xl ${
-            toast.type === 'approved' 
-              ? 'bg-emerald-950/95 text-white border-emerald-500/30' 
-              : toast.type === 'completed'
-              ? 'bg-blue-950/95 text-white border-blue-500/30'
-              : 'bg-rose-950/95 text-white border-rose-500/30'
-          }`}>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 ${
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-md animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className="bg-navy-900 text-cream-50 rounded-[1.25rem] p-4 shadow-[0_8px_24px_rgba(11,23,48,0.25)] border border-navy-700 flex items-start gap-3.5 border-l-4 border-l-teal-600">
+            <div className={`w-9 h-9 rounded-[0.75rem] flex items-center justify-center flex-shrink-0 mt-0.5 ${
               toast.type === 'approved' 
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                ? 'bg-teal-50 text-teal-600' 
                 : toast.type === 'completed'
-                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                ? 'bg-navy-100 text-navy-900'
+                : 'bg-coral-50 text-coral-600'
             }`}>
-              {toast.type === 'approved' && <CheckCircle2 className="w-5 h-5" />}
-              {toast.type === 'completed' && <UserCheck className="w-5 h-5" />}
-              {toast.type === 'rejected' && <XCircle className="w-5 h-5" />}
+              {toast.type === 'approved' && <CheckCircle2 className="w-4 h-4" />}
+              {toast.type === 'completed' && <UserCheck className="w-4 h-4" />}
+              {toast.type === 'declined' && <XCircle className="w-4 h-4" />}
             </div>
 
             <div className="flex-1 min-w-0 pr-1">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-display font-bold text-[15px] tracking-tight">{toast.title}</span>
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
+                <span className="font-display font-bold text-sm tracking-tight text-white">{toast.title}</span>
+                <LiveDot />
               </div>
-              <p className="text-xs font-medium text-gray-300 leading-snug">{toast.message}</p>
+              <p className="text-xs text-navy-100 leading-snug">{toast.message}</p>
               
               <button 
                 onClick={() => {
                   setToast(null);
                   navigate(`/status/${toast.appointmentId}`);
                 }}
-                className="mt-2.5 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors uppercase tracking-wider"
+                className="mt-2 inline-flex items-center gap-1 font-mono text-[0.6875rem] font-bold text-amber-500 hover:text-amber-100 transition-colors uppercase tracking-wider"
               >
-                View Details <ChevronRight className="w-3.5 h-3.5" />
+                View Pass <ChevronRight className="w-3 h-3" />
               </button>
             </div>
 
             <button 
               onClick={() => setToast(null)}
-              className="p-1 text-gray-400 hover:text-white transition-colors"
+              className="p-1 text-ink-mute hover:text-white transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

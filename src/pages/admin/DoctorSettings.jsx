@@ -46,7 +46,7 @@ export default function DoctorSettings() {
 
        <div className="space-y-6">
           <section>
-             <h2 className="font-bold text-gray-400 mb-3 text-[11px] uppercase tracking-widest pl-2">Search Visibility</h2>
+             <h2 className="font-bold text-gray-400 mb-3 text-xs uppercase tracking-widest pl-2">Search Visibility</h2>
              <div className="bg-white rounded-[1.5rem] shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-gray-100 overflow-hidden divide-y divide-gray-100/60">
                 <div className="px-6 py-5 hover:bg-gray-50/50 transition-colors">
                   <ToggleSwitch 
@@ -68,7 +68,7 @@ export default function DoctorSettings() {
           </section>
 
           <section>
-             <h2 className="font-bold text-gray-400 mb-3 text-[11px] uppercase tracking-widest pl-2">Appointments</h2>
+             <h2 className="font-bold text-gray-400 mb-3 text-xs uppercase tracking-widest pl-2">Appointments</h2>
              <div className="bg-white rounded-[1.5rem] shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-gray-100 overflow-hidden divide-y divide-gray-100/60">
                 <div className="px-6 py-5 hover:bg-gray-50/50 transition-colors">
                   <ToggleSwitch 
@@ -90,7 +90,7 @@ export default function DoctorSettings() {
           </section>
 
           <section>
-             <h2 className="font-bold text-gray-400 mb-3 text-[11px] uppercase tracking-widest pl-2">Contact & WhatsApp</h2>
+             <h2 className="font-bold text-gray-400 mb-3 text-xs uppercase tracking-widest pl-2">Contact & WhatsApp</h2>
              <div className="bg-white rounded-[1.5rem] shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-gray-100 overflow-hidden">
                 <div className="px-6 py-5 hover:bg-gray-50/50 transition-colors">
                   <ToggleSwitch 

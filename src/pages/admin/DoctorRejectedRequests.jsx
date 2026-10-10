@@ -33,7 +33,7 @@ export default function DoctorRejectedRequests() {
        </div>
 
        {requests.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 font-medium bg-white rounded-[1.5rem] border border-gray-100 border-dashed text-[15px]">
+          <div className="text-center py-16 text-gray-400 font-medium bg-white rounded-[1.5rem] border border-gray-100 border-dashed text-sm">
             No rejected requests.
           </div>
        ) : (
@@ -41,9 +41,9 @@ export default function DoctorRejectedRequests() {
              {requests.map(req => (
                 <div key={req.id} className="bg-white rounded-[1.25rem] p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)] border border-gray-100 flex justify-between items-start gap-4 opacity-70 hover:opacity-100 transition-opacity">
                    <div className="flex-1">
-                     <h3 className="font-bold text-premium-900 text-[16px] line-clamp-1">{req.repSnapshot?.name || 'Rep Name'}</h3>
-                     <p className="font-medium text-gray-500 text-[13px] mt-1">{req.repSnapshot?.company} • {req.repSnapshot?.designation}</p>
-                     <p className="font-medium text-[13px] text-gray-500 mt-3 truncate">Focus: {req.productFocus}</p>
+                     <h3 className="font-bold text-premium-900 text-base line-clamp-1">{req.repSnapshot?.name || 'Rep Name'}</h3>
+                     <p className="font-medium text-gray-500 text-xs mt-1">{req.repSnapshot?.company} • {req.repSnapshot?.designation}</p>
+                     <p className="font-medium text-xs text-gray-500 mt-3 truncate">Focus: {req.productFocus}</p>
                    </div>
                    <div className="bg-red-50 text-red-600 p-2.5 rounded-[1rem] flex items-center justify-center">
                      <XCircle className="w-6 h-6" />

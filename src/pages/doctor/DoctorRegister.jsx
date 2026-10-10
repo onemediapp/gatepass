@@ -180,7 +180,7 @@ export default function DoctorRegister() {
             </div>
             <div>
               <h1 className="font-display font-black text-premium-900 leading-none text-xl tracking-tight">Setup Profile</h1>
-              <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-1">
+              <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest mt-1">
                 Step {step} of 2
               </p>
             </div>
@@ -204,7 +204,7 @@ export default function DoctorRegister() {
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Specialty <span className="text-red-500">*</span></label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Specialty <span className="text-red-500">*</span></label>
                 <div className="bg-white rounded-[1rem] border border-gray-200 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 shadow-sm transition-all p-1">
                   <SearchableSelect 
                     options={specialtyOptions}
@@ -216,10 +216,10 @@ export default function DoctorRegister() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Qualifications <span className="text-red-500">*</span></label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Qualifications <span className="text-red-500">*</span></label>
                 <input 
                   type="text" 
-                  className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                  className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                   placeholder="e.g. MBBS, MD (Medicine)"
                   value={profileData.qualifications}
                   onChange={(e) => updateProfile('qualifications', e.target.value)}
@@ -228,20 +228,20 @@ export default function DoctorRegister() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Reg Number <span className="text-gray-300 font-medium">(Opt)</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Reg Number <span className="text-gray-300 font-medium">(Opt)</span></label>
                   <input 
                     type="text" 
-                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                     placeholder="e.g. 12345"
                     value={profileData.regNumber}
                     onChange={(e) => updateProfile('regNumber', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Experience</label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Experience</label>
                   <input 
                     type="number" 
-                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                     placeholder="Years"
                     value={profileData.experience}
                     onChange={(e) => updateProfile('experience', e.target.value)}
@@ -251,17 +251,17 @@ export default function DoctorRegister() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">City <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">City <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
-                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                     placeholder="e.g. Mumbai"
                     value={profileData.city}
                     onChange={(e) => updateProfile('city', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">State <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">State <span className="text-red-500">*</span></label>
                   <div className="bg-white rounded-[1rem] border border-gray-200 focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 shadow-sm transition-all p-1">
                     <SearchableSelect 
                       options={stateOptions}
@@ -274,7 +274,7 @@ export default function DoctorRegister() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Mobile / WhatsApp <span className="text-red-500">*</span></label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Mobile / WhatsApp <span className="text-red-500">*</span></label>
                 <div className="bg-white rounded-[1rem] shadow-sm border border-gray-200 overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500/20 focus-within:border-emerald-500 transition-all">
                   <PhoneInput 
                     value={profileData.mobile}
@@ -297,13 +297,13 @@ export default function DoctorRegister() {
             <div className="flex bg-premium-100 p-1.5 rounded-[1rem] mb-8 shadow-inner border border-gray-100">
               <button 
                 onClick={() => setClinicOption('A')}
-                className={cn("flex-1 py-3 text-[13px] font-bold rounded-[0.75rem] transition-all", clinicOption === 'A' ? "bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-emerald-600" : "text-gray-500 hover:text-gray-700")}
+                className={cn("flex-1 py-3 text-xs font-bold rounded-[0.75rem] transition-all", clinicOption === 'A' ? "bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-emerald-600" : "text-gray-500 hover:text-gray-700")}
               >
                 Create New
               </button>
               <button 
                 onClick={() => setClinicOption('C')}
-                className={cn("flex-1 py-3 text-[13px] font-bold rounded-[0.75rem] transition-all", clinicOption === 'C' ? "bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-premium-900" : "text-gray-500 hover:text-gray-700")}
+                className={cn("flex-1 py-3 text-xs font-bold rounded-[0.75rem] transition-all", clinicOption === 'C' ? "bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)] text-premium-900" : "text-gray-500 hover:text-gray-700")}
               >
                 Skip right now
               </button>
@@ -312,26 +312,26 @@ export default function DoctorRegister() {
             {clinicOption === 'A' && (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Clinic Name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Clinic Name <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
-                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                     placeholder="e.g. Apollo Diabetes Clinic"
                     value={clinicData.clinicName}
                     onChange={(e) => updateClinic('clinicName', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1">Full Address <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Full Address <span className="text-red-500">*</span></label>
                   <textarea 
-                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none resize-none min-h-[100px] font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none resize-none min-h-[100px] font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                     placeholder="Enter complete address"
                     value={clinicData.address}
                     onChange={(e) => updateClinic('address', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
                     <span>Clinic Phone</span>
                     <span className="text-gray-300">(Opt)</span>
                   </label>
@@ -343,13 +343,13 @@ export default function DoctorRegister() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1 flex justify-between">
                     <span>Rep Visiting Hours</span>
                     <span className="text-gray-300">(Opt)</span>
                   </label>
                   <input 
                     type="text" 
-                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-[15px]"
+                    className="w-full border border-gray-200 rounded-[1rem] px-5 py-4 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 bg-white shadow-sm outline-none font-medium text-premium-900 placeholder:text-gray-400 transition-all text-sm"
                     placeholder="e.g. 2:00 PM - 4:00 PM (Mon-Fri)"
                     value={clinicData.repHours}
                     onChange={(e) => updateClinic('repHours', e.target.value)}
@@ -359,7 +359,7 @@ export default function DoctorRegister() {
             )}
             
             {clinicOption === 'C' && (
-              <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[1.25rem] text-emerald-900 text-[14px]">
+              <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-[1.25rem] text-emerald-900 text-sm">
                 <p className="font-bold mb-2">Are you sure?</p>
                 <p className="font-medium text-emerald-800/80 leading-relaxed">You can set up your clinic later from the dashboard. Reps won't be able to book appointments with you until you add a clinic.</p>
               </div>
@@ -381,7 +381,7 @@ export default function DoctorRegister() {
             <button
               onClick={handleNext}
               disabled={!profileData.specialty || !profileData.qualifications || !profileData.city || profileData.mobile.length < 10}
-              className="flex-1 bg-premium-900 text-white font-bold rounded-[1.25rem] px-6 py-4 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-30 disabled:active:scale-100 shadow-[0_4px_14px_rgba(15,23,42,0.2)] text-[15px]"
+              className="flex-1 bg-premium-900 text-white font-bold rounded-[1.25rem] px-6 py-4 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-30 disabled:active:scale-100 shadow-[0_4px_14px_rgba(15,23,42,0.2)] text-sm"
             >
               Continue <ChevronRight className="w-5 h-5" />
             </button>
@@ -389,7 +389,7 @@ export default function DoctorRegister() {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || (clinicOption === 'A' && (!clinicData.clinicName || !clinicData.address))}
-              className="flex-1 bg-emerald-600 text-white font-bold rounded-[1.25rem] px-6 py-4 transition-all active:scale-[0.98] hover:bg-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(5,150,105,0.3)] text-[15px]"
+              className="flex-1 bg-emerald-600 text-white font-bold rounded-[1.25rem] px-6 py-4 transition-all active:scale-[0.98] hover:bg-emerald-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-[0_4px_14px_rgba(5,150,105,0.3)] text-sm"
             >
               {isSubmitting ? 'Saving...' : 'Finish Setup'} <Check className="w-5 h-5" />
             </button>

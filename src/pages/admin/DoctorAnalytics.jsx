@@ -47,7 +47,7 @@ export default function DoctorAnalytics() {
                 <CheckCircle className="w-6 h-6" />
              </div>
              <p className="text-4xl font-display font-black text-premium-900">{stats.totalApproved}</p>
-             <p className="font-bold text-gray-400 mt-2 uppercase text-[11px] tracking-widest">Total Approved</p>
+             <p className="font-bold text-gray-400 mt-2 uppercase text-xs tracking-widest">Total Approved</p>
           </div>
           
           <div className="bg-white rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgb(0,0,0,0.02)] border border-gray-100 flex flex-col justify-between">
@@ -55,7 +55,7 @@ export default function DoctorAnalytics() {
                 <Clock className="w-6 h-6" />
              </div>
              <p className="text-4xl font-display font-black text-premium-900">{stats.pending}</p>
-             <p className="font-bold text-gray-400 mt-2 uppercase text-[11px] tracking-widest">Pending Requests</p>
+             <p className="font-bold text-gray-400 mt-2 uppercase text-xs tracking-widest">Pending Requests</p>
           </div>
           
           <div className="bg-white rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgb(0,0,0,0.02)] border border-gray-100 flex flex-col justify-between">
@@ -63,7 +63,7 @@ export default function DoctorAnalytics() {
                 <Users className="w-6 h-6" />
              </div>
              <p className="text-4xl font-display font-black text-premium-900">{stats.uniqueReps}</p>
-             <p className="font-bold text-gray-400 mt-2 uppercase text-[11px] tracking-widest">Unique MRs Engaged</p>
+             <p className="font-bold text-gray-400 mt-2 uppercase text-xs tracking-widest">Unique MRs Engaged</p>
           </div>
        </div>
     </div>

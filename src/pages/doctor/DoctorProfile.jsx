@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getDoctor } from '../../lib/db/doctors';
 import { getUser } from '../../lib/db/users';
 import { getClinic } from '../../lib/db/clinics';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { MapPin, Clock, Phone, MessageCircle, Calendar, ArrowLeft, ShieldCheck, Building2 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+import EdgeCard from '../../components/ui/EdgeCard';
+import Skeleton from '../../components/ui/Skeleton';
+import LiveDot from '../../components/ui/LiveDot';
+import MonoTag from '../../components/ui/MonoTag';
 
 export default function DoctorProfile() {
   const { doctorId } = useParams();
@@ -28,19 +31,19 @@ export default function DoctorProfile() {
         const uData = await getUser(doctorId);
         
         setDoctor({
-           id: doctorId,
-           ...data,
-           name: uData?.name || data.name || 'Doctor',
-           photoUrl: uData?.photoUrl || data.photoUrl || null
+          id: doctorId,
+          ...data,
+          name: uData?.name || data.name || 'Doctor',
+          photoUrl: uData?.photoUrl || data.photoUrl || null
         });
 
         if (data.privacy?.showClinicName && data.clinicIds?.length > 0) {
-           const clinicsData = [];
-           for (const cid of data.clinicIds) {
-             const cData = await getClinic(cid);
-             if (cData) clinicsData.push(cData);
-           }
-           setClinics(clinicsData);
+          const clinicsData = [];
+          for (const cid of data.clinicIds) {
+            const cData = await getClinic(cid);
+            if (cData) clinicsData.push(cData);
+          }
+          setClinics(clinicsData);
         }
         
       } catch (error) {
@@ -53,20 +56,31 @@ export default function DoctorProfile() {
   }, [doctorId]);
 
   if (loading) {
-     return <div className="min-h-screen bg-premium-50 flex items-center justify-center font-sans tracking-tight text-gray-500 font-medium">Loading profile...</div>;
+    return (
+      <div className="min-h-screen bg-cream-50 p-6 flex flex-col items-center justify-center space-y-4 font-sans">
+        <Skeleton className="w-24 h-24 rounded-[1.5rem]" />
+        <Skeleton className="w-48 h-6 rounded-[0.75rem]" />
+        <Skeleton className="w-64 h-4 rounded-[0.5rem]" />
+      </div>
+    );
   }
 
   if (!doctor) {
-     return (
-       <div className="min-h-screen bg-premium-50 flex flex-col items-center justify-center p-6 text-center">
-         <div className="w-16 h-16 bg-white shadow-sm border border-gray-100 rounded-[1.25rem] flex items-center justify-center mb-4">
-            <ShieldCheck className="w-8 h-8 text-gray-400" />
-         </div>
-         <h2 className="text-2xl font-display font-black text-premium-900">Profile Unavailable</h2>
-         <p className="text-gray-500 mt-2 font-medium">This doctor could not be found.</p>
-         <button onClick={() => navigate(-1)} className="mt-6 font-bold text-premium-900 px-6 py-3 bg-white border border-gray-200 rounded-[1rem] shadow-sm hover:bg-gray-50 active:scale-95 transition-all">Go Back</button>
-       </div>
-     );
+    return (
+      <div className="min-h-screen bg-cream-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="w-16 h-16 bg-white shadow-sm border border-line rounded-[1.25rem] flex items-center justify-center mb-4 text-ink-mute">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-display font-bold text-ink">Profile Unavailable</h2>
+        <p className="text-ink-soft mt-1 text-sm">This doctor profile could not be found.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-6 font-bold text-xs text-ink px-5 py-2.5 bg-white border border-line rounded-[0.875rem] shadow-sm hover:bg-cream-50 transition-all"
+        >
+          Go Back
+        </button>
+      </div>
+    );
   }
 
   const p = doctor.privacy || {};
@@ -74,125 +88,131 @@ export default function DoctorProfile() {
   const getInitials = (name) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-screen font-sans selection:bg-emerald-100 bg-premium-50 pb-24">
-      {/* Immersive Header Banner */}
-      <div className="h-44 bg-premium-900 relative overflow-hidden">
-        {/* Subtle glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px]"></div>
+    <div className="min-h-screen font-sans bg-cream-50 pb-24 selection:bg-amber-100 selection:text-sand-600">
+      {/* Header Banner */}
+      <div className="h-40 bg-navy-900 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
         
-         <button onClick={() => navigate(-1)} className="absolute top-safe-4 left-4 p-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-[1rem] transition-colors z-20 shadow-sm border border-white/10 mt-4 active:scale-95">
-            <ArrowLeft className="w-5 h-5 text-white" />
-         </button>
+        <button
+          onClick={() => navigate(-1)}
+          className="absolute top-4 left-4 p-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-[0.75rem] transition-colors z-20 shadow-sm border border-white/10 active:scale-95"
+          title="Go back"
+        >
+          <ArrowLeft className="w-4 h-4 text-white" />
+        </button>
       </div>
       
-      <div className="max-w-md mx-auto px-5 relative z-10 -mt-16 space-y-6">
+      <div className="max-w-md mx-auto px-4 relative z-10 -mt-16 space-y-4">
         {/* Main Profile Card */}
-        <div className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-[0_4px_40px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col items-center text-center">
-          <div className="relative w-28 h-28 -mt-20 mb-4 z-20">
-            <div className="absolute inset-0 bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgb(0,0,0,0.06)] transform -rotate-3"></div>
-            <div className="absolute inset-0 bg-white rounded-[1.5rem] p-1.5 shadow-sm transform rotate-3 transition-transform hover:rotate-0">
-              <div className="w-full h-full bg-premium-100 rounded-[1.25rem] flex items-center justify-center text-premium-900 font-black text-3xl overflow-hidden font-display">
-                  {doctor.photoUrl && p.showFullName ? (
-                    <img src={doctor.photoUrl} alt="" className="w-full h-full object-cover" />
-                  ) : getInitials(displayName)}
-              </div>
+        <EdgeCard edge="navy" className="p-6 flex flex-col items-center text-center">
+          <div className="relative w-24 h-24 -mt-16 mb-3 z-20">
+            <div className="w-full h-full bg-navy-100 rounded-[1.25rem] border-2 border-white shadow-md flex items-center justify-center text-navy-900 font-bold text-2xl overflow-hidden font-display">
+              {doctor.photoUrl && p.showFullName ? (
+                <img src={doctor.photoUrl} alt="" className="w-full h-full object-cover" />
+              ) : getInitials(displayName)}
             </div>
             {p.allowAppointmentRequest && (
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 border-4 border-white rounded-full shadow-sm z-30" title="Taking Appointments"></div>
+              <div className="absolute -bottom-1 -right-1 z-30" title="Taking Appointments">
+                <LiveDot />
+              </div>
             )}
           </div>
           
-          <h1 className="text-3xl font-display font-black text-premium-900 tracking-tight leading-tight">
-             {p.showFullName ? `Dr. ${displayName}` : displayName}
+          <h1 className="text-2xl font-display font-bold text-ink tracking-tight leading-tight">
+            {p.showFullName ? `Dr. ${displayName}` : displayName}
           </h1>
-          <p className="text-emerald-600 font-bold mt-2 flex items-center justify-center gap-2">
-             {p.showSpecialty ? doctor.specialty : 'Specialist'} 
-             {doctor.qualifications && (
-               <>
-                 <span className="w-1 h-1 bg-emerald-200 rounded-full mx-0.5"></span>
-                 <span className="text-gray-500 font-medium">{doctor.qualifications}</span>
-               </>
-             )}
+          <p className="text-teal-600 text-xs font-semibold mt-1 flex items-center justify-center gap-1.5">
+            <span>{p.showSpecialty ? doctor.specialty : 'Specialist'}</span>
+            {doctor.qualifications && (
+              <>
+                <span className="w-1 h-1 bg-teal-600/30 rounded-full" />
+                <span className="text-ink-soft font-normal">{doctor.qualifications}</span>
+              </>
+            )}
           </p>
           
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-5 mb-2 text-[13px] text-gray-600 font-bold">
-             {p.showCity && (
-               <div className="flex items-center gap-1.5 bg-gray-50 px-3.5 py-2 rounded-[1rem] border border-gray-100"><MapPin className="w-4 h-4 text-gray-400" /> {doctor.city}{doctor.state ? `, ${doctor.state}` : ''}</div>
-             )}
-             {p.showRepHours && doctor.repHours && (
-               <div className="flex items-center gap-1.5 bg-gray-50 px-3.5 py-2 rounded-[1rem] border border-gray-100"><Clock className="w-4 h-4 text-gray-400" /> {doctor.repHours}</div>
-             )}
-          </div>
-          
-          <div className="w-full mt-8">
-            {p.allowAppointmentRequest ? (
-               <button 
-                 onClick={() => navigate(`/appointment/new?doctorId=${doctor.id}`)}
-                 className="w-full bg-premium-900 hover:bg-black text-white font-bold rounded-[1.25rem] px-5 py-4 transition-all shadow-[0_4px_14px_rgba(15,23,42,0.2)] active:scale-[0.98] flex items-center justify-center gap-2 text-[15px]"
-               >
-                 <Calendar className="w-5 h-5" />
-                 Request Meeting
-               </button>
-            ) : (
-               <div className="w-full bg-gray-50 border border-gray-200 text-gray-500 font-bold rounded-[1.25rem] px-5 py-4 text-[14px] text-center">
-                 Not taking rep requests currently
-               </div>
+          <div className="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs text-ink-soft font-medium">
+            {p.showCity && doctor.city && (
+              <div className="flex items-center gap-1 bg-cream-50 px-3 py-1.5 rounded-[0.625rem] border border-line">
+                <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                <span>{doctor.city}{doctor.state ? `, ${doctor.state}` : ''}</span>
+              </div>
+            )}
+            {p.showRepHours && doctor.repHours && (
+              <div className="flex items-center gap-1 bg-cream-50 px-3 py-1.5 rounded-[0.625rem] border border-line">
+                <Clock className="w-3.5 h-3.5 text-ink-mute" />
+                <span>{doctor.repHours}</span>
+              </div>
             )}
           </div>
-        </div>
+          
+          <div className="w-full mt-6">
+            {p.allowAppointmentRequest ? (
+              <button 
+                onClick={() => navigate(`/dr/${doctor.profileSlug || doctor.id}/slots`)}
+                className="w-full bg-navy-900 hover:bg-navy-700 text-white font-bold rounded-[0.875rem] px-5 py-3.5 transition-all shadow-sm active:scale-[0.99] flex items-center justify-center gap-2 text-xs"
+              >
+                <Calendar className="w-4 h-4 text-amber-500" />
+                Pick a slot
+              </button>
+            ) : (
+              <div className="w-full bg-cream-50 border border-line text-ink-mute font-medium rounded-[0.875rem] px-4 py-3 text-xs text-center">
+                Not taking rep visits currently
+              </div>
+            )}
+          </div>
+        </EdgeCard>
 
         {/* Contact & Clinics Sections */}
-        <div className="space-y-4">
-          {(p.phoneVisibility !== 'hidden' || p.allowWhatsAppRedirect) && (
-            <div className="bg-white rounded-[2rem] p-6 sm:p-7 shadow-[0_4px_30px_rgb(0,0,0,0.03)] border border-gray-100">
-               <h3 className="font-display font-black text-premium-900 mb-5 tracking-tight text-[18px] flex items-center gap-2">
-                 <Phone className="w-5 h-5 text-gray-400" /> Contact Info
-               </h3>
-               <div className="space-y-3">
-                 {p.phoneVisibility === 'all_contacted' && doctor.whatsappNumber && (
-                    <a href={`tel:+91${doctor.whatsappNumber}`} className="flex items-center gap-4 w-full bg-premium-50 rounded-[1.25rem] p-3 text-premium-900 font-bold hover:bg-gray-100 transition-colors active:scale-[0.98] border border-gray-100">
-                      <div className="w-12 h-12 bg-white rounded-[1rem] flex items-center justify-center shadow-sm text-gray-500 border border-gray-100"><Phone className="w-5 h-5" /></div>
-                      <div>
-                        <div className="text-gray-400 text-[10px] uppercase tracking-widest mb-0.5">Phone Number</div>
-                        +91 {doctor.whatsappNumber}
-                      </div>
-                    </a>
-                 )}
-                 {p.allowWhatsAppRedirect && doctor.whatsappNumber && (
-                    <a href={`https://wa.me/91${doctor.whatsappNumber}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 w-full bg-[#25D366]/10 rounded-[1.25rem] p-3 text-[#128C7E] font-bold hover:bg-[#25D366]/20 transition-colors active:scale-[0.98] border border-[#25D366]/20">
-                      <div className="w-12 h-12 bg-white rounded-[1rem] flex items-center justify-center shadow-sm text-[#25D366] border border-[#25D366]/10"><MessageCircle className="w-5 h-5" /></div>
-                      Open in WhatsApp
-                    </a>
-                 )}
-                 {p.phoneVisibility === 'approved_only' && (
-                    <div className="flex items-start gap-3 bg-amber-50 text-amber-900 p-5 rounded-[1.25rem] border border-amber-100">
-                       <ShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-500" />
-                       <p className="text-[14px] font-medium leading-relaxed">Phone number visible after your Gatepass request is approved.</p>
-                    </div>
-                 )}
-               </div>
+        {(p.phoneVisibility !== 'hidden' || p.allowWhatsAppRedirect) && (
+          <EdgeCard edge="teal" className="p-5">
+            <h3 className="font-display font-bold text-ink mb-3 tracking-tight text-sm flex items-center gap-2">
+              <Phone className="w-4 h-4 text-ink-mute" /> Contact & Direct Connect
+            </h3>
+            <div className="space-y-2">
+              {p.allowWhatsAppRedirect && doctor.whatsappNumber && (
+                <a
+                  href={`https://wa.me/91${doctor.whatsappNumber}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-3 w-full bg-teal-50 rounded-[0.875rem] p-3 text-teal-600 font-semibold text-xs hover:bg-teal-50/80 transition-colors border border-teal-600/30"
+                >
+                  <div className="w-8 h-8 bg-white rounded-[0.625rem] flex items-center justify-center shadow-sm text-teal-600">
+                    <MessageCircle className="w-4 h-4" />
+                  </div>
+                  <span>Direct WhatsApp Connect</span>
+                </a>
+              )}
+              {p.phoneVisibility === 'approved_only' && (
+                <div className="flex items-start gap-2.5 bg-cream-50 text-ink-soft p-3 rounded-[0.875rem] border border-line text-xs">
+                  <ShieldCheck className="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" />
+                  <p className="leading-relaxed">Phone number visible after your Gatepass request is approved.</p>
+                </div>
+              )}
             </div>
-          )}
+          </EdgeCard>
+        )}
 
-          {p.showClinicName && clinics.length > 0 && (
-            <div className="bg-white rounded-[2rem] p-6 sm:p-7 shadow-[0_4px_30px_rgb(0,0,0,0.03)] border border-gray-100">
-               <h3 className="font-display font-black text-premium-900 mb-5 tracking-tight text-[18px] flex items-center gap-2">
-                 <Building2 className="w-5 h-5 text-gray-400" /> Associated Clinics
-               </h3>
-               <div className="space-y-4">
-                 {clinics.map(clinic => (
-                   <div key={clinic.id} className="flex gap-4 items-start border-b border-gray-50 pb-5 last:border-0 last:pb-0">
-                     <div className="bg-premium-100 p-3 rounded-[1rem] text-premium-900 shadow-sm flex-shrink-0 border border-gray-100"><MapPin className="w-5 h-5" /></div>
-                     <div className="pt-1">
-                       <h4 className="font-bold text-premium-900 text-[16px] mb-1 leading-tight">{clinic.clinicName}</h4>
-                       <p className="text-[14px] text-gray-500 font-medium leading-relaxed">{clinic.address}</p>
-                     </div>
-                   </div>
-                 ))}
-               </div>
+        {p.showClinicName && clinics.length > 0 && (
+          <EdgeCard edge="sand" className="p-5">
+            <h3 className="font-display font-bold text-ink mb-3 tracking-tight text-sm flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-ink-mute" /> Associated Clinics
+            </h3>
+            <div className="space-y-3">
+              {clinics.map(clinic => (
+                <div key={clinic.id} className="flex gap-3 items-start border-b border-line pb-3 last:border-0 last:pb-0">
+                  <div className="bg-navy-100 p-2 rounded-[0.625rem] text-navy-900 shadow-sm flex-shrink-0 border border-navy-500/20">
+                    <MapPin className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-ink text-xs mb-0.5 leading-tight">{clinic.clinicName}</h4>
+                    <p className="text-xs text-ink-soft leading-relaxed">{clinic.address}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </EdgeCard>
+        )}
       </div>
     </div>
   );
