@@ -384,15 +384,28 @@ export default function RepHome() {
                     </p>
                   </div>
 
-                  <div className="pt-2 border-t border-line flex items-center justify-between text-[0.625rem] text-ink-mute">
-                    <span>{formatDateIST(notice.createdAt, 'dd MMM')}</span>
-                    <button
-                      onClick={() => navigate(`/dr/${notice.doctorId}`)}
-                      className="text-navy-900 font-bold hover:underline inline-flex items-center gap-0.5"
-                    >
-                      View Doctor <ChevronRight className="w-3 h-3" />
-                    </button>
-                  </div>
+                  {notice.type === 'looking_for' ? (
+                    <div className="pt-2 border-t border-line flex items-center justify-between gap-2">
+                      <span className="text-[0.625rem] text-ink-mute font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
+                      <button
+                        onClick={() => navigate(`/dr/${notice.doctorSlug || notice.doctorId}/slots?notice=${notice.id}`)}
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.625rem] text-xs font-semibold shadow-sm transition-all min-h-[2.75rem]"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>I can help with this</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-line flex items-center justify-between text-[0.625rem] text-ink-mute min-h-[2.75rem]">
+                      <span className="font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
+                      <button
+                        onClick={() => navigate(`/dr/${notice.doctorSlug || notice.doctorId}`)}
+                        className="text-navy-900 font-bold hover:underline inline-flex items-center gap-0.5 py-1"
+                      >
+                        View Doctor <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
                 </EdgeCard>
               ))}
             </div>

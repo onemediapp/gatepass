@@ -23,11 +23,20 @@ export default defineConfig(({ mode }) => {
           theme_color: '#0B1730',
           background_color: '#FAFAF7',
           display: 'standalone',
+          start_url: '/',
+          scope: '/',
           icons: [
             {
-              src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjMEIxNzMwIi8+PHRleHQgeD0iMzAiIHk9Ijc1IiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iODAiIGZvbnQtd2VpZ2h0PSJib2xkIj5HPC90ZXh0Pjwvc3ZnPg==',
+              src: '/icon-192.svg',
               sizes: '192x192',
-              type: 'image/svg+xml'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            },
+            {
+              src: '/icon-512.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
             }
           ]
         }

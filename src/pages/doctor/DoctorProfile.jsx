@@ -252,6 +252,18 @@ export default function DoctorProfile() {
                       ))}
                     </div>
                   )}
+
+                  {notice.type === 'looking_for' && (
+                    <div className="pt-2">
+                      <button
+                        onClick={() => navigate(`/dr/${cleanSlug}/slots?notice=${notice.id}`)}
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.625rem] text-xs font-semibold shadow-sm transition-all min-h-[2.75rem]"
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>I can help with this</span>
+                      </button>
+                    </div>
+                  )}
                 </EdgeCard>
               ))}
             </div>

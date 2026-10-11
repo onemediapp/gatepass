@@ -3,7 +3,7 @@ import { cn } from '../../lib/utils';
 
 export function ToggleSwitch({ checked, onChange, label, description, className }) {
   return (
-    <label className={cn("flex items-start justify-between cursor-pointer group select-none", className)}>
+    <label className={cn("flex items-start justify-between cursor-pointer group select-none min-h-[2.75rem] py-1.5", className)}>
       <div className="flex flex-col pr-4">
         {label && (
           <span className="font-semibold text-ink text-sm group-active:opacity-80 transition-opacity">
@@ -16,14 +16,14 @@ export function ToggleSwitch({ checked, onChange, label, description, className 
           </span>
         )}
       </div>
-      <div className="relative inline-flex items-center mt-0.5 flex-shrink-0">
+      <div className="relative inline-flex items-center mt-0.5 flex-shrink-0 min-h-[2.75rem]">
         <input
           type="checkbox"
           className="sr-only peer"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <div className="w-11 h-6 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-line after:border after:rounded-full after:h-5 after:w-5 after:shadow-sm after:transition-all peer-checked:bg-teal-600 transition-colors" />
+        <div className="w-11 h-6 bg-line peer-focus-visible:ring-2 peer-focus-visible:ring-navy-500 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-line after:border after:rounded-full after:h-5 after:w-5 after:shadow-sm after:transition-all peer-checked:bg-teal-600 transition-colors" />
       </div>
     </label>
   );

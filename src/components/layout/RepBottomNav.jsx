@@ -25,7 +25,7 @@ export function RepBottomNav() {
               to={link.to}
               className={({ isActive }) =>
                 cn(
-                  "relative flex flex-col items-center justify-center w-16 h-12 rounded-[0.75rem] transition-all",
+                  "relative flex flex-col items-center justify-center w-16 h-12 rounded-[0.75rem] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500",
                   isActive
                     ? "text-navy-900 font-bold"
                     : "text-ink-mute hover:text-ink-soft"

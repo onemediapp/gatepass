@@ -56,8 +56,22 @@ export default function RepHistory() {
       </div>
 
       {history.length === 0 ? (
-        <div className="text-center py-12 text-ink-mute font-medium bg-white rounded-[1.25rem] border border-line shadow-sm text-xs">
-          No appointments requested yet.
+        <div className="bg-white rounded-card p-10 text-center border border-line shadow-card space-y-3">
+          <div className="w-14 h-14 rounded-[1.25rem] bg-navy-100 text-navy-900 flex items-center justify-center mx-auto">
+            <Calendar className="w-7 h-7 text-ink-mute" />
+          </div>
+          <h3 className="font-display font-bold text-base text-ink">No Appointments Yet</h3>
+          <p className="text-xs text-ink-soft max-w-xs mx-auto">
+            You haven't requested any visits yet. Search for verified doctors and request your first slot.
+          </p>
+          <div className="pt-2">
+            <Link
+              to="/rep/search"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.875rem] text-xs font-semibold shadow-sm transition-all min-h-[2.75rem]"
+            >
+              Find Doctors
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

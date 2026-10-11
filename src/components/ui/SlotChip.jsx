@@ -26,7 +26,7 @@ export default function SlotChip({
       type="button"
       disabled={!isClickable}
       onClick={isClickable ? onClick : undefined}
-      className={`inline-flex flex-col items-center justify-center px-3 py-2 rounded-[0.875rem] border font-mono text-xs transition-all ${stateClass} ${className}`}
+      className={`inline-flex flex-col items-center justify-center px-3 py-2 min-h-[2.75rem] min-w-[4.5rem] rounded-[0.875rem] border font-mono text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 ${stateClass} ${className}`}
     >
       <span className="font-semibold">{time}</span>
       {remaining !== undefined && state === 'available' && (

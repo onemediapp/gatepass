@@ -3,37 +3,55 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth.jsx';
-import LandingPage from './pages/LandingPage';
-import StatusCheck from './pages/StatusCheck';
-import ClinicPage from './pages/ClinicPage';
 import RepNotificationListener from './components/rep/RepNotificationListener';
+import PWAUpdateToast from './components/ui/PWAUpdateToast';
+
+// Lazy Loaded Pages
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const StatusCheck = lazy(() => import('./pages/StatusCheck'));
+const ClinicPage = lazy(() => import('./pages/ClinicPage'));
+
 // Rep Pages
-import RepRegister from './pages/rep/RepRegister';
-import RepHome from './pages/rep/RepHome';
-import RepHistory from './pages/rep/RepHistory';
-import RepProfile from './pages/rep/RepProfile';
-import DoctorSearch from './pages/rep/DoctorSearch';
-import DoctorProfile from './pages/doctor/DoctorProfile';
-import SlotPicker from './pages/rep/SlotPicker';
-import RequestDetails from './pages/rep/RequestDetails';
+const RepRegister = lazy(() => import('./pages/rep/RepRegister'));
+const RepHome = lazy(() => import('./pages/rep/RepHome'));
+const RepHistory = lazy(() => import('./pages/rep/RepHistory'));
+const RepProfile = lazy(() => import('./pages/rep/RepProfile'));
+const DoctorSearch = lazy(() => import('./pages/rep/DoctorSearch'));
+const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'));
+const SlotPicker = lazy(() => import('./pages/rep/SlotPicker'));
+const RequestDetails = lazy(() => import('./pages/rep/RequestDetails'));
+
 // Doctor Pages
-import DoctorRegister from './pages/doctor/DoctorRegister';
-import DoctorDashboard from './pages/admin/DoctorDashboard';
-import DoctorScheduleSettings from './pages/doctor/DoctorScheduleSettings';
-import ClinicPrintPoster from './pages/print/ClinicPrintPoster';
+const DoctorRegister = lazy(() => import('./pages/doctor/DoctorRegister'));
+const DoctorDashboard = lazy(() => import('./pages/admin/DoctorDashboard'));
+const DoctorScheduleSettings = lazy(() => import('./pages/doctor/DoctorScheduleSettings'));
+const ClinicPrintPoster = lazy(() => import('./pages/print/ClinicPrintPoster'));
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-cream-50 font-sans" role="status" aria-label="Loading page">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-12 h-12 rounded-[1rem] bg-navy-900 text-white flex items-center justify-center font-display font-bold text-xl shadow-card animate-pulse">
+          G
+        </div>
+        <div className="w-24 h-1.5 bg-line rounded-full overflow-hidden">
+          <div className="w-full h-full bg-navy-900/40 animate-pulse" />
+        </div>
+        <span className="sr-only">Loading...</span>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children, requiredRole }) {
   const { user, userData, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-cream-50">
-        <div className="w-12 h-12 rounded-[0.875rem] bg-navy-900/10 animate-pulse" />
-      </div>
-    );
+    return <PageFallback />;
   }
   if (!user) {
     const currentPath = location.pathname + location.search;
@@ -58,33 +76,36 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <RepNotificationListener>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/status/:appointmentId" element={<ProtectedRoute><StatusCheck /></ProtectedRoute>} />
-            <Route path="/clinic/:slug" element={<ClinicPage />} />
-            <Route path="/clinic/:clinicSlug" element={<ClinicPage />} />
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/status/:appointmentId" element={<ProtectedRoute><StatusCheck /></ProtectedRoute>} />
+              <Route path="/clinic/:slug" element={<ClinicPage />} />
+              <Route path="/clinic/:clinicSlug" element={<ClinicPage />} />
 
-            {/* Rep Routes */}
-            <Route path="/rep/register" element={<ProtectedRoute><RepRegister /></ProtectedRoute>} />
-            <Route path="/rep/home" element={<ProtectedRoute requiredRole="rep"><RepHome /></ProtectedRoute>} />
-            <Route path="/rep/history" element={<ProtectedRoute requiredRole="rep"><RepHistory /></ProtectedRoute>} />
-            <Route path="/rep/profile" element={<ProtectedRoute requiredRole="rep"><RepProfile /></ProtectedRoute>} />
-            <Route path="/rep/search" element={<ProtectedRoute requiredRole="rep"><DoctorSearch /></ProtectedRoute>} />
-            <Route path="/dr/:slug" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
-            <Route path="/dr/:slug/slots" element={<ProtectedRoute requiredRole="rep"><SlotPicker /></ProtectedRoute>} />
-            <Route path="/dr/:slug/request" element={<ProtectedRoute requiredRole="rep"><RequestDetails /></ProtectedRoute>} />
-            <Route path="/dr/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
-            <Route path="/doctor/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
+              {/* Rep Routes */}
+              <Route path="/rep/register" element={<ProtectedRoute><RepRegister /></ProtectedRoute>} />
+              <Route path="/rep/home" element={<ProtectedRoute requiredRole="rep"><RepHome /></ProtectedRoute>} />
+              <Route path="/rep/history" element={<ProtectedRoute requiredRole="rep"><RepHistory /></ProtectedRoute>} />
+              <Route path="/rep/profile" element={<ProtectedRoute requiredRole="rep"><RepProfile /></ProtectedRoute>} />
+              <Route path="/rep/search" element={<ProtectedRoute requiredRole="rep"><DoctorSearch /></ProtectedRoute>} />
+              <Route path="/dr/:slug" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
+              <Route path="/dr/:slug/slots" element={<ProtectedRoute requiredRole="rep"><SlotPicker /></ProtectedRoute>} />
+              <Route path="/dr/:slug/request" element={<ProtectedRoute requiredRole="rep"><RequestDetails /></ProtectedRoute>} />
+              <Route path="/dr/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
+              <Route path="/doctor/:doctorId" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
 
-            {/* Doctor Routes */}
-            <Route path="/doctor/register" element={<ProtectedRoute><DoctorRegister /></ProtectedRoute>} />
-            <Route path="/doctor/settings/schedule" element={<ProtectedRoute requiredRole="doctor"><DoctorScheduleSettings /></ProtectedRoute>} />
-            <Route path="/print/clinic/:clinicId" element={<ProtectedRoute requiredRole="doctor"><ClinicPrintPoster /></ProtectedRoute>} />
-            <Route path="/admin/*" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboard /></ProtectedRoute>} />
+              {/* Doctor Routes */}
+              <Route path="/doctor/register" element={<ProtectedRoute><DoctorRegister /></ProtectedRoute>} />
+              <Route path="/doctor/settings/schedule" element={<ProtectedRoute requiredRole="doctor"><DoctorScheduleSettings /></ProtectedRoute>} />
+              <Route path="/print/clinic/:clinicId" element={<ProtectedRoute requiredRole="doctor"><ClinicPrintPoster /></ProtectedRoute>} />
+              <Route path="/admin/*" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboard /></ProtectedRoute>} />
 
-            {/* Default fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Default fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+          <PWAUpdateToast />
         </RepNotificationListener>
       </BrowserRouter>
     </AuthProvider>
