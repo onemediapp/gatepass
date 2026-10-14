@@ -120,13 +120,17 @@ service cloud.firestore {
         uid() == resource.data.repId || uid() == resource.data.doctorId || isAdmin());
       allow update: if isAuth() && (
         uid() == resource.data.doctorId
-        // Rep may ONLY: cancel, confirm attendance, mark arrival, dismiss a "moved" notice.
+        // Rep may ONLY: cancel, expire past pending, confirm attendance, mark arrival, dismiss a "moved" notice.
         || (uid() == resource.data.repId && (
              (request.resource.data.status == 'cancelled'
                && resource.data.status in ['pending','approved']
                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
                     ['status','cancelledBy','cancelReason','cancelledAt','lateCancel',
                      'lastChangeAt','lastChangeBy','rescheduledTo']))
+             || (request.resource.data.status == 'expired'
+               && resource.data.status == 'pending'
+               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                    ['status','lastChangeAt','lastChangeBy']))
              || request.resource.data.diff(resource.data).affectedKeys().hasOnly(
                     ['repConfirmedAt','arrivedAt','movedSeenByRep'])
            ))
@@ -190,7 +194,7 @@ service cloud.firestore {
     // ── Ask a doctor to join ───────────────────────────────────────
     match /doctorRequests/{id} {
       allow create: if isAuth() && isRep() && request.resource.data.repId == uid();
-      allow read: if isAuth() && (resource.data.repId == uid() || isAdmin());
+      allow read: if isAuth() && (resource.data.repId == uid() || isAdmin() || isDoctor());
       allow update, delete: if false;
     }
 

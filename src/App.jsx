@@ -100,6 +100,7 @@ export default function App() {
               <Route path="/doctor/settings/schedule" element={<ProtectedRoute requiredRole="doctor"><DoctorScheduleSettings /></ProtectedRoute>} />
               <Route path="/print/clinic/:clinicId" element={<ProtectedRoute requiredRole="doctor"><ClinicPrintPoster /></ProtectedRoute>} />
               <Route path="/admin/*" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboard /></ProtectedRoute>} />
+              <Route path="/owner" element={<Navigate to="/admin/owner" replace />} />
 
               {/* Default fallback */}
               <Route path="*" element={<Navigate to="/" replace />} />

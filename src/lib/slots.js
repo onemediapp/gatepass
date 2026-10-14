@@ -214,6 +214,8 @@ export function generateSlotsForDate({
         slotStartAtMs,
         state,
         reason,
+        refusalReason: reason !== 'Available' ? reason : '',
+        refusalLabel: reason !== 'Available' ? reason : '',
         clinicId: range.clinicId || '',
         isPriorityOnly,
         categoryWarning: hasCategoryRestriction && !categoryMatches,

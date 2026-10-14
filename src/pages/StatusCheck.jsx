@@ -41,7 +41,8 @@ import {
   WifiOff,
   UserX,
   LogIn,
-  AlertCircle
+  AlertCircle,
+  BellRing
 } from 'lucide-react';
 import Skeleton from '../components/ui/Skeleton';
 import EdgeCard from '../components/ui/EdgeCard';
@@ -529,6 +530,67 @@ export default function StatusCheck() {
           </button>
         </div>
 
+        {/* ── Call-in Banner ────────────────────────────────────────── */}
+        {appointment.calledInAt && (
+          <div className="max-w-sm mx-auto w-full mb-3 z-30">
+            <div className="bg-teal-500 text-white p-3.5 rounded-[1rem] shadow-lg flex items-center gap-3 animate-bounce">
+              <BellRing className="w-6 h-6 shrink-0" />
+              <div>
+                <p className="font-bold text-xs uppercase tracking-wider">Please Go In Now</p>
+                <p className="text-[0.6875rem] text-teal-100">Dr. {docName} is ready to see you.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Delay / Pause Banner ─────────────────────────────────────── */}
+        {doctor?.todayStatus?.date === appointment.slotDate && (doctor?.todayStatus?.status === 'running_late' || doctor?.todayStatus?.status === 'paused') && (
+          <div className="max-w-sm mx-auto w-full mb-3 z-30">
+            <div className="bg-amber-400 text-navy-950 p-3.5 rounded-[1rem] shadow-md flex items-center gap-2.5">
+              <Clock className="w-5 h-5 shrink-0 text-navy-950" />
+              <div>
+                <p className="font-bold text-xs">
+                  {doctor.todayStatus.status === 'running_late'
+                    ? `Dr. ${docName} is running ~${doctor.todayStatus.estimatedDelayMinutes || 30} mins behind schedule`
+                    : `Dr. ${docName}'s clinic is temporarily paused`}
+                </p>
+                {doctor.todayStatus.note && (
+                  <p className="text-[0.6875rem] text-navy-950/80 mt-0.5">{doctor.todayStatus.note}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Doctor Moved Banner ────────────────────────────────────── */}
+        {appointment.movedFrom && !appointment.movedSeenByRep && (
+          <div className="max-w-sm mx-auto w-full mb-3 z-30">
+            <div className="bg-sand-100 border border-sand-300 text-ink p-3.5 rounded-[1rem] shadow-md space-y-2">
+              <div className="flex items-center gap-2 text-sand-800">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <p className="font-bold text-xs">Dr. {docName} moved your appointment</p>
+              </div>
+              <p className="text-[0.6875rem] text-ink-soft">
+                Moved from {appointment.movedFrom.slotDate} ({appointment.movedFrom.slotStart}–{appointment.movedFrom.slotEnd}) to {formattedDate} ({formattedSlot}).
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleDismissMoved}
+                  className="px-3 py-1.5 bg-navy-900 text-white text-[0.6875rem] font-bold rounded-[0.5rem]"
+                >
+                  Keep Slot
+                </button>
+                <button
+                  onClick={() => handleCancelVisit('Doctor moved slot not suitable')}
+                  className="px-3 py-1.5 bg-white border border-coral-300 text-coral-600 text-[0.6875rem] font-semibold rounded-[0.5rem]"
+                >
+                  Cancel Visit
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Boarding Pass Card ─────────────────────────────────────── */}
         <div className="max-w-sm mx-auto w-full bg-white rounded-card overflow-hidden shadow-card border border-line flex flex-col relative z-10 animate-in fade-in duration-300">
           
@@ -684,54 +746,38 @@ export default function StatusCheck() {
 
         {/* ── Bottom Action CTAs ─────────────────────────────────────── */}
         <div className="max-w-sm mx-auto w-full mt-4 space-y-2 z-20">
+          {isOwningRep && (
+            <button
+              onClick={() => setShowManageSheet(true)}
+              className="w-full py-3 bg-white text-navy-900 font-bold rounded-[0.875rem] transition-all flex items-center justify-center gap-2 text-xs shadow-md hover:bg-cream-100 active:scale-95"
+            >
+              <Ticket className="w-4 h-4 text-navy-900" />
+              <span>Manage Visit</span>
+            </button>
+          )}
+
           <button
             onClick={handleShareWhatsApp}
-            className="w-full py-3 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold rounded-[0.875rem] transition-all flex items-center justify-center gap-2 text-xs border border-white/15"
+            className="w-full py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold rounded-[0.875rem] transition-all flex items-center justify-center gap-2 text-xs border border-white/15"
           >
             <Share2 className="w-4 h-4 text-white" />
             <span>Share via WhatsApp</span>
           </button>
-
-          {isOwningRep && (
-            <button
-              onClick={() => setShowCancelModal(true)}
-              className="w-full py-2.5 text-coral-50 hover:text-white text-xs font-medium transition-colors"
-            >
-              Cancel Appointment
-            </button>
-          )}
         </div>
 
-        {/* ── Cancel Confirmation Modal ─────────────────────────────── */}
-        {showCancelModal && (
-          <div className="fixed inset-0 bg-navy-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-card p-6 max-w-xs w-full text-center space-y-4 shadow-card border border-line">
-              <div className="w-12 h-12 rounded-full bg-coral-50 text-coral-600 flex items-center justify-center mx-auto">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-display font-bold text-ink">Cancel this pass?</h3>
-              <p className="text-xs text-ink-soft">
-                Your approved slot and token will be released back to the clinic.
-              </p>
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  disabled={actionLoading}
-                  onClick={() => setShowCancelModal(false)}
-                  className="px-4 py-2.5 bg-cream-50 text-ink rounded-[0.875rem] text-xs font-semibold hover:bg-line transition-colors"
-                >
-                  Keep Pass
-                </button>
-                <button
-                  disabled={actionLoading}
-                  onClick={handleCancel}
-                  className="px-4 py-2.5 bg-coral-600 text-white rounded-[0.875rem] text-xs font-semibold hover:bg-coral-700 transition-colors"
-                >
-                  {actionLoading ? 'Cancelling…' : 'Yes, Cancel'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ── Manage Visit Sheet ────────────────────────────────────── */}
+        <ManageSheet
+          isOpen={showManageSheet}
+          onClose={() => setShowManageSheet(false)}
+          appointment={appointment}
+          doctor={doctor}
+          clinic={clinic}
+          onConfirmComing={handleConfirmComing}
+          onMarkArrived={handleMarkArrived}
+          onCancelVisit={handleCancelVisit}
+          onReschedule={handleReschedule}
+          actionLoading={actionLoading}
+        />
       </div>
     );
   }
@@ -899,12 +945,22 @@ export default function StatusCheck() {
               Pick Another Slot
             </button>
 
+            {/* Reconsider Button */}
+            {isOwningRep && doctor?.comms?.allowReviewRequests !== false && (
+              <button
+                onClick={() => setShowReconsiderModal(true)}
+                className="w-full py-3 bg-amber-50 border border-amber-300 text-amber-900 font-semibold rounded-[0.875rem] transition-all text-xs flex items-center justify-center gap-2 hover:bg-amber-100"
+              >
+                <span>Ask Doctor to Reconsider</span>
+              </button>
+            )}
+
             {canWhatsApp && (
               <button
                 onClick={() => {
                   const num = doctor?.whatsappNumber || '';
                   const cleanNum = num.replace(/\D/g, '');
-                  const waUrl = `https://wa.me/${cleanNum}?text=${encodeURIComponent(`Hi Dr. ${docName}, regarding my request for ${formattedDate}...`)}`;
+                  const waUrl = buildWhatsAppUrl(cleanNum, `Hi Dr. ${docName}, regarding my request for ${formattedDate}...`);
                   window.open(waUrl, '_blank');
                 }}
                 className="w-full py-3 bg-white border border-line hover:bg-cream-50 active:scale-95 text-ink font-semibold rounded-[0.875rem] transition-all text-xs flex items-center justify-center gap-2"
@@ -921,6 +977,50 @@ export default function StatusCheck() {
             </button>
           </div>
         </div>
+
+        {/* ── Reconsider Modal ────────────────────────────────────── */}
+        {showReconsiderModal && (
+          <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-card p-6 max-w-sm w-full space-y-4 shadow-card border border-line">
+              <h3 className="text-base font-display font-bold text-ink">
+                Ask Dr. {docName} to reconsider
+              </h3>
+              <p className="text-xs text-ink-soft">
+                Briefly mention why this discussion is critical for clinical practice (max 240 chars).
+              </p>
+              <form onSubmit={handleSendReconsider} className="space-y-3">
+                <textarea
+                  value={reconsiderMessage}
+                  onChange={(e) => setReconsiderMessage(e.target.value.slice(0, 240))}
+                  placeholder="e.g. New clinical study data for high-risk patients..."
+                  rows={3}
+                  maxLength={240}
+                  className="w-full p-3 text-xs bg-cream-50 border border-line rounded-[0.75rem] focus:outline-none focus:border-navy-900 resize-none"
+                  required
+                />
+                <div className="text-right text-[0.6875rem] text-ink-mute font-mono">
+                  {240 - reconsiderMessage.length} left
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowReconsiderModal(false)}
+                    className="px-4 py-2.5 bg-cream-50 text-ink rounded-[0.875rem] text-xs font-semibold hover:bg-line transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading || !reconsiderMessage.trim()}
+                    className="px-4 py-2.5 bg-navy-900 text-white rounded-[0.875rem] text-xs font-semibold hover:bg-navy-700 transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading ? 'Sending…' : 'Send Request'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -929,6 +1029,8 @@ export default function StatusCheck() {
   // 4. CANCELLED / EXPIRED QUIET STATES
   // ════════════════════════════════════════════════════════════════════
   const isCancelled = appointment.status === 'cancelled';
+  const isDoctorCancelled = isCancelled && appointment.cancelledBy === 'doctor';
+  const doctorSlug = doctor?.profileSlug || appointment.doctorId;
 
   return (
     <div className="min-h-screen bg-cream-50 font-sans selection:bg-amber-100 selection:text-sand-600 flex flex-col p-4 sm:p-6 pb-12">
@@ -949,18 +1051,41 @@ export default function StatusCheck() {
         </div>
 
         <h1 className="text-xl font-display font-bold text-ink">
-          {isCancelled ? 'Request Cancelled' : 'Token Expired'}
+          {isDoctorCancelled 
+            ? `Dr. ${docName} cancelled this visit` 
+            : isCancelled 
+            ? 'Request Cancelled' 
+            : 'Token Expired'}
         </h1>
+
+        {isDoctorCancelled && appointment.cancelReason && (
+          <div className="bg-coral-50/70 border border-coral-200 text-ink p-3 rounded-[0.75rem] text-xs max-w-xs mx-auto">
+            <span className="font-semibold text-coral-700 block mb-0.5">Reason:</span>
+            "{appointment.cancelReason}"
+          </div>
+        )}
+
         <p className="text-xs text-ink-soft max-w-xs mx-auto">
-          {isCancelled
+          {isDoctorCancelled
+            ? 'The doctor had to cancel this appointment. You may pick another available slot.'
+            : isCancelled
             ? 'This appointment was cancelled. The slot has been released.'
-            : 'This Gatepass has expired and is no longer valid for reception entry.'}
+            : 'Dr. didn\'t respond in time or pass has expired. You can pick another available slot.'}
         </p>
 
-        <div className="pt-4">
+        <div className="pt-4 flex flex-col gap-2 max-w-xs mx-auto">
+          {(isDoctorCancelled || appointment.status === 'expired') && doctorSlug && (
+            <button
+              onClick={() => navigate(`/dr/${doctorSlug}/slots`)}
+              className="w-full py-3 bg-navy-900 text-white rounded-[0.875rem] text-xs font-bold shadow-sm hover:bg-navy-700 transition-all active:scale-95"
+            >
+              Pick Another Slot
+            </button>
+          )}
+
           <button
             onClick={() => navigate('/rep/home')}
-            className="px-6 py-3 bg-navy-900 text-white rounded-[0.875rem] text-xs font-semibold shadow-sm hover:bg-navy-700 transition-all active:scale-95"
+            className="w-full py-2.5 bg-white border border-line text-ink rounded-[0.875rem] text-xs font-semibold hover:bg-cream-50 transition-all active:scale-95"
           >
             Return to Dashboard
           </button>

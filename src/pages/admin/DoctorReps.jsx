@@ -23,11 +23,14 @@ import {
   CheckCircle2, 
   Edit3,
   X,
-  Check
+  Check,
+  Pin,
+  Plus
 } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import Skeleton from '../../components/ui/Skeleton';
+import TagChip from '../../components/ui/TagChip';
 import { cn } from '../../lib/utils';
 
 export default function DoctorReps() {
@@ -42,10 +45,16 @@ export default function DoctorReps() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('reliable'); // 'reliable' | 'recent'
 
-  // Notes Modal State
+  // Notes & Relationship Modal State
   const [editingNotesRep, setEditingNotesRep] = useState(null);
   const [notesInput, setNotesInput] = useState('');
+  const [pinnedNoteInput, setPinnedNoteInput] = useState(false);
+  const [tagsInput, setTagsInput] = useState([]);
+  const [customTagInput, setCustomTagInput] = useState('');
+  const [levelInput, setLevelInput] = useState('normal'); // 'normal' | 'vip' | 'caution'
   const [savingNotes, setSavingNotes] = useState(false);
+
+  const PRESET_TAGS = ['Prompt', 'Good samples', 'Too long', 'Informative', 'VIP', 'Caution', 'New launch'];
 
   useEffect(() => {
     if (!user) return;
@@ -107,6 +116,8 @@ export default function DoctorReps() {
         metCount: rel.metCount || 0,
         noShowCount: rel.noShowCount || 0,
         notes: rel.notes || '',
+        pinnedNote: Boolean(rel.pinnedNote),
+        tags: Array.isArray(rel.tags) ? rel.tags : [],
       };
     });
   }, [appointments, relations]);
@@ -177,14 +188,47 @@ export default function DoctorReps() {
     if (!user || !editingNotesRep) return;
     setSavingNotes(true);
     try {
-      await setRepRelation(user.uid, editingNotesRep.repId, { notes: notesInput.trim() });
+      await updateRepRelation(user.uid, editingNotesRep.repId, {
+        notes: notesInput.trim(),
+        pinnedNote: pinnedNoteInput,
+        tags: tagsInput,
+        preferred: levelInput === 'vip',
+        blocked: levelInput === 'caution',
+      });
       setEditingNotesRep(null);
-      setNotesInput('');
     } catch (err) {
-      alert('Failed to save notes');
+      alert('Failed to save relationship details: ' + (err.message || ''));
     } finally {
       setSavingNotes(false);
     }
+  };
+
+  const handleToggleTag = (tag) => {
+    if (tagsInput.includes(tag)) {
+      setTagsInput(prev => prev.filter(t => t !== tag));
+    } else {
+      if (tagsInput.length >= 8) {
+        alert('Maximum 8 tags allowed per representative.');
+        return;
+      }
+      setTagsInput(prev => [...prev, tag]);
+    }
+  };
+
+  const handleAddCustomTag = (e) => {
+    e.preventDefault();
+    const clean = customTagInput.trim();
+    if (!clean) return;
+    if (tagsInput.includes(clean)) {
+      setCustomTagInput('');
+      return;
+    }
+    if (tagsInput.length >= 8) {
+      alert('Maximum 8 tags allowed per representative.');
+      return;
+    }
+    setTagsInput(prev => [...prev, clean]);
+    setCustomTagInput('');
   };
 
   // CSV Export Generator
@@ -372,6 +416,18 @@ export default function DoctorReps() {
                     )}
                   </div>
 
+                  {/* Pinned note badge & Tags */}
+                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                    {rep.pinnedNote && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[0.625rem] font-semibold border border-amber-200">
+                        <Pin className="w-2.5 h-2.5 text-amber-600" /> Pinned
+                      </span>
+                    )}
+                    {rep.tags && rep.tags.map(t => (
+                      <TagChip key={t} tag={t} />
+                    ))}
+                  </div>
+
                   {/* Visit Counts & Stats */}
                   <div className="flex flex-wrap items-center gap-2 py-2 text-xs border-y border-line my-3">
                     <span className="inline-flex items-center gap-1 font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-[0.5rem]">
@@ -403,11 +459,14 @@ export default function DoctorReps() {
                     onClick={() => {
                       setEditingNotesRep(rep);
                       setNotesInput(rep.notes || '');
+                      setPinnedNoteInput(Boolean(rep.pinnedNote));
+                      setTagsInput(Array.isArray(rep.tags) ? [...rep.tags] : []);
+                      setLevelInput(rep.preferred ? 'vip' : rep.blocked ? 'caution' : 'normal');
                     }}
-                    className="inline-flex items-center gap-1 text-xs text-ink-soft hover:text-ink font-medium transition-colors"
+                    className="inline-flex items-center gap-1 text-xs text-ink-soft hover:text-ink font-semibold transition-colors"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
-                    <span>{rep.notes ? 'Edit Note' : 'Add Note'}</span>
+                    <span>Manage Rep & Notes</span>
                   </button>
 
                   <div className="flex items-center gap-1">
@@ -444,39 +503,164 @@ export default function DoctorReps() {
         </div>
       )}
 
-      {/* ── Notes Editor Modal ───────────────────────────────────────── */}
+      {/* ── Rep Relationship & Notes Editor Modal ──────────────────────── */}
       {editingNotesRep && (
-        <div className="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-card p-6 max-w-sm w-full space-y-4 shadow-card border border-line animate-in fade-in zoom-in-95">
-            <h3 className="text-base font-display font-bold text-ink">
-              Private Note · {editingNotesRep.name}
-            </h3>
-            <p className="text-xs text-ink-soft">
-              This note is private to you and never visible to the representative.
-            </p>
+        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-card p-6 max-w-md w-full space-y-4 shadow-card border border-line animate-in fade-in zoom-in-95">
+            <div>
+              <h3 className="text-base font-display font-bold text-ink">
+                Rep Profile: {editingNotesRep.name}
+              </h3>
+              <p className="text-xs text-ink-soft mt-0.5">
+                {editingNotesRep.company} {editingNotesRep.designation && `· ${editingNotesRep.designation}`}
+              </p>
+            </div>
 
-            <textarea
-              value={notesInput}
-              onChange={(e) => setNotesInput(e.target.value)}
-              placeholder="e.g. Always bring product monograph for cardiology formulations…"
-              rows={3}
-              maxLength={300}
-              className="w-full text-xs p-3 rounded-[0.75rem] border border-line focus:outline-none focus:ring-1 focus:ring-navy-900 resize-none"
-            />
+            {/* Level Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute font-semibold">
+                Relationship Level
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLevelInput('normal')}
+                  className={cn(
+                    'py-2 rounded-[0.75rem] text-xs font-semibold border transition-all',
+                    levelInput === 'normal'
+                      ? 'bg-navy-900 text-white border-navy-900'
+                      : 'bg-cream-50 text-ink-soft border-line hover:bg-line'
+                  )}
+                >
+                  Normal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLevelInput('vip')}
+                  className={cn(
+                    'py-2 rounded-[0.75rem] text-xs font-semibold border transition-all',
+                    levelInput === 'vip'
+                      ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-cream-50 text-ink-soft border-line hover:bg-line'
+                  )}
+                >
+                  VIP (Preferred)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLevelInput('caution')}
+                  className={cn(
+                    'py-2 rounded-[0.75rem] text-xs font-semibold border transition-all',
+                    levelInput === 'caution'
+                      ? 'bg-coral-600 text-white border-coral-600'
+                      : 'bg-cream-50 text-ink-soft border-line hover:bg-line'
+                  )}
+                >
+                  Blocked
+                </button>
+              </div>
+            </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
+            {/* Tags Editor */}
+            <div className="space-y-1.5">
+              <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute font-semibold">
+                Tags (Up to 8)
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {PRESET_TAGS.map((pt) => {
+                  const isSelected = tagsInput.includes(pt);
+                  return (
+                    <button
+                      key={pt}
+                      type="button"
+                      onClick={() => handleToggleTag(pt)}
+                      className={cn(
+                        'px-2 py-0.5 rounded-[0.375rem] text-[0.6875rem] font-medium border transition-colors',
+                        isSelected
+                          ? 'bg-navy-900 text-white border-navy-900'
+                          : 'bg-cream-50 text-ink-soft border-line hover:bg-line'
+                      )}
+                    >
+                      {isSelected ? `✓ ${pt}` : `+ ${pt}`}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom tag add form */}
+              <form onSubmit={handleAddCustomTag} className="flex gap-2">
+                <input
+                  type="text"
+                  value={customTagInput}
+                  onChange={(e) => setCustomTagInput(e.target.value)}
+                  placeholder="Custom tag…"
+                  maxLength={20}
+                  className="flex-1 text-xs px-3 py-1.5 rounded-[0.5rem] border border-line focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  disabled={!customTagInput.trim()}
+                  className="px-3 py-1.5 bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold rounded-[0.5rem] disabled:opacity-40"
+                >
+                  Add
+                </button>
+              </form>
+
+              {tagsInput.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {tagsInput.map(t => (
+                    <TagChip
+                      key={t}
+                      tag={t}
+                      onRemove={(rm) => setTagsInput(prev => prev.filter(x => x !== rm))}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Private Note */}
+            <div className="space-y-1.5">
+              <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute font-semibold">
+                Private Doctor Note
+              </label>
+              <textarea
+                value={notesInput}
+                onChange={(e) => setNotesInput(e.target.value)}
+                placeholder="e.g. Always bring product monograph for cardiology formulations…"
+                rows={3}
+                maxLength={300}
+                className="w-full text-xs p-3 rounded-[0.75rem] border border-line focus:outline-none focus:ring-1 focus:ring-navy-900 resize-none bg-cream-50/50"
+              />
+              <div className="flex items-center justify-between text-[0.6875rem] text-ink-mute">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={pinnedNoteInput}
+                    onChange={(e) => setPinnedNoteInput(e.target.checked)}
+                    className="rounded text-navy-900 focus:ring-0"
+                  />
+                  <span className="font-medium text-ink">Pin as warning alert on future visit requests</span>
+                </label>
+                <span>{300 - notesInput.length}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line">
               <button
+                type="button"
                 onClick={() => setEditingNotesRep(null)}
-                className="py-2.5 bg-cream-50 text-ink rounded-[0.875rem] text-xs font-semibold hover:bg-line"
+                className="py-2.5 bg-cream-50 text-ink rounded-[0.875rem] text-xs font-semibold hover:bg-line transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 disabled={savingNotes}
                 onClick={handleSaveNotes}
-                className="py-2.5 bg-navy-900 text-white rounded-[0.875rem] text-xs font-semibold hover:bg-navy-700"
+                className="py-2.5 bg-navy-900 text-white rounded-[0.875rem] text-xs font-semibold hover:bg-navy-700 transition-colors"
               >
-                {savingNotes ? 'Saving…' : 'Save Note'}
+                {savingNotes ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
           </div>

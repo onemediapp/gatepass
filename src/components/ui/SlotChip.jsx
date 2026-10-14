@@ -15,6 +15,7 @@ export default function SlotChip({
   state = 'available',
   time,
   remaining,
+  refusalLabel,
   onClick,
   className = '',
 }) {
@@ -26,7 +27,7 @@ export default function SlotChip({
       type="button"
       disabled={!isClickable}
       onClick={isClickable ? onClick : undefined}
-      className={`inline-flex flex-col items-center justify-center px-3 py-2 min-h-[2.75rem] min-w-[4.5rem] rounded-[0.875rem] border font-mono text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 ${stateClass} ${className}`}
+      className={`inline-flex flex-col items-center justify-center px-2.5 py-2 min-h-[2.75rem] min-w-[4.5rem] rounded-[0.875rem] border font-mono text-xs transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 ${stateClass} ${className}`}
     >
       <span className="font-semibold">{time}</span>
       {remaining !== undefined && state === 'available' && (
@@ -35,8 +36,8 @@ export default function SlotChip({
         </span>
       )}
       {state === 'full' && (
-        <span className="text-[0.625rem] text-coral-600 font-sans tracking-tight mt-0.5">
-          Full
+        <span className="text-[0.5625rem] text-coral-600 font-sans tracking-tight mt-0.5 truncate max-w-full font-medium">
+          {refusalLabel || 'Full'}
         </span>
       )}
       {state === 'past' && (

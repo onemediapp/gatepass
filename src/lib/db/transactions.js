@@ -127,26 +127,37 @@ export async function approveAppointmentTransaction({
         const slotEndPlus30 = tokenExpiryTimestamp(slotDate, slotEnd, 30);
         const slotStartAt = apptData.slotStartAt || toTimestamp(parseSlotTimeToDate(slotDate, slotStart));
 
+        let isSameDayReschedule = false;
+        let isSameWeekReschedule = false;
+
         // 1. If old appointment was approved, handle atomic reschedule swap
         if (oldApptSnap && oldApptSnap.exists()) {
           const oldData = oldApptSnap.data();
           if (oldData.status === 'approved') {
             oldSlotRef = doc(db, 'slotLedger', slotLedgerId(doctorId, oldData.slotKey));
-            oldDayRef = doc(db, 'dayLedger', dayLedgerId(doctorId, oldData.slotDate));
             const oldIsoWeek = getISOWeekString(oldData.slotDate);
-            oldWeekRef = doc(db, 'weekLedger', weekLedgerId(doctorId, oldIsoWeek));
+            isSameDayReschedule = (oldData.slotDate === slotDate);
+            isSameWeekReschedule = (oldIsoWeek === isoWeek);
 
-            // Decrement old ledgers
-            const [oSlot, oDay, oWeek] = await Promise.all([
-              tx.get(oldSlotRef),
-              tx.get(oldDayRef),
-              tx.get(oldWeekRef)
-            ]);
+            const reads = [tx.get(oldSlotRef)];
+            if (!isSameDayReschedule) {
+              oldDayRef = doc(db, 'dayLedger', dayLedgerId(doctorId, oldData.slotDate));
+              reads.push(tx.get(oldDayRef));
+            }
+            if (!isSameWeekReschedule) {
+              oldWeekRef = doc(db, 'weekLedger', weekLedgerId(doctorId, oldIsoWeek));
+              reads.push(tx.get(oldWeekRef));
+            }
+
+            const results = await Promise.all(reads);
+            const oSlot = results[0];
+            const oDay = !isSameDayReschedule ? results[1] : null;
+            const oWeek = !isSameWeekReschedule ? results[!isSameDayReschedule ? 2 : 1] : null;
 
             if (oSlot.exists() && (oSlot.data().approvedCount || 0) > 0) {
               tx.update(oldSlotRef, { approvedCount: oSlot.data().approvedCount - 1 });
             }
-            if (oDay.exists() && (oDay.data().approvedCount || 0) > 0) {
+            if (oldDayRef && oDay?.exists() && (oDay.data().approvedCount || 0) > 0) {
               const oDayCompanies = { ...(oDay.data().companies || {}) };
               if (oldData.companyKey && oDayCompanies[oldData.companyKey]) {
                 oDayCompanies[oldData.companyKey] = Math.max(0, oDayCompanies[oldData.companyKey] - 1);
@@ -156,7 +167,7 @@ export async function approveAppointmentTransaction({
                 companies: oDayCompanies
               });
             }
-            if (oWeek.exists() && (oWeek.data().approvedCount || 0) > 0) {
+            if (oldWeekRef && oWeek?.exists() && (oWeek.data().approvedCount || 0) > 0) {
               tx.update(oldWeekRef, { approvedCount: oWeek.data().approvedCount - 1 });
             }
 
@@ -214,12 +225,12 @@ export async function approveAppointmentTransaction({
         // 5. Set dayLedger with companies map
         const updatedCompanies = { ...dayCompanies };
         if (companyKey) {
-          updatedCompanies[companyKey] = companyCount + 1;
+          updatedCompanies[companyKey] = isSameDayReschedule ? companyCount : (companyCount + 1);
         }
         tx.set(dayRef, {
           doctorId,
           slotDate,
-          approvedCount: dayCount + 1,
+          approvedCount: isSameDayReschedule ? dayCount : (dayCount + 1),
           companies: updatedCompanies
         });
 
@@ -227,7 +238,7 @@ export async function approveAppointmentTransaction({
         tx.set(weekRef, {
           doctorId,
           isoWeek,
-          approvedCount: weekCount + 1
+          approvedCount: isSameWeekReschedule ? weekCount : (weekCount + 1)
         });
 
         // 7. Grant contact permission

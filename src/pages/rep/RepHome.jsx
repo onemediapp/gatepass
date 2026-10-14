@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../lib/auth';
-import { subscribeRepAppointments } from '../../lib/db/appointments';
+import { subscribeRepAppointments, sweepExpiredAppointments } from '../../lib/db/appointments';
 import { getRep } from '../../lib/db/reps';
 import { subscribeActiveNotices } from '../../lib/db/notices';
 import { listRepDoctorLinks } from '../../lib/db/doctorRepLinks';
@@ -80,6 +80,9 @@ export default function RepHome() {
 
     async function loadData() {
       try {
+        // Sweep past pending appointments
+        sweepExpiredAppointments(user.uid, 'rep').catch(err => console.warn('Rep sweep error:', err));
+
         // Load Rep profile
         const rDoc = await getRep(user.uid);
         if (rDoc) setRepProfile(rDoc);

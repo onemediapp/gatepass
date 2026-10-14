@@ -12,6 +12,7 @@ import { getRep } from '../../lib/db/reps';
 import { subscribeDoctorNotices } from '../../lib/db/notices';
 import { subscribeSlotLedgersForDateRange } from '../../lib/db/slotLedger';
 import { subscribeDayLedgersForDateRange } from '../../lib/db/dayLedger';
+import { subscribeDoctorWeekLedgers } from '../../lib/db/weekLedger';
 import { useAuth } from '../../lib/auth';
 import { serverNow } from '../../lib/serverClock';
 import { todayDateStr, formatDateIST } from '../../lib/time';
@@ -21,6 +22,7 @@ import {
   getDateRangeForAdvanceDays 
 } from '../../lib/slots';
 import { hasConfiguredHours, formatConciseRange } from '../../lib/schedule';
+import { generateCompanyKey } from '../../lib/companyKey';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -30,7 +32,8 @@ import {
   ChevronRight, 
   ShieldCheck, 
   Sparkles,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import SlotChip from '../../components/ui/SlotChip';
@@ -55,18 +58,22 @@ export default function SlotPicker() {
   // Real-time Ledger States
   const [slotLedgers, setSlotLedgers] = useState({});
   const [dayLedgers, setDayLedgers] = useState({});
+  const [weekLedgers, setWeekLedgers] = useState({});
+  const [repCompanyKey, setRepCompanyKey] = useState('');
 
   // Selection states
   const [selectedDateStr, setSelectedDateStr] = useState(todayDateStr());
   const [selectedSlot, setSelectedSlot] = useState(null);
 
-  // Check notice query param if opened from notice
+  // Check query params for notice or reschedule
   const queryParams = new URLSearchParams(location.search);
   const queryNoticeId = queryParams.get('notice');
+  const rescheduleOf = queryParams.get('rescheduleOf');
 
   useEffect(() => {
     let unsubSlotLedgers = () => {};
     let unsubDayLedgers = () => {};
+    let unsubWeekLedgers = () => {};
     let unsubNotices = () => {};
 
     async function loadData() {
@@ -97,11 +104,16 @@ export default function SlotPicker() {
           } catch (e) {}
         }
 
-        // 3. Load Rep Profile (to match therapeutic category with notices)
+        // 3. Load Rep Profile (to match therapeutic category with notices and compute company key)
         if (user) {
           try {
             const rData = await getRep(user.uid);
-            if (rData) setRep(rData);
+            if (rData) {
+              setRep(rData);
+              if (rData.company) {
+                generateCompanyKey(rData.company).then(setRepCompanyKey);
+              }
+            }
           } catch (e) {}
         }
 
@@ -116,6 +128,15 @@ export default function SlotPicker() {
 
         unsubDayLedgers = subscribeDayLedgersForDateRange(dr.uid, startDate, endDate, (data) => {
           setDayLedgers(data);
+        });
+
+        unsubWeekLedgers = subscribeDoctorWeekLedgers(dr.uid, (wList) => {
+          const map = {};
+          wList.forEach(w => {
+            const wKey = w.isoWeek || (w.id ? w.id.split('_')[1] : '');
+            if (wKey) map[wKey] = w;
+          });
+          setWeekLedgers(map);
         });
 
         // 5. Subscribe to notices
@@ -135,28 +156,34 @@ export default function SlotPicker() {
     return () => {
       unsubSlotLedgers();
       unsubDayLedgers();
+      unsubWeekLedgers();
       unsubNotices();
     };
   }, [identifier, user]);
 
   const schedule = doctor?.repSchedule;
+  const limits = doctor?.limits || {};
   const hasHours = hasConfiguredHours(schedule?.weekly);
 
   // Current server timestamp
   const nowMs = serverNow();
 
-  // Generate 14-day strip
+  // Generate 14-day strip with multi-ledger limits & company key
   const dateStrip = useMemo(() => {
     if (!schedule) return [];
     return generateDateStrip({
       schedule,
+      limits,
       slotLedgers,
       dayLedgers,
+      weekLedgers,
+      repCompanyKey,
+      repCategory: rep?.therapeuticCategory || '',
       currentServerMs: nowMs,
       startDateStr: todayDateStr(),
       advanceDays: schedule.advanceDays || 14,
     });
-  }, [schedule, slotLedgers, dayLedgers, nowMs]);
+  }, [schedule, limits, slotLedgers, dayLedgers, weekLedgers, repCompanyKey, rep, nowMs]);
 
   // Set default selected date to first day with available slots or first day
   useEffect(() => {
@@ -169,18 +196,22 @@ export default function SlotPicker() {
     }
   }, [dateStrip, selectedDateStr]);
 
-  // Active day's slots
+  // Active day's slots with multi-ledger limits & refusal reasons
   const selectedDayStrip = dateStrip.find(d => d.dateStr === selectedDateStr);
   const slotsForSelectedDay = useMemo(() => {
     if (!schedule || !selectedDateStr) return [];
     return generateSlotsForDate({
       dateStr: selectedDateStr,
       schedule,
+      limits,
       slotLedgers,
       dayLedgers,
+      weekLedgers,
+      repCompanyKey,
+      repCategory: rep?.therapeuticCategory || '',
       currentServerMs: nowMs,
     });
-  }, [schedule, selectedDateStr, slotLedgers, dayLedgers, nowMs]);
+  }, [schedule, limits, selectedDateStr, slotLedgers, dayLedgers, weekLedgers, repCompanyKey, rep, nowMs]);
 
   // Soft warning notice matching
   const matchingNotAcceptingNotice = useMemo(() => {
@@ -238,6 +269,7 @@ export default function SlotPicker() {
         slotEnd: selectedSlot.slotEnd,
         slotKey: selectedSlot.slotKey,
         noticeId: queryNoticeId || matchingNotAcceptingNotice?.id || '',
+        rescheduleOf: rescheduleOf || '',
       },
     });
   };
@@ -287,6 +319,14 @@ export default function SlotPicker() {
             </MonoTag>
           </div>
         </EdgeCard>
+
+        {/* ── Reschedule Notice Banner ── */}
+        {rescheduleOf && (
+          <div className="p-3.5 bg-amber-50 border border-amber-300 text-amber-900 rounded-[1rem] text-xs font-medium flex items-center gap-2.5 shadow-xs">
+            <RefreshCw className="w-4 h-4 flex-shrink-0 text-amber-700" />
+            <span>You are rescheduling your visit. Pick a new slot to submit your request.</span>
+          </div>
+        )}
 
         {/* ── Soft Warning Notice (if doctor not accepting rep's category) */}
         {matchingNotAcceptingNotice && (
@@ -442,6 +482,7 @@ export default function SlotPicker() {
                       state={chipState}
                       time={slot.slotStart}
                       remaining={slot.state === 'available' ? (slot.maxCount - slot.approvedCount) : undefined}
+                      refusalLabel={slot.refusalReason}
                       onClick={() => {
                         if (slot.state === 'available') {
                           setSelectedSlot(slot);

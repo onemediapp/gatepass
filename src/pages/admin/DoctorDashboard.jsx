@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { 
   LogOut, 
@@ -17,11 +17,13 @@ import {
   X, 
   QrCode, 
   User, 
-  Building2 
+  Building2,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { logout } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
+import { sweepExpiredAppointments } from '../../lib/db/appointments';
 import DoctorPendingRequests from './DoctorPendingRequests';
 import DoctorToday from './DoctorToday';
 import DoctorUpcoming from './DoctorUpcoming';
@@ -32,12 +34,19 @@ import DoctorClinics from './DoctorClinics';
 import DoctorProfileEdit from './DoctorProfileEdit';
 import DoctorProfileLinks from './DoctorProfileLinks';
 import DoctorScheduleSettings from '../doctor/DoctorScheduleSettings';
+import OwnerStats from './OwnerStats';
 
 export default function DoctorDashboard() {
-  const { userData } = useAuth();
+  const { user, userData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.uid) {
+      sweepExpiredAppointments(user.uid, 'doctor').catch(err => console.warn('Doctor sweep error:', err));
+    }
+  }, [user?.uid]);
 
   const handleLogout = async () => {
     await logout();
@@ -58,6 +67,7 @@ export default function DoctorDashboard() {
     { to: '/admin/clinics', icon: Building2, label: 'Clinics' },
     { to: '/admin/edit-profile', icon: User, label: 'Doctor Profile' },
     { to: '/admin/profile', icon: QrCode, label: 'QR & Poster' },
+    { to: '/admin/owner', icon: BarChart3, label: 'Owner Pulse' },
   ];
 
   return (
@@ -209,6 +219,7 @@ export default function DoctorDashboard() {
           <Route path="/clinics" element={<DoctorClinics />} />
           <Route path="/edit-profile" element={<DoctorProfileEdit />} />
           <Route path="/profile" element={<DoctorProfileLinks />} />
+          <Route path="/owner" element={<OwnerStats />} />
           
           {/* Fallback & Redirections */}
           <Route path="/approved" element={<Navigate to="/admin/today" replace />} />

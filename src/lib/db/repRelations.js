@@ -132,3 +132,20 @@ export function subscribeDoctorRepRelations(doctorId, callback) {
     callback([]);
   });
 }
+
+/**
+ * Adds a tag to rep relation (max 8 tags)
+ * @param {string} doctorId 
+ * @param {string} repId 
+ * @param {string} tag 
+ */
+export async function addRepRelationTag(doctorId, repId, tag) {
+  if (!doctorId || !repId || !tag) return;
+  const rel = await getRepRelation(doctorId, repId);
+  const existingTags = Array.isArray(rel?.tags) ? rel.tags : [];
+  if (!existingTags.includes(tag)) {
+    await updateRepRelation(doctorId, repId, {
+      tags: [...existingTags, tag].slice(0, 8)
+    });
+  }
+}

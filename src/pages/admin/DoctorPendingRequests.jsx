@@ -8,6 +8,7 @@ import { subscribeDoctorPendingAppointments, updateAppointment } from '../../lib
 import { approveAppointmentTransaction, declineAppointmentTransaction } from '../../lib/db/transactions';
 import { subscribeDoctorRepRelations, setRepRelation } from '../../lib/db/repRelations';
 import { subscribeDoctor } from '../../lib/db/doctors';
+import { subscribeDoctorReviewRequests, updateReviewRequest } from '../../lib/db/reviewRequests';
 import { useAuth } from '../../lib/auth';
 import { formatDateIST, formatSlotRange, parseSlotTimeToDate, todayDateStr } from '../../lib/time';
 import { generateDateStrip, generateSlotsForDate } from '../../lib/slots';
@@ -26,23 +27,31 @@ import {
   UserCheck,
   CheckCircle2,
   RefreshCw,
-  Coffee
+  Coffee,
+  Users,
+  MessageSquareQuote,
+  Inbox
 } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import Skeleton from '../../components/ui/Skeleton';
 import SlotChip from '../../components/ui/SlotChip';
+import ReasonChip from '../../components/ui/ReasonChip';
+import TagChip from '../../components/ui/TagChip';
+import BannerNote from '../../components/ui/BannerNote';
 import { cn } from '../../lib/utils';
 
 export default function DoctorPendingRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
+  const [reviewRequests, setReviewRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('visits'); // 'visits' | 'reviews'
   const [doctor, setDoctor] = useState(null);
   const [relations, setRelations] = useState({});
   const [loading, setLoading] = useState(true);
 
   // Status/Feedback tracking
-  const [slotFullMap, setSlotFullMap] = useState({}); // { [reqId]: 'SLOT_FULL'|'DAY_FULL' }
+  const [slotFullMap, setSlotFullMap] = useState({}); // { [reqId]: 'SLOT_FULL'|'DAY_FULL'|'WEEK_FULL'|'COMPANY_FULL' }
   const [processingReqId, setProcessingReqId] = useState(null);
   const [batchApproving, setBatchApproving] = useState(false);
   const [feedbackToast, setFeedbackToast] = useState(null);
@@ -82,10 +91,16 @@ export default function DoctorPendingRequests() {
       setLoading(false);
     });
 
+    // 4. Review Requests Inbox
+    const unsubReviews = subscribeDoctorReviewRequests(user.uid, (revList) => {
+      setReviewRequests(revList.filter(r => r.status === 'open'));
+    });
+
     return () => {
       unsubDoc();
       unsubRels();
       unsubAppts();
+      unsubReviews();
     };
   }, [user]);
 
@@ -144,13 +159,15 @@ export default function DoctorPendingRequests() {
       await approveAppointmentTransaction({
         appointmentId: req.id,
         doctorId: user.uid,
-        maxRepsPerSlot: schedule.maxRepsPerSlot || 1,
-        maxRepsPerDay: schedule.maxRepsPerDay || 3,
+        maxRepsPerSlot: doctor?.limits?.maxRepsPerSlot ?? schedule.maxRepsPerSlot ?? 1,
+        maxRepsPerDay: doctor?.limits?.maxRepsPerDay ?? schedule.maxRepsPerDay ?? 3,
+        maxRepsPerWeek: doctor?.limits?.maxRepsPerWeek ?? 0,
+        maxPerCompanyPerDay: doctor?.limits?.maxPerCompanyPerDay ?? 0,
       });
 
       showToast(`Approved request for ${req.repSnapshot?.name || 'Representative'}`);
     } catch (err) {
-      if (err.message === 'SLOT_FULL' || err.message === 'DAY_FULL') {
+      if (['SLOT_FULL', 'DAY_FULL', 'WEEK_FULL', 'COMPANY_FULL'].includes(err.message)) {
         setSlotFullMap(prev => ({ ...prev, [req.id]: err.message }));
       } else if (err.message === 'ALREADY_DECIDED') {
         showToast('This request was already decided.');
@@ -175,13 +192,15 @@ export default function DoctorPendingRequests() {
         await approveAppointmentTransaction({
           appointmentId: req.id,
           doctorId: user.uid,
-          maxRepsPerSlot: schedule.maxRepsPerSlot || 1,
-          maxRepsPerDay: schedule.maxRepsPerDay || 3,
+          maxRepsPerSlot: doctor?.limits?.maxRepsPerSlot ?? schedule.maxRepsPerSlot ?? 1,
+          maxRepsPerDay: doctor?.limits?.maxRepsPerDay ?? schedule.maxRepsPerDay ?? 3,
+          maxRepsPerWeek: doctor?.limits?.maxRepsPerWeek ?? 0,
+          maxPerCompanyPerDay: doctor?.limits?.maxPerCompanyPerDay ?? 0,
         });
         approvedCount++;
       } catch (err) {
-        if (err.message === 'SLOT_FULL' || err.message === 'DAY_FULL') {
-          stoppedReason = 'A slot or daily quota was reached.';
+        if (['SLOT_FULL', 'DAY_FULL', 'WEEK_FULL', 'COMPANY_FULL'].includes(err.message)) {
+          stoppedReason = 'A slot or multi-ledger cap was reached.';
           setSlotFullMap(prev => ({ ...prev, [req.id]: err.message }));
           break;
         }
@@ -190,6 +209,20 @@ export default function DoctorPendingRequests() {
 
     setBatchApproving(false);
     showToast(`Approved ${approvedCount} preferred request${approvedCount !== 1 ? 's' : ''}. ${stoppedReason}`);
+  };
+
+  // ── Review Request Actions Handler ──────────────────────────────────
+  const handleReviewReply = async (reviewId, status, replyText = '') => {
+    try {
+      await updateReviewRequest(reviewId, {
+        status,
+        doctorReply: replyText,
+        repliedAt: new Date()
+      });
+      showToast('Updated review request status');
+    } catch (err) {
+      alert(err.message || 'Failed to update review request');
+    }
   };
 
   // ── Decline Handler ─────────────────────────────────────────────────
@@ -322,11 +355,11 @@ export default function DoctorPendingRequests() {
         <div>
           <h1 className="text-2xl font-display font-bold text-ink">Pending Requests</h1>
           <p className="text-xs text-ink-soft mt-0.5">
-            {visibleRequests.length} representative request{visibleRequests.length !== 1 ? 's' : ''} awaiting review
+            Manage incoming rep visit requests and review submissions
           </p>
         </div>
 
-        {preferredRequests.length > 0 && (
+        {activeTab === 'visits' && preferredRequests.length > 0 && (
           <button
             disabled={batchApproving}
             onClick={handleApproveAllPreferred}
@@ -342,184 +375,330 @@ export default function DoctorPendingRequests() {
         )}
       </div>
 
-      {/* ── Empty State ─────────────────────────────────────────────── */}
-      {visibleRequests.length === 0 ? (
-        <div className="bg-white rounded-card p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
-          <div className="w-16 h-16 rounded-[1.25rem] bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-4 border border-teal-600/20">
-            <Coffee className="w-8 h-8" />
-          </div>
-          <h2 className="text-base font-display font-bold text-ink mb-1">All Caught Up</h2>
-          <p className="text-xs text-ink-soft max-w-xs mx-auto">
-            You have no pending appointment requests. New requests will appear here in real time.
-          </p>
-        </div>
-      ) : (
-        /* ── Requests List ─────────────────────────────────────────── */
-        <div className="space-y-4">
-          {visibleRequests.map((req) => {
-            const rel = relations[req.repId] || {};
-            const isPreferred = Boolean(rel.preferred);
-            const slotStatus = slotFullMap[req.id];
-            const isProcessing = processingReqId === req.id;
+      {/* ── Segmented Tab: Visits | Reviews ─────────────────────────── */}
+      <div className="flex border-b border-line gap-6">
+        <button
+          onClick={() => setActiveTab('visits')}
+          className={cn(
+            'pb-3 font-semibold text-xs transition-colors flex items-center gap-2 border-b-2',
+            activeTab === 'visits'
+              ? 'border-navy-900 text-navy-900'
+              : 'border-transparent text-ink-mute hover:text-ink'
+          )}
+        >
+          <span>Visits</span>
+          <span className={cn(
+            'px-2 py-0.5 rounded-full text-[0.625rem] font-bold',
+            activeTab === 'visits' ? 'bg-navy-900 text-white' : 'bg-cream-100 text-ink-mute'
+          )}>
+            {visibleRequests.length}
+          </span>
+        </button>
 
-            // Format date: "Tue 28 Oct"
-            let dateLabel = req.slotDate;
-            try {
-              const d = parseSlotTimeToDate(req.slotDate, '12:00');
-              dateLabel = formatDateIST(d, 'EEE dd MMM');
-            } catch {
-              dateLabel = req.slotDate;
-            }
+        <button
+          onClick={() => setActiveTab('reviews')}
+          className={cn(
+            'pb-3 font-semibold text-xs transition-colors flex items-center gap-2 border-b-2',
+            activeTab === 'reviews'
+              ? 'border-navy-900 text-navy-900'
+              : 'border-transparent text-ink-mute hover:text-ink'
+          )}
+        >
+          <Inbox className="w-3.5 h-3.5" />
+          <span>Reviews & Reconsiders</span>
+          {reviewRequests.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-bold bg-amber-500 text-white">
+              {reviewRequests.length}
+            </span>
+          )}
+        </button>
+      </div>
 
-            const timeLabel = formatSlotRange(req.slotStart, req.slotEnd);
-            const repSnapshot = req.repSnapshot || {};
+      {/* ── Tab 1: VISITS LIST ───────────────────────────────────────── */}
+      {activeTab === 'visits' && (
+        <>
+          {visibleRequests.length === 0 ? (
+            <div className="bg-white rounded-card p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
+              <div className="w-16 h-16 rounded-[1.25rem] bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-4 border border-teal-600/20">
+                <Coffee className="w-8 h-8" />
+              </div>
+              <h2 className="text-base font-display font-bold text-ink mb-1">All Caught Up</h2>
+              <p className="text-xs text-ink-soft max-w-xs mx-auto">
+                You have no pending appointment requests. New requests will appear here in real time.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {visibleRequests.map((req) => {
+                const rel = relations[req.repId] || {};
+                const isPreferred = Boolean(rel.preferred);
+                const slotStatus = slotFullMap[req.id];
+                const isProcessing = processingReqId === req.id;
 
-            return (
-              <EdgeCard
-                key={req.id}
-                edge={isPreferred ? 'amber' : 'navy'}
-                className="p-5 transition-all hover:shadow-md"
-              >
-                {/* ── Card Header: Rep Name & Slot ──────────────────── */}
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-base font-display font-bold text-ink truncate">
-                        {repSnapshot.name || 'Representative'}
-                      </h2>
-                      {isPreferred && (
-                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-100 text-amber-500 rounded-full text-[0.625rem] font-bold">
-                          <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> Preferred
+                let dateLabel = req.slotDate;
+                try {
+                  const d = parseSlotTimeToDate(req.slotDate, '12:00');
+                  dateLabel = formatDateIST(d, 'EEE dd MMM');
+                } catch {
+                  dateLabel = req.slotDate;
+                }
+
+                const timeLabel = formatSlotRange(req.slotStart, req.slotEnd);
+                const repSnapshot = req.repSnapshot || {};
+
+                return (
+                  <EdgeCard
+                    key={req.id}
+                    edge={isPreferred ? 'amber' : 'navy'}
+                    className="p-5 transition-all hover:shadow-md"
+                  >
+                    {/* Pinned Note Banner */}
+                    {rel.pinnedNote && rel.notes && (
+                      <div className="mb-3">
+                        <BannerNote note={rel.notes} author="You (Pinned Note)" />
+                      </div>
+                    )}
+
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-base font-display font-bold text-ink truncate">
+                            {repSnapshot.name || 'Representative'}
+                          </h2>
+                          {isPreferred && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-amber-100 text-amber-500 rounded-full text-[0.625rem] font-bold">
+                              <Star className="w-3 h-3 fill-amber-500 text-amber-500" /> Preferred
+                            </span>
+                          )}
+                          {req.accompaniedBy === 'area_manager' && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-navy-50 text-navy-800 text-[0.625rem] font-bold border border-navy-200">
+                              <Users className="w-3 h-3 text-navy-700" /> +1 Area Manager
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-ink-soft mt-0.5 truncate">
+                          {repSnapshot.company || 'Pharma'} {repSnapshot.designation ? `· ${repSnapshot.designation}` : ''}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-bold text-ink">{dateLabel}</p>
+                        <p className="text-[0.6875rem] font-mono text-ink-mute font-medium">{timeLabel}</p>
+                      </div>
+                    </div>
+
+                    {/* Category & Product Focus Box */}
+                    <div className="my-3 bg-cream-50 p-3 rounded-[0.875rem] border border-line space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {req.visitReason && (
+                          <ReasonChip reason={req.visitReason} isSelected={true} />
+                        )}
+                        {req.therapeuticCategory && (
+                          <span className="px-2 py-0.5 rounded-[0.5rem] bg-navy-100 text-navy-900 text-[0.625rem] font-mono font-semibold">
+                            {req.therapeuticCategory}
+                          </span>
+                        )}
+                        {req.samplesFlag && (
+                          <span className="inline-flex items-center gap-1 text-[0.625rem] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-[0.5rem]">
+                            <Package className="w-3 h-3" /> Samples
+                          </span>
+                        )}
+                      </div>
+
+                      {req.productFocus && (
+                        <p className="text-xs text-ink font-medium">
+                          Product focus: <span className="font-semibold">{req.productFocus}</span>
+                        </p>
+                      )}
+
+                      {req.message && (
+                        <div className="bg-white/80 p-2.5 rounded-[0.75rem] border border-line text-xs italic text-ink flex items-start gap-2 mt-1">
+                          <MessageSquareQuote className="w-4 h-4 text-ink-mute shrink-0 mt-0.5" />
+                          <span>"{req.message}"</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* History & Tags Badges */}
+                    <div className="flex flex-wrap items-center gap-2 py-2 text-[0.6875rem] text-ink-soft border-b border-line mb-3">
+                      <span className="inline-flex items-center gap-1 bg-cream-50 px-2 py-0.5 rounded-[0.5rem] border border-line">
+                        🏆 {rel.metCount || 0} visits
+                      </span>
+
+                      {(rel.noShowCount || 0) > 0 && (
+                        <span className="inline-flex items-center gap-1 bg-coral-50 text-coral-600 px-2 py-0.5 rounded-[0.5rem] border border-coral-600/20 font-semibold">
+                          <AlertTriangle className="w-3 h-3" /> {rel.noShowCount} no-show
+                        </span>
+                      )}
+
+                      {rel.tags && rel.tags.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          {rel.tags.map(t => (
+                            <TagChip key={t} tag={t} size="sm" />
+                          ))}
+                        </div>
+                      )}
+
+                      {rel.notes && !rel.pinnedNote && (
+                        <span className="text-ink-mute truncate max-w-xs italic">
+                          Private: "{rel.notes}"
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-ink-soft mt-0.5 truncate">
-                      {repSnapshot.company || 'Pharma'} {repSnapshot.designation ? `· ${repSnapshot.designation}` : ''}
+
+                    {/* Action CTAs Row */}
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      {/* Left: Star & Block quick buttons */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleTogglePreferred(req.repId, isPreferred)}
+                          className={cn(
+                            'p-2 rounded-[0.75rem] transition-colors',
+                            isPreferred ? 'text-amber-500 bg-amber-100 hover:bg-amber-200' : 'text-ink-mute hover:bg-cream-50 hover:text-ink'
+                          )}
+                          title={isPreferred ? 'Remove preferred' : 'Mark preferred'}
+                        >
+                          <Star className={cn('w-4 h-4', isPreferred ? 'fill-amber-500' : '')} />
+                        </button>
+
+                        <button
+                          onClick={() => setBlockConfirmReq(req)}
+                          className="p-2 text-ink-mute hover:text-coral-600 hover:bg-coral-50 rounded-[0.75rem] transition-colors"
+                          title="Silent block representative"
+                        >
+                          <Ban className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setOfferReq(req);
+                            setOfferSelectedDate(req.slotDate);
+                          }}
+                          className="px-2.5 py-1.5 text-[0.6875rem] text-ink-soft hover:text-ink hover:bg-cream-50 rounded-[0.625rem] font-medium transition-colors"
+                        >
+                          Offer another slot
+                        </button>
+                      </div>
+
+                      {/* Right: Decline & Approve CTAs */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          disabled={isProcessing}
+                          onClick={() => setDeclineReq(req)}
+                          className="px-3 py-2 bg-cream-50 hover:bg-coral-50 text-coral-600 border border-line rounded-[0.75rem] text-xs font-semibold transition-colors"
+                        >
+                          Decline
+                        </button>
+
+                        {slotStatus ? (
+                          <button
+                            onClick={() => {
+                              setOfferReq(req);
+                              setOfferSelectedDate(req.slotDate);
+                            }}
+                            className="px-4 py-2 bg-sand-50 border border-sand-600/30 text-sand-600 rounded-[0.75rem] text-xs font-bold hover:bg-sand-100 transition-colors"
+                          >
+                            Slot/Cap full — offer another
+                          </button>
+                        ) : (
+                          <button
+                            disabled={isProcessing}
+                            onClick={() => handleApprove(req)}
+                            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.75rem] text-xs font-bold shadow-sm transition-all"
+                          >
+                            {isProcessing ? 'Approving…' : 'Approve this slot'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </EdgeCard>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Tab 2: REVIEWS & RECONSIDERS INBOX ──────────────────────── */}
+      {activeTab === 'reviews' && (
+        <div className="space-y-4">
+          {reviewRequests.length === 0 ? (
+            <div className="bg-white rounded-card p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
+              <div className="w-16 h-16 rounded-[1.25rem] bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-200">
+                <Inbox className="w-8 h-8" />
+              </div>
+              <h2 className="text-base font-display font-bold text-ink mb-1">No Pending Reviews</h2>
+              <p className="text-xs text-ink-soft max-w-xs mx-auto">
+                No product reviews or reconsider requests are currently waiting.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {reviewRequests.map((rev) => (
+                <div key={rev.id} className="bg-white p-5 rounded-card border border-line shadow-sm space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-sm text-ink">{rev.repSnapshot?.name || 'Representative'}</h3>
+                        <MonoTag variant={rev.kind === 'reconsider' ? 'amber' : 'teal'}>
+                          {rev.kind === 'reconsider' ? 'Reconsider Visit' : 'Product Review'}
+                        </MonoTag>
+                      </div>
+                      <p className="text-xs text-ink-soft mt-0.5">
+                        {rev.repSnapshot?.company || ''} · {rev.repSnapshot?.designation || ''} · {rev.repSnapshot?.mobile || ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {rev.productName && (
+                    <div className="bg-cream-50 p-2.5 rounded-[0.625rem] text-xs border border-line">
+                      <span className="font-semibold text-ink">Product: </span>{rev.productName}
+                      {rev.benefit && <span className="text-ink-soft block mt-0.5">{rev.benefit}</span>}
+                    </div>
+                  )}
+
+                  {rev.message && (
+                    <p className="text-xs italic bg-cream-50/50 p-2.5 rounded-[0.625rem] border border-line/60 text-ink">
+                      "{rev.message}"
                     </p>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-bold text-ink">{dateLabel}</p>
-                    <p className="text-[0.6875rem] font-mono text-ink-mute font-medium">{timeLabel}</p>
-                  </div>
-                </div>
-
-                {/* ── Category & Product Focus ──────────────────────── */}
-                <div className="my-3 bg-cream-50 p-3 rounded-[0.875rem] border border-line space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    {req.therapeuticCategory && (
-                      <span className="px-2 py-0.5 rounded-[0.5rem] bg-navy-100 text-navy-900 text-[0.625rem] font-mono font-semibold">
-                        {req.therapeuticCategory}
-                      </span>
-                    )}
-                    {req.samplesFlag && (
-                      <span className="inline-flex items-center gap-1 text-[0.625rem] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-[0.5rem]">
-                        <Package className="w-3 h-3" /> Samples
-                      </span>
-                    )}
-                  </div>
-
-                  {req.productFocus && (
-                    <p className="text-xs text-ink font-medium">
-                      "{req.productFocus}"
-                    </p>
                   )}
 
-                  {req.message && (
-                    <p className="text-[0.6875rem] text-ink-soft italic pt-1 border-t border-line/60">
-                      Note: {req.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* ── History & Metrics Badges ──────────────────────── */}
-                <div className="flex flex-wrap items-center gap-2 py-2 text-[0.6875rem] text-ink-soft border-b border-line mb-3">
-                  <span className="inline-flex items-center gap-1 bg-cream-50 px-2 py-0.5 rounded-[0.5rem] border border-line">
-                    🏆 {rel.metCount || 0} visits
-                  </span>
-
-                  {(rel.noShowCount || 0) > 0 && (
-                    <span className="inline-flex items-center gap-1 bg-coral-50 text-coral-600 px-2 py-0.5 rounded-[0.5rem] border border-coral-600/20 font-semibold">
-                      <AlertTriangle className="w-3 h-3" /> {rel.noShowCount} no-show
-                    </span>
-                  )}
-
-                  {rel.notes && (
-                    <span className="text-ink-mute truncate max-w-xs italic">
-                      Private: "{rel.notes}"
-                    </span>
-                  )}
-                </div>
-
-                {/* ── Action CTAs Row ───────────────────────────────── */}
-                <div className="flex items-center justify-between gap-2 pt-1">
-                  
-                  {/* Left: Star & Block quick buttons */}
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-line">
                     <button
-                      onClick={() => handleTogglePreferred(req.repId, isPreferred)}
-                      className={cn(
-                        'p-2 rounded-[0.75rem] transition-colors',
-                        isPreferred ? 'text-amber-500 bg-amber-100 hover:bg-amber-200' : 'text-ink-mute hover:bg-cream-50 hover:text-ink'
-                      )}
-                      title={isPreferred ? 'Remove preferred' : 'Mark preferred'}
+                      onClick={() => handleReviewReply(rev.id, 'closed', 'Not currently relevant')}
+                      className="px-3 py-1.5 bg-cream-50 hover:bg-coral-50 text-coral-600 rounded-[0.625rem] text-xs font-semibold"
                     >
-                      <Star className={cn('w-4 h-4', isPreferred ? 'fill-amber-500' : '')} />
+                      Dismiss / Not Now
                     </button>
-
-                    <button
-                      onClick={() => setBlockConfirmReq(req)}
-                      className="p-2 text-ink-mute hover:text-coral-600 hover:bg-coral-50 rounded-[0.75rem] transition-colors"
-                      title="Silent block representative"
-                    >
-                      <Ban className="w-4 h-4" />
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setOfferReq(req);
-                        setOfferSelectedDate(req.slotDate);
-                      }}
-                      className="px-2.5 py-1.5 text-[0.6875rem] text-ink-soft hover:text-ink hover:bg-cream-50 rounded-[0.625rem] font-medium transition-colors"
-                    >
-                      Offer another slot
-                    </button>
-                  </div>
-
-                  {/* Right: Decline & Approve CTAs */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      disabled={isProcessing}
-                      onClick={() => setDeclineReq(req)}
-                      className="px-3 py-2 bg-cream-50 hover:bg-coral-50 text-coral-600 border border-line rounded-[0.75rem] text-xs font-semibold transition-colors"
-                    >
-                      Decline
-                    </button>
-
-                    {slotStatus ? (
-                      <button
-                        onClick={() => {
-                          setOfferReq(req);
-                          setOfferSelectedDate(req.slotDate);
-                        }}
-                        className="px-4 py-2 bg-sand-50 border border-sand-600/30 text-sand-600 rounded-[0.75rem] text-xs font-bold hover:bg-sand-100 transition-colors"
-                      >
-                        Slot full — offer another
-                      </button>
+                    {rev.kind === 'product_review' ? (
+                      <>
+                        <button
+                          onClick={() => handleReviewReply(rev.id, 'need_info', 'Please share one-page clinical trial data')}
+                          className="px-3 py-1.5 bg-sand-50 text-sand-800 rounded-[0.625rem] text-xs font-semibold hover:bg-sand-100"
+                        >
+                          Need More Info
+                        </button>
+                        <button
+                          onClick={() => handleReviewReply(rev.id, 'interested', 'Doctor noted interest — feel free to book a slot')}
+                          className="px-3.5 py-1.5 bg-teal-600 text-white rounded-[0.625rem] text-xs font-bold hover:bg-teal-700"
+                        >
+                          Interested
+                        </button>
+                      </>
                     ) : (
                       <button
-                        disabled={isProcessing}
-                        onClick={() => handleApprove(req)}
-                        className="px-4 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.75rem] text-xs font-bold shadow-sm transition-all"
+                        onClick={() => handleReviewReply(rev.id, 'interested', 'Doctor agreed to reconsider — please book an available slot')}
+                        className="px-3.5 py-1.5 bg-navy-900 text-white rounded-[0.625rem] text-xs font-bold hover:bg-navy-700"
                       >
-                        {isProcessing ? 'Approving…' : 'Approve this slot'}
+                        Accept Reconsider
                       </button>
                     )}
                   </div>
                 </div>
-              </EdgeCard>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
       )}
 
