@@ -61,19 +61,22 @@ export async function approveAppointmentTransaction({
         const slotRef = doc(db, 'slotLedger', `${doctorId}_${slotKey}`);
         const dayRef = doc(db, 'dayLedger', `${doctorId}_${slotDate}`);
 
-        // Generate 3 candidate tokens: 'RM' + 4 digits
-        const candidates = [makeDoctorToken(), makeDoctorToken(), makeDoctorToken()];
+        // Generate 5 candidate tokens: 'RM' + 4 digits
+        const candidates = [
+          makeDoctorToken(),
+          makeDoctorToken(),
+          makeDoctorToken(),
+          makeDoctorToken(),
+          makeDoctorToken()
+        ];
         const candRefs = candidates.map(t => doc(db, 'tokens', t));
 
-        // Read all documents in parallel
-        const [appt, slot, day, ...cand] = await Promise.all([
-          tx.get(apptRef),
+        // Read slot, day, and candidate tokens in parallel (apptRef already read above)
+        const [slot, day, ...cand] = await Promise.all([
           tx.get(slotRef),
           tx.get(dayRef),
           ...candRefs.map(r => tx.get(r))
         ]);
-
-        if (appt.data().status !== 'pending') throw new Error('ALREADY_DECIDED');
 
         const slotCount = slot.exists() ? (slot.data().approvedCount || 0) : 0;
         const dayCount = day.exists() ? (day.data().approvedCount || 0) : 0;
@@ -81,7 +84,16 @@ export async function approveAppointmentTransaction({
         if (slotCount >= maxRepsPerSlot) throw new Error('SLOT_FULL');
         if (maxRepsPerDay > 0 && dayCount >= maxRepsPerDay) throw new Error('DAY_FULL');
 
-        const idx = cand.findIndex(s => !s.exists());
+        const nowMs = Date.now();
+        const idx = cand.findIndex(s => {
+          if (!s.exists()) return true;
+          const tData = s.data();
+          if (!tData) return true;
+          const expMs = tData.expiresAt?.toMillis ? tData.expiresAt.toMillis() : 0;
+          if (tData.isUsed && expMs > 0 && expMs < nowMs) return true;
+          if (expMs > 0 && expMs < nowMs - 86400000) return true;
+          return false;
+        });
         if (idx < 0) throw new Error('TOKEN_RETRY');
 
         const token = candidates[idx];

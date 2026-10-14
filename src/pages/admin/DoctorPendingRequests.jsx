@@ -278,17 +278,22 @@ export default function DoctorPendingRequests() {
 
   // Offer slot picker date strip
   const dateStrip = useMemo(() => {
-    if (!offerReq) return [];
-    return generateDateStrip(schedule.advanceDays || 14);
-  }, [offerReq, schedule.advanceDays]);
+    if (!offerReq || !schedule) return [];
+    return generateDateStrip({
+      schedule,
+      advanceDays: schedule.advanceDays || 14,
+      startDateStr: todayDateStr(),
+    });
+  }, [offerReq, schedule]);
 
   const availableOfferSlots = useMemo(() => {
     if (!offerSelectedDate || !schedule) return [];
-    return generateSlotsForDate({
+    const allSlots = generateSlotsForDate({
       dateStr: offerSelectedDate,
       schedule,
       currentServerMs: Date.now(),
     });
+    return allSlots.filter((s) => s.state === 'available');
   }, [offerSelectedDate, schedule]);
 
   if (loading) {
@@ -657,9 +662,9 @@ export default function DoctorPendingRequests() {
                         : 'bg-white text-ink border-line hover:bg-cream-50'
                     )}
                   >
-                    <span className="text-[0.625rem] font-mono uppercase">{day.weekday}</span>
-                    <span className="text-sm font-bold">{day.dayNum}</span>
-                    <span className="text-[0.5625rem] text-ink-mute">{day.monthStr}</span>
+                    <span className="text-[0.625rem] font-mono uppercase">{day.dayLabel}</span>
+                    <span className="text-sm font-bold">{day.dateNumber}</span>
+                    <span className="text-[0.5625rem] text-ink-mute">{day.monthLabel}</span>
                   </button>
                 ))}
               </div>

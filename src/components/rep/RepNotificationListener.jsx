@@ -29,22 +29,23 @@ export default function RepNotificationListener({ children }) {
 
       // If modified and status actually changed
       if (change.type === 'modified' && prevStatus && prevStatus !== newStatus) {
-        const docName = data.doctorName || 'Doctor';
+        const rawDocName = data.doctorSnapshot?.name || data.doctorName || 'Doctor';
+        const docDisplayName = rawDocName.startsWith('Dr.') ? rawDocName : `Dr. ${rawDocName}`;
         let title = '';
         let message = '';
         let type = 'approved'; // 'approved', 'completed', 'declined'
 
         if (newStatus === 'approved' || newStatus === 'confirmed') {
           title = 'Gatepass Confirmed';
-          message = `Dr. ${docName} approved your appointment request.`;
+          message = `${docDisplayName} approved your appointment request.`;
           type = 'approved';
         } else if (newStatus === 'completed') {
           title = 'Visit Completed';
-          message = `Dr. ${docName} marked your appointment as completed.`;
+          message = `${docDisplayName} marked your appointment as completed.`;
           type = 'completed';
         } else if (newStatus === 'rejected' || newStatus === 'declined') {
           title = 'Request Declined';
-          message = `Dr. ${docName} couldn't take this slot.`;
+          message = `${docDisplayName} couldn't take this slot.`;
           type = 'declined';
         }
 

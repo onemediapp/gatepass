@@ -88,10 +88,13 @@ export default function RepHistory() {
                 <div className="flex items-center justify-between mt-2">
                   <div className="min-w-0 flex-1 pr-2">
                     <h3 className="font-bold text-ink text-sm truncate group-hover:text-navy-500 transition-colors">
-                      Dr. {item.doctorName || 'Doctor'}
+                      {(() => {
+                        const raw = item.doctorSnapshot?.name || item.doctorName || 'Doctor';
+                        return raw.startsWith('Dr.') ? raw : `Dr. ${raw}`;
+                      })()}
                     </h3>
                     <p className="text-xs text-ink-soft truncate mt-0.5">
-                      {item.clinicName || 'Clinic'} {item.slotStartTime ? `· ${item.slotStartTime}` : ''}
+                      {item.doctorSnapshot?.clinicName || item.clinicName || 'Clinic'} {item.slotStart ? `· ${item.slotStart}${item.slotEnd ? `–${item.slotEnd}` : ''}` : (item.slotStartTime ? `· ${item.slotStartTime}` : '')}
                     </p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-ink-mute group-hover:text-navy-900 group-hover:translate-x-0.5 transition-all flex-shrink-0" />

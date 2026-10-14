@@ -25,8 +25,7 @@ const app = initializeApp(firebaseConfig);
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
 
 export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  experimentalAutoDetectLongPolling: false
+  experimentalAutoDetectLongPolling: true
 }, firestoreDatabaseId);
 
 export const auth = getAuth(app);

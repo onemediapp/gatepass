@@ -101,12 +101,49 @@ export default function StatusCheck() {
 
   const isOfflineOver60s = !isOnline && offlineSeconds > 60;
 
+  // ── Offline Hydration from Cache ─────────────────────────────────────
+  useEffect(() => {
+    if (!appointmentId) return;
+    try {
+      const raw = localStorage.getItem(`gatepass_cache_${appointmentId}`);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (cached?.appointment) {
+          setAppointment((prev) => prev || cached.appointment);
+          if (cached.doctor) setDoctor((prev) => prev || cached.doctor);
+          if (cached.clinic) setClinic((prev) => prev || cached.clinic);
+          setLoading(false);
+        }
+      }
+    } catch {
+      // storage unavailable or parse error
+    }
+  }, [appointmentId]);
+
   // ── Real-time Appointment Subscription ──────────────────────────────
   useEffect(() => {
     if (!appointmentId) return;
 
     const unsub = subscribeAppointment(appointmentId, async (data) => {
       if (!data) {
+        // If offline and we have a cached pass, do not clear the state
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          try {
+            const raw = localStorage.getItem(`gatepass_cache_${appointmentId}`);
+            if (raw) {
+              const cached = JSON.parse(raw);
+              if (cached?.appointment) {
+                setAppointment(cached.appointment);
+                if (cached.doctor) setDoctor(cached.doctor);
+                if (cached.clinic) setClinic(cached.clinic);
+                setLoading(false);
+                return;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
         setAppointment(null);
         setLoading(false);
         return;
@@ -114,10 +151,16 @@ export default function StatusCheck() {
 
       setAppointment(data);
 
+      let fetchedDoctor = null;
+      let fetchedClinic = null;
+
       if (data.doctorId) {
         try {
           const docData = await getDoctor(data.doctorId);
-          if (docData) setDoctor(docData);
+          if (docData) {
+            fetchedDoctor = docData;
+            setDoctor(docData);
+          }
         } catch (err) {
           console.error('Error fetching doctor doc:', err);
         }
@@ -126,10 +169,25 @@ export default function StatusCheck() {
       if (data.clinicId) {
         try {
           const clinicData = await getClinic(data.clinicId);
-          if (clinicData) setClinic(clinicData);
+          if (clinicData) {
+            fetchedClinic = clinicData;
+            setClinic(clinicData);
+          }
         } catch (err) {
           console.error('Error fetching clinic doc:', err);
         }
+      }
+
+      // Persist to local cache for resilient offline display
+      try {
+        localStorage.setItem(`gatepass_cache_${appointmentId}`, JSON.stringify({
+          appointment: data,
+          doctor: fetchedDoctor,
+          clinic: fetchedClinic,
+          cachedAt: Date.now()
+        }));
+      } catch {
+        // storage quota or private browsing
       }
 
       setLoading(false);

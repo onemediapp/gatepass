@@ -1,7 +1,7 @@
 import { useEffect, useState, createContext, useContext } from 'react';
 import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db, loginWithGoogle, logout } from './firebase';
 
 const AuthContext = createContext(null);
 
@@ -83,7 +83,11 @@ export const AuthProvider = ({ children }) => {
     user,
     userData,
     loading,
-    setUserData
+    setUserData,
+    loginWithGoogle,
+    logout,
+    signInWithGoogle: loginWithGoogle,
+    signOut: logout
   };
 
   return (
