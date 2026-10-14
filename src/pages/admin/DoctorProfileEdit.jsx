@@ -62,8 +62,8 @@ export default function DoctorProfileEdit() {
       }
       alert('Profile updated successfully');
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'doctors/users');
-      alert('Failed to update profile');
+      console.error('Doctor profile update failed:', err);
+      alert('Failed to update profile: ' + (err.message || 'Unknown error'));
     } finally {
       setSaving(false);
     }

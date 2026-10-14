@@ -43,10 +43,10 @@ export async function createUser(uid, data) {
     mobile: data.mobile || '',
     role: data.role || ['rep'],
     isActive: data.isActive !== false,
-    createdAt: toTimestamp(data.createdAt || serverTimestamp()),
-    lastLoginAt: toTimestamp(data.lastLoginAt || serverTimestamp())
+    createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp(),
+    lastLoginAt: data.lastLoginAt ? toTimestamp(data.lastLoginAt) : serverTimestamp()
   };
-  await setDoc(userRef, payload);
+  await setDoc(userRef, payload, { merge: true });
 }
 
 /**
@@ -59,9 +59,10 @@ export async function createUser(uid, data) {
 export async function updateUser(uid, updates) {
   if (!uid) return;
   const userRef = doc(db, COLLECTION, uid);
+  const { id, ...cleanUpdates } = updates;
   await updateDoc(userRef, {
-    ...updates,
-    lastLoginAt: updates.lastLoginAt ? toTimestamp(updates.lastLoginAt) : serverTimestamp()
+    ...cleanUpdates,
+    lastLoginAt: cleanUpdates.lastLoginAt ? toTimestamp(cleanUpdates.lastLoginAt) : serverTimestamp()
   });
 }
 

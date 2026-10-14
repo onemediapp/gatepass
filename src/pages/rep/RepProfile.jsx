@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getRep, updateRep } from '../../lib/db/reps';
+import { updateUser } from '../../lib/db/users';
 import { logout } from '../../lib/firebase';
 import { useAuth } from '../../lib/auth';
 import { Check, LogOut, Briefcase } from 'lucide-react';
@@ -12,7 +13,7 @@ import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 
 export default function RepProfile() {
-  const { user, userData } = useAuth();
+  const { user, userData, setUserData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState(null);
@@ -23,7 +24,10 @@ export default function RepProfile() {
       try {
         const data = await getRep(user.uid);
         if (data) {
-          setFormData(data);
+          setFormData({
+            ...data,
+            mobile: userData?.mobile || ''
+          });
         }
       } catch (err) {
         console.error(err);
@@ -32,7 +36,7 @@ export default function RepProfile() {
       }
     }
     loadData();
-  }, [user]);
+  }, [user, userData]);
 
   const updateForm = (key, val) => setFormData(p => ({ ...p, [key]: val }));
 
@@ -40,11 +44,19 @@ export default function RepProfile() {
     if (!formData) return;
     setSaving(true);
     try {
-      await updateRep(user.uid, formData);
+      const { id, uid, mobile, ...repUpdates } = formData;
+      await updateRep(user.uid, repUpdates);
+      if (mobile) {
+        const cleanMobile = mobile.replace(/\D/g, '');
+        await updateUser(user.uid, { mobile: cleanMobile });
+        if (setUserData) {
+          setUserData(prev => prev ? { ...prev, mobile: cleanMobile } : prev);
+        }
+      }
       alert('Profile updated successfully');
     } catch (err) {
       console.error(err);
-      alert('Failed to update profile');
+      alert('Failed to update profile: ' + (err.message || 'Unknown error'));
     } finally {
       setSaving(false);
     }

@@ -136,9 +136,9 @@ export async function createDoctor(uid, data) {
       ...DEFAULT_DOCTOR_STATS,
       ...(data.stats || {})
     },
-    updatedAt: toTimestamp(data.updatedAt || serverTimestamp())
+    updatedAt: data.updatedAt ? toTimestamp(data.updatedAt) : serverTimestamp()
   };
-  await setDoc(docRef, payload);
+  await setDoc(docRef, payload, { merge: true });
 }
 
 /**
@@ -150,8 +150,9 @@ export async function createDoctor(uid, data) {
 export async function updateDoctor(uid, updates) {
   if (!uid) return;
   const docRef = doc(db, COLLECTION, uid);
+  const { id, uid: _uid, ...cleanUpdates } = updates;
   await updateDoc(docRef, {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: serverTimestamp()
   });
 }

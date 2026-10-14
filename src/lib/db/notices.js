@@ -52,7 +52,7 @@ export async function createNotice(data) {
     pinned: Boolean(data.pinned),
     expiresAt: data.expiresAt ? toTimestamp(data.expiresAt) : null,
     isActive: data.isActive !== false,
-    createdAt: toTimestamp(data.createdAt || serverTimestamp())
+    createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp()
   };
   const docRef = await addDoc(collection(db, COLLECTION), payload);
   return docRef.id;

@@ -1,6 +1,6 @@
 import { useEffect, useState, createContext, useContext } from 'react';
 import { onAuthStateChanged, getRedirectResult } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 const AuthContext = createContext(null);
@@ -44,28 +44,39 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let userDocUnsub = () => {};
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
+      userDocUnsub();
+
       if (currentUser) {
-        try {
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data());
-          } else {
+        userDocUnsub = onSnapshot(
+          doc(db, 'users', currentUser.uid),
+          (snap) => {
+            if (snap.exists()) {
+              setUserData({ id: snap.id, ...snap.data() });
+            } else {
+              setUserData(null);
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error subscribing to user doc:", error);
             setUserData(null);
+            setLoading(false);
           }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-          setUserData(null);
-        }
+        );
       } else {
         setUserData(null);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      userDocUnsub();
+    };
   }, []);
 
   const value = {

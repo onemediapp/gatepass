@@ -53,10 +53,22 @@ export function toDate(val) {
 export function toTimestamp(val) {
   if (!val) return Timestamp.now();
   if (val instanceof Timestamp) return val;
-  if (val instanceof Date) return Timestamp.fromDate(val);
-  if (typeof val === 'number') return Timestamp.fromMillis(val);
+  // If it's a Firestore FieldValue sentinel (e.g. serverTimestamp())
+  if (typeof val === 'object' && ('_methodName' in val || val.constructor?.name?.includes('FieldValue'))) {
+    return val;
+  }
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? Timestamp.now() : Timestamp.fromDate(val);
+  }
+  if (typeof val === 'number') {
+    return isNaN(val) ? Timestamp.now() : Timestamp.fromMillis(val);
+  }
   if (typeof val.toDate === 'function') return val;
-  return Timestamp.fromDate(new Date(val));
+  if (typeof val === 'string') {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? Timestamp.now() : Timestamp.fromDate(d);
+  }
+  return val;
 }
 
 /**

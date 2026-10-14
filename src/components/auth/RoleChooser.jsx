@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logout } from '../../lib/firebase';
 import { useAuth } from '../../lib/auth';
@@ -36,6 +36,17 @@ export default function RoleChooser() {
       setCheckingInvite(false);
     }
   };
+
+  useEffect(() => {
+    const pendingRole = sessionStorage.getItem('pendingRole');
+    if (pendingRole === 'rep') {
+      sessionStorage.removeItem('pendingRole');
+      navigate('/rep/register');
+    } else if (pendingRole === 'doctor' && user?.email) {
+      sessionStorage.removeItem('pendingRole');
+      handleSelectDoctor();
+    }
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-cream-50 flex flex-col justify-center items-center px-4 py-12">

@@ -61,7 +61,7 @@ export async function createClinic(data) {
     ownerDoctorId: data.ownerDoctorId || '',
     qrCodeData: data.qrCodeData || '',
     isActive: data.isActive !== false,
-    createdAt: toTimestamp(data.createdAt || serverTimestamp())
+    createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp()
   };
   const docRef = await addDoc(collection(db, COLLECTION), payload);
   return docRef.id;

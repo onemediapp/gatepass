@@ -8,7 +8,7 @@ import { SearchableSelect } from '../../components/ui/SearchableSelect';
 import { TagInput } from '../../components/ui/TagInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
-import { ChevronRight, ChevronLeft, Briefcase, Pill, Building2, Check } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Briefcase, Pill, Building2, Check, AlertCircle } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import { cn } from '../../lib/utils';
@@ -49,6 +49,7 @@ export default function RepRegister() {
   
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   
   // Form State
   const [formData, setFormData] = useState({
@@ -94,13 +95,15 @@ export default function RepRegister() {
   const handleSubmit = async () => {
     if (!user) return;
     setIsSubmitting(true);
+    setSubmitError('');
     
     try {
+      const cleanMobile = (formData.mobile || '').replace(/\D/g, '');
       const userData = {
         name: user.displayName || 'Rep',
         email: user.email || '',
         photoUrl: user.photoURL || '',
-        mobile: formData.mobile,
+        mobile: cleanMobile,
         role: ['rep'],
         isActive: true,
       };
@@ -127,7 +130,9 @@ export default function RepRegister() {
       navigate('/rep/home');
       
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, `users/${user.uid}`);
+      console.error('Registration error:', error);
+      setSubmitError(error.message || 'Failed to complete registration. Please try again.');
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -377,6 +382,13 @@ export default function RepRegister() {
                 </div>
               </EdgeCard>
             </div>
+          </div>
+        )}
+
+        {submitError && (
+          <div className="mt-4 p-4 rounded-[1rem] bg-coral-50 border border-coral-600/30 text-coral-600 text-xs font-medium flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{submitError}</span>
           </div>
         )}
 

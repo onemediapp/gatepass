@@ -66,9 +66,9 @@ export async function createRep(uid, data) {
     companyOffice: data.companyOffice || '',
     medInfoHelpline: data.medInfoHelpline || '',
     profileScore: typeof data.profileScore === 'number' ? data.profileScore : 50,
-    updatedAt: toTimestamp(data.updatedAt || serverTimestamp())
+    updatedAt: data.updatedAt ? toTimestamp(data.updatedAt) : serverTimestamp()
   };
-  await setDoc(repRef, payload);
+  await setDoc(repRef, payload, { merge: true });
 }
 
 /**
@@ -80,8 +80,9 @@ export async function createRep(uid, data) {
 export async function updateRep(uid, updates) {
   if (!uid) return;
   const repRef = doc(db, COLLECTION, uid);
+  const { id, uid: _uid, ...cleanUpdates } = updates;
   await updateDoc(repRef, {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: serverTimestamp()
   });
 }

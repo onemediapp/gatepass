@@ -30,7 +30,18 @@ service cloud.firestore {
               && exists(/databases/$(db)/documents/invites/$(emailKey())))
         );
       allow update: if isAuth() && uid() == userId
-        && request.resource.data.role == resource.data.role;
+        && (
+          (request.resource.data.role == resource.data.role)
+          || (
+            !('role' in resource.data)
+            && request.resource.data.role.size() == 1
+            && (
+              request.resource.data.role[0] == 'rep'
+              || (request.resource.data.role[0] == 'doctor'
+                  && exists(/databases/$(db)/documents/invites/$(emailKey())))
+            )
+          )
+        );
       allow delete: if false;
     }
 

@@ -137,7 +137,7 @@ export async function createAppointment(data) {
     outcome: '',
     outcomeAt: null,
     doctorNotes: '',
-    createdAt: toTimestamp(data.createdAt || serverTimestamp())
+    createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp()
   };
 
   const docRef = await addDoc(collection(db, COLLECTION), payload);
@@ -220,7 +220,7 @@ export async function submitAppointmentWithLink(data) {
     outcome: '',
     outcomeAt: null,
     doctorNotes: '',
-    createdAt: toTimestamp(data.createdAt || serverTimestamp())
+    createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp()
   };
 
   batch.set(apptRef, payload);
