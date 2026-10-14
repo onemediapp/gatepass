@@ -3,6 +3,8 @@ import {
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   setPersistence, 
   browserLocalPersistence 
@@ -41,6 +43,11 @@ export const loginWithGoogle = async () => {
     const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
+    if (error.code === 'auth/popup-blocked') {
+      console.warn('Popup blocked by browser. Falling back to signInWithRedirect...');
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
     if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
       console.error('Google Sign-In Error:', error);
     }

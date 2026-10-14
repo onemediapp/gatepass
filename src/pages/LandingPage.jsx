@@ -48,7 +48,13 @@ export default function LandingPage() {
     } catch (error) {
       if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
         console.error('Sign-in error:', error);
-        setAuthError('Sign-in failed. Please try again with Google.');
+        if (error.code === 'auth/unauthorized-domain') {
+          setAuthError(`Domain unauthorized: ${window.location.hostname}. Please add this domain to Firebase Console > Authentication > Settings > Authorized domains.`);
+        } else if (error.code === 'auth/popup-blocked') {
+          setAuthError('Sign-in popup was blocked by browser. Retrying with redirect...');
+        } else {
+          setAuthError(error.message || `Sign-in failed (${error.code || 'unknown'}). Please try again.`);
+        }
       }
       setIsSigningIn(false);
     }
