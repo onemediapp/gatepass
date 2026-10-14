@@ -58,19 +58,50 @@ import { toTimestamp } from '../time';
 
 export const DEFAULT_REP_SCHEDULE = {
   slotMinutes: 20,
-  maxRepsPerDay: 3,
-  maxRepsPerSlot: 1,
   advanceDays: 14,
   weekly: {
-    mon: [{ start: "14:00", end: "16:00" }],
+    mon: [{ start: "14:00", end: "16:00", clinicId: "", priorityOnly: false, categories: [] }],
     tue: [],
-    wed: [{ start: "14:00", end: "16:00" }],
+    wed: [{ start: "14:00", end: "16:00", clinicId: "", priorityOnly: false, categories: [] }],
     thu: [],
-    fri: [{ start: "14:00", end: "16:00" }],
+    fri: [{ start: "14:00", end: "16:00", clinicId: "", priorityOnly: false, categories: [] }],
     sat: [],
     sun: []
   },
-  blockedDates: []
+  dateOverrides: {},
+  categoryMode: 'soft'
+};
+
+export const DEFAULT_DOCTOR_LIMITS = {
+  maxRepsPerSlot: 1,
+  maxRepsPerDay: 3,
+  dayLimits: { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 },
+  maxRepsPerWeek: 0,
+  maxPerCompanyPerDay: 1,
+  maxVisitsPerRepPerMonth: 0,
+  minDaysBetweenVisits: 0,
+  maxPendingPerRep: 2,
+  minLeadMinutes: 120,
+  cancelCutoffMinutes: 60
+};
+
+export const DEFAULT_DOCTOR_COMMS = {
+  allowVisitMessage: true,
+  requireReason: true,
+  allowReviewRequests: false,
+  reviewRequestsPerRepPerMonth: 2,
+  reviewOnlyFromPreferred: false,
+  reviewIntro: '',
+  whatsappMode: 'after_decision',
+  whatsappHours: '',
+  quickReplies: []
+};
+
+export const DEFAULT_TODAY_STATUS = {
+  date: '',
+  delayMinutes: 0,
+  paused: false,
+  note: ''
 };
 
 export const DEFAULT_DOCTOR_PRIVACY = {
@@ -131,6 +162,19 @@ export async function createDoctor(uid, data) {
     repSchedule: {
       ...DEFAULT_REP_SCHEDULE,
       ...(data.repSchedule || {})
+    },
+    limits: {
+      ...DEFAULT_DOCTOR_LIMITS,
+      ...(data.limits || {})
+    },
+    comms: {
+      ...DEFAULT_DOCTOR_COMMS,
+      ...(data.comms || {})
+    },
+    publicWhatsapp: data.publicWhatsapp || '',
+    todayStatus: {
+      ...DEFAULT_TODAY_STATUS,
+      ...(data.todayStatus || {})
     },
     stats: {
       ...DEFAULT_DOCTOR_STATS,

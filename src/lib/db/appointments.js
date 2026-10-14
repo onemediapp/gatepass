@@ -119,6 +119,9 @@ export async function createAppointment(data) {
     },
     productFocus: data.productFocus || '',
     therapeuticCategory: data.therapeuticCategory || '',
+    visitReason: data.visitReason || '',
+    accompaniedBy: data.accompaniedBy || null,
+    companyKey: data.companyKey || '',
     message: data.message || '',
     samplesFlag: Boolean(data.samplesFlag),
     noticeId: data.noticeId || '',
@@ -137,6 +140,19 @@ export async function createAppointment(data) {
     outcome: '',
     outcomeAt: null,
     doctorNotes: '',
+    rescheduleOf: data.rescheduleOf || '',
+    rescheduledTo: data.rescheduledTo || '',
+    movedFrom: data.movedFrom || null,
+    movedSeenByRep: data.movedSeenByRep ?? true,
+    cancelledBy: data.cancelledBy || '',
+    cancelReason: data.cancelReason || '',
+    cancelledAt: data.cancelledAt || null,
+    lateCancel: Boolean(data.lateCancel),
+    repConfirmedAt: data.repConfirmedAt || null,
+    arrivedAt: data.arrivedAt || null,
+    calledInAt: data.calledInAt || null,
+    lastChangeAt: data.lastChangeAt ? toTimestamp(data.lastChangeAt) : serverTimestamp(),
+    lastChangeBy: data.lastChangeBy || 'rep',
     createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp()
   };
 
@@ -202,6 +218,9 @@ export async function submitAppointmentWithLink(data) {
     },
     productFocus: (data.productFocus || '').slice(0, 300),
     therapeuticCategory: data.therapeuticCategory || '',
+    visitReason: data.visitReason || '',
+    accompaniedBy: data.accompaniedBy || null,
+    companyKey: data.companyKey || '',
     message: (data.message || '').slice(0, 500),
     samplesFlag: Boolean(data.samplesFlag),
     noticeId: data.noticeId || '',
@@ -220,6 +239,19 @@ export async function submitAppointmentWithLink(data) {
     outcome: '',
     outcomeAt: null,
     doctorNotes: '',
+    rescheduleOf: data.rescheduleOf || '',
+    rescheduledTo: data.rescheduledTo || '',
+    movedFrom: data.movedFrom || null,
+    movedSeenByRep: data.movedSeenByRep ?? true,
+    cancelledBy: data.cancelledBy || '',
+    cancelReason: data.cancelReason || '',
+    cancelledAt: data.cancelledAt || null,
+    lateCancel: Boolean(data.lateCancel),
+    repConfirmedAt: data.repConfirmedAt || null,
+    arrivedAt: data.arrivedAt || null,
+    calledInAt: data.calledInAt || null,
+    lastChangeAt: data.lastChangeAt ? toTimestamp(data.lastChangeAt) : serverTimestamp(),
+    lastChangeBy: data.lastChangeBy || 'rep',
     createdAt: data.createdAt ? toTimestamp(data.createdAt) : serverTimestamp()
   };
 
@@ -438,4 +470,45 @@ export async function cancelAppointment(appointmentId, repId) {
       }
     }
   });
+}
+
+/**
+ * Sweeps and marks past pending appointments as expired
+ * @param {string} userId doctorId or repId
+ * @param {'doctor'|'rep'} role 
+ * @returns {Promise<number>} count of expired appointments
+ */
+export async function sweepExpiredAppointments(userId, role = 'rep') {
+  if (!userId) return 0;
+  const fieldName = role === 'doctor' ? 'doctorId' : 'repId';
+  const q = query(
+    collection(db, COLLECTION),
+    where(fieldName, '==', userId),
+    where('status', '==', 'pending')
+  );
+  try {
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    let expiredCount = 0;
+    const now = Date.now();
+    snap.docs.forEach((d) => {
+      const data = d.data();
+      const startAtMs = data.slotStartAt?.toMillis ? data.slotStartAt.toMillis() : 0;
+      if (startAtMs > 0 && startAtMs < now) {
+        batch.update(d.ref, {
+          status: 'expired',
+          lastChangeAt: serverTimestamp(),
+          lastChangeBy: 'system'
+        });
+        expiredCount++;
+      }
+    });
+    if (expiredCount > 0) {
+      await batch.commit();
+    }
+    return expiredCount;
+  } catch (err) {
+    console.warn('sweepExpiredAppointments error:', err);
+    return 0;
+  }
 }

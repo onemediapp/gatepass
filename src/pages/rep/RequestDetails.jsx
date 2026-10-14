@@ -17,6 +17,8 @@ import {
 import { useAuth } from '../../lib/auth';
 import { formatDateIST, formatTimeIST } from '../../lib/time';
 import { formatConciseRange } from '../../lib/schedule';
+import { generateCompanyKey } from '../../lib/companyKey';
+import ReasonChip, { VISIT_REASONS } from '../../components/ui/ReasonChip';
 import { 
   ArrowLeft, 
   Send, 
@@ -31,7 +33,8 @@ import {
   Sparkles,
   PackageCheck,
   ShieldCheck,
-  Tag
+  Tag,
+  Users
 } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
@@ -67,10 +70,55 @@ export default function RequestDetails() {
   const [samplesFlag, setSamplesFlag] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Addendum v2.1 states
+  const rescheduleOf = navState.rescheduleOf || queryParams.get('rescheduleOf') || '';
+  const [visitReason, setVisitReason] = useState('new_product');
+  const [hasAccompaniment, setHasAccompaniment] = useState(false);
+  const [accompaniedName, setAccompaniedName] = useState('');
+  const [accompaniedDesignation, setAccompaniedDesignation] = useState('Area Manager');
+
   const [duplicateError, setDuplicateError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [loading, setLoading] = useState(!doctor || !selectedDate || !slotStart);
+
+  const MESSAGE_STARTERS = {
+    new_product: [
+      'Sharing clinical trial data & monographs for...',
+      'Introducing our new line of...',
+      'Key efficacy & safety indicators for newly launched...'
+    ],
+    scientific_update: [
+      'Recent international guidelines update on...',
+      'Head-to-head comparative analysis regarding...',
+      'New real-world evidence data on...'
+    ],
+    samples: [
+      'Providing physician starter samples and leave-behinds for...',
+      'Restocking clinic trial samples for...',
+      'Demonstrating patient administration device for...'
+    ],
+    follow_up: [
+      `Following up on patient feedback from our earlier visit on...`,
+      'Checking clinical response with the regimen started on...',
+      'Providing the monograph papers requested on...'
+    ],
+    scheme: [
+      'Sharing hospital/pharmacy institutional pricing schemes for...',
+      'Updated distributor availability & patient support program for...',
+      'New volume discount structure for...'
+    ],
+    doctor_requested: [
+      'Bringing the clinical references you requested during our last meeting...',
+      'Following up as requested on your clinic schedule...',
+      'Providing prescribing information requested by your clinic...'
+    ],
+    other: [
+      'Brief consultation regarding...',
+      'Requesting a short discussion on...',
+      'Sharing therapeutic updates regarding...'
+    ]
+  };
 
   useEffect(() => {
     async function loadInitialData() {
@@ -167,6 +215,10 @@ export default function RequestDetails() {
       setSubmitError('Please specify the primary products or drugs you will discuss.');
       return;
     }
+    if (doctor?.comms?.requireReason !== false && !visitReason) {
+      setSubmitError('Please select a reason for this visit.');
+      return;
+    }
     if (duplicateError) {
       return;
     }
@@ -190,6 +242,11 @@ export default function RequestDetails() {
         city: doctor.city || clinic?.city || '',
       };
 
+      const companyKey = await generateCompanyKey(repSnapshot.company);
+      const accompaniedBy = hasAccompaniment && accompaniedName.trim()
+        ? { name: accompaniedName.trim(), designation: (accompaniedDesignation || 'Area Manager').trim() }
+        : null;
+
       const newAppointmentId = await submitAppointmentWithLink({
         doctorId: doctor.uid,
         clinicId: clinic?.id || '',
@@ -198,8 +255,12 @@ export default function RequestDetails() {
         doctorSnapshot,
         productFocus: productFocus.trim(),
         therapeuticCategory: category.trim(),
+        visitReason,
+        accompaniedBy,
+        companyKey,
+        rescheduleOf,
         samplesFlag,
-        message: message.trim(),
+        message: message.trim().slice(0, 300),
         noticeId: noticeId || '',
         slotDate: selectedDate,
         slotStart,
@@ -334,8 +395,25 @@ export default function RequestDetails() {
           
           <EdgeCard edge="navy" className="p-5 sm:p-6 bg-white space-y-5">
             
-            {/* Product Focus (Required, <=300 chars) */}
-            <div className="space-y-1.5">
+            {/* 1. Reason Chips (Required unless disabled by doctor) */}
+            <div className="space-y-2">
+              <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold block">
+                Reason for Visit {doctor?.comms?.requireReason !== false && <span className="text-coral-600">*</span>}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {VISIT_REASONS.map((r) => (
+                  <ReasonChip
+                    key={r.id}
+                    reason={r}
+                    selected={visitReason === r.id}
+                    onClick={() => setVisitReason(r.id)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Product Focus (Required, <=300 chars) */}
+            <div className="space-y-1.5 pt-2 border-t border-line">
               <div className="flex items-center justify-between">
                 <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
                   Product / Molecule Focus <span className="text-coral-600">*</span>
@@ -361,7 +439,7 @@ export default function RequestDetails() {
               </p>
             </div>
 
-            {/* Therapeutic Category (Pre-filled) */}
+            {/* 3. Therapeutic Category (Pre-filled) */}
             <div className="space-y-1.5">
               <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
                 Therapeutic Segment
@@ -375,7 +453,46 @@ export default function RequestDetails() {
               />
             </div>
 
-            {/* Samples Flag Toggle */}
+            {/* 4. Accompanied By Toggle (+1 Field Colleague/Manager) */}
+            <div className="pt-2 border-t border-line space-y-3">
+              <ToggleSwitch
+                label="Accompanied by Manager / Field Colleague"
+                description="Pharma visits joined by an Area Manager or Regional Manager (+1 person, counts as 1 visit)"
+                checked={hasAccompaniment}
+                onChange={setHasAccompaniment}
+              />
+
+              {hasAccompaniment && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-cream-50 rounded-[0.875rem] border border-line animate-in fade-in">
+                  <div>
+                    <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block mb-1">
+                      Manager Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Priya Sharma"
+                      value={accompaniedName}
+                      onChange={(e) => setAccompaniedName(e.target.value)}
+                      className="w-full bg-white border border-line rounded-[0.625rem] px-3 py-2 text-xs font-medium text-ink outline-none focus:border-navy-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block mb-1">
+                      Designation
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Area Manager"
+                      value={accompaniedDesignation}
+                      onChange={(e) => setAccompaniedDesignation(e.target.value)}
+                      className="w-full bg-white border border-line rounded-[0.625rem] px-3 py-2 text-xs font-medium text-ink outline-none focus:border-navy-500"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 5. Samples Flag Toggle */}
             <div className="pt-2 border-t border-line">
               <ToggleSwitch
                 label="Drug Samples / Visual Aids Available"
@@ -385,21 +502,47 @@ export default function RequestDetails() {
               />
             </div>
 
-            {/* Optional Note to Doctor */}
-            <div className="space-y-1.5 pt-2 border-t border-line">
-              <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold flex justify-between">
-                <span>Personal Note to Dr. {doctor.name}</span>
-                <span className="text-ink-mute/70">(Optional)</span>
-              </label>
-              <textarea
-                maxLength={500}
-                rows={2}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Brief clinical inquiry or special request"
-                className="w-full bg-cream-50 border border-line rounded-[0.875rem] px-4 py-3 text-xs sm:text-sm font-medium text-ink outline-none focus:border-navy-500 focus:bg-white transition-all resize-none placeholder:text-ink-mute"
-              />
-            </div>
+            {/* 6. Message to Doctor (≤300 chars, with tap-to-fill starters) */}
+            {doctor?.comms?.allowVisitMessage !== false && (
+              <div className="space-y-2 pt-2 border-t border-line">
+                <div className="flex items-center justify-between">
+                  <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
+                    Message to Dr. {doctor.name} <span className="text-ink-mute/70 font-normal">(Optional)</span>
+                  </label>
+                  <span className={cn(
+                    "font-mono text-[0.625rem]",
+                    message.length > 270 ? "text-coral-600 font-bold" : "text-ink-mute"
+                  )}>
+                    {message.length}/300
+                  </span>
+                </div>
+                <textarea
+                  maxLength={300}
+                  rows={2}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Short note regarding clinical topic or specific queries..."
+                  className="w-full bg-cream-50 border border-line rounded-[0.875rem] px-4 py-3 text-xs sm:text-sm font-medium text-ink outline-none focus:border-navy-500 focus:bg-white transition-all resize-none placeholder:text-ink-mute"
+                />
+
+                {/* Tap-to-fill Starters */}
+                <div className="space-y-1 pt-1">
+                  <span className="text-[0.625rem] font-mono uppercase text-ink-mute block">Tap to fill starter:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(MESSAGE_STARTERS[visitReason] || MESSAGE_STARTERS.other).map((starter, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setMessage(starter)}
+                        className="text-[0.6875rem] bg-cream-100 hover:bg-cream-200 text-ink-soft px-2.5 py-1 rounded-[0.5rem] border border-line text-left transition-colors"
+                      >
+                        "{starter.slice(0, 36)}..."
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
           </EdgeCard>
 
@@ -410,33 +553,40 @@ export default function RequestDetails() {
             </div>
           )}
 
-          {/* ── Sticky Bottom Submit Button ─────────────────────────── */}
+          {/* ── Sticky Bottom Submit Button & Consent Notice ─────────── */}
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-line p-3 sm:p-4 z-40 shadow-[0_-4px_24px_rgba(11,23,48,0.08)]">
-            <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+            <div className="max-w-2xl mx-auto flex flex-col gap-2">
               
-              <div className="min-w-0 hidden sm:block">
-                <span className="font-mono text-[0.625rem] uppercase tracking-wider text-teal-600 font-semibold block">
-                  Slot Confirmed
-                </span>
-                <span className="text-xs font-mono text-ink truncate block">
-                  {selectedDate} · {formatConciseRange(slotStart, slotEnd)}
-                </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 hidden sm:block">
+                  <span className="font-mono text-[0.625rem] uppercase tracking-wider text-teal-600 font-semibold block">
+                    Slot Confirmed
+                  </span>
+                  <span className="text-xs font-mono text-ink truncate block">
+                    {selectedDate} · {formatConciseRange(slotStart, slotEnd)}
+                  </span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || Boolean(duplicateError) || !productFocus.trim()}
+                  className="w-full sm:w-auto sm:min-w-[260px] py-3.5 px-6 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.875rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <span>Sending Request...</span>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 text-amber-500" />
+                      <span>Send Request to Dr. {doctor.name}</span>
+                    </>
+                  )}
+                </button>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting || Boolean(duplicateError) || !productFocus.trim()}
-                className="w-full sm:w-auto sm:min-w-[260px] py-3.5 px-6 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.875rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span>Sending Request...</span>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 text-amber-500" />
-                    <span>Send Request to Dr. {doctor.name}</span>
-                  </>
-                )}
-              </button>
+              {/* Consent Line */}
+              <p className="text-[0.6875rem] text-center text-ink-mute">
+                Dr. {doctor.name} will see your name, company and mobile number.
+              </p>
 
             </div>
           </div>

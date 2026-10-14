@@ -111,17 +111,25 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       allow create: if isAuth() && isRep()
         && request.resource.data.repId == uid()
-        && request.resource.data.status == 'pending';
-      allow get: if isAuth() && (
-        uid() == resource.data.repId || uid() == resource.data.doctorId || isAdmin());
-      allow list: if isAuth() && (
+        && request.resource.data.status == 'pending'
+        && request.resource.data.token == ''
+        && request.resource.data.outcome == ''
+        && request.resource.data.doctorNotes == ''
+        && request.resource.data.slotStartAt > request.time;     // cannot book in the past
+      allow get, list: if isAuth() && (
         uid() == resource.data.repId || uid() == resource.data.doctorId || isAdmin());
       allow update: if isAuth() && (
         uid() == resource.data.doctorId
-        // rep may only cancel their own request
-        || (uid() == resource.data.repId
-            && request.resource.data.status == 'cancelled'
-            && resource.data.status in ['pending', 'approved'])
+        // Rep may ONLY: cancel, confirm attendance, mark arrival, dismiss a "moved" notice.
+        || (uid() == resource.data.repId && (
+             (request.resource.data.status == 'cancelled'
+               && resource.data.status in ['pending','approved']
+               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                    ['status','cancelledBy','cancelReason','cancelledAt','lateCancel',
+                     'lastChangeAt','lastChangeBy','rescheduledTo']))
+             || request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+                    ['repConfirmedAt','arrivedAt','movedSeenByRep'])
+           ))
       );
       allow delete: if false;
     }
@@ -153,6 +161,37 @@ service cloud.firestore {
       allow update: if isAuth() && (
         (isDoctor() && id.matches(uid() + '_.*'))
         || (isRep() && request.resource.data.approvedCount == resource.data.approvedCount - 1));
+    }
+    match /weekLedger/{id} {
+      allow read: if isAuth();
+      allow create: if isAuth() && isDoctor() && id.matches(uid() + '_.*');
+      allow update: if isAuth() && (
+        (isDoctor() && id.matches(uid() + '_.*'))
+        || (isRep() && request.resource.data.approvedCount == resource.data.approvedCount - 1));
+    }
+
+    // ── Company-level doctor-private relations ─────────────────────
+    match /companyRelations/{id} {
+      allow read, write: if isAuth() && isDoctor() && id.matches(uid() + '_.*');
+    }
+
+    // ── Review requests ────────────────────────────────────────────
+    match /reviewRequests/{id} {
+      allow create: if isAuth() && isRep()
+        && request.resource.data.repId == uid()
+        && request.resource.data.status == 'open'
+        && request.resource.data.message.size() <= 400
+        && get(/databases/$(db)/documents/doctors/$(request.resource.data.doctorId)).data.comms.allowReviewRequests == true;
+      allow read: if isAuth() && (uid() == resource.data.repId || uid() == resource.data.doctorId);
+      allow update: if isAuth() && isDoctor() && uid() == resource.data.doctorId;
+      allow delete: if false;
+    }
+
+    // ── Ask a doctor to join ───────────────────────────────────────
+    match /doctorRequests/{id} {
+      allow create: if isAuth() && isRep() && request.resource.data.repId == uid();
+      allow read: if isAuth() && (resource.data.repId == uid() || isAdmin());
+      allow update, delete: if false;
     }
 
     // ── Notices: any signed-in user reads, doctor owns ────

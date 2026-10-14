@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { format, addDays, parseISO } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
-import { TIMEZONE, todayDateStr } from './time';
-import { timeToMinutes, minutesToTime, DAYS_ORDER, DAY_LABELS } from './schedule';
+import { TIMEZONE, todayDateStr, getISOWeekString } from './time';
+import { timeToMinutes, minutesToTime, DAY_LABELS } from './schedule';
+import holidays from '../data/holidays.json';
 
 const DAY_INDEX_MAP = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
@@ -46,53 +47,99 @@ export function getDateRangeForAdvanceDays(startDateStr, advanceDays = 14) {
 export function slotTimeToEpochMs(dateStr, timeStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const [h, min] = timeStr.split(':').map(Number);
-  // Construct plain local string representation and parse in IST
   const isoLocal = `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}T${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}:00`;
   const utcDate = fromZonedTime(isoLocal, TIMEZONE);
   return utcDate.getTime();
 }
 
 /**
- * Generates slots for a specific single date
+ * Generates slots for a specific single date using 3-layer schedule and limits
  * @param {Object} params
- * @param {string} params.dateStr yyyy-MM-dd
- * @param {Object} params.schedule Doctor RepSchedule
- * @param {Record<string, number>} [params.slotLedgers] map of slotKey -> approvedCount
- * @param {Record<string, number>} [params.dayLedgers] map of dateStr -> approvedCount
- * @param {number} [params.currentServerMs] current timestamp in ms
  * @returns {Array<Object>} list of Slot objects
  */
 export function generateSlotsForDate({
   dateStr,
   schedule,
+  limits = {},
   slotLedgers = {},
   dayLedgers = {},
+  weekLedgers = {},
   currentServerMs = Date.now(),
+  isRepPreferred = false,
+  repCategory = '',
+  repCompanyKey = '',
+  repHasActiveToday = false,
+  repHasOverlap = false,
+  repVisitedRecently = false,
+  repMonthlyCapReached = false,
+  repPendingCapReached = false,
 }) {
-  if (!schedule || !schedule.weekly || !dateStr) return [];
+  if (!schedule || !dateStr) return [];
 
-  // Check blocked dates
-  if (Array.isArray(schedule.blockedDates) && schedule.blockedDates.includes(dateStr)) {
+  // Layer 3 & 2: Check blocked dates, holidays, and date overrides closed status
+  const isBlocked = Array.isArray(schedule.blockedDates) && schedule.blockedDates.includes(dateStr);
+  const override = schedule.dateOverrides?.[dateStr];
+  const isOverrideClosed = override?.closed === true;
+
+  if (isBlocked || isOverrideClosed) {
     return [];
   }
 
   const [y, m, d] = dateStr.split('-').map(Number);
-  // Get weekday in IST
   const isoDate = `${y.toString().padStart(4, '0')}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}T12:00:00`;
   const istDate = toZonedTime(fromZonedTime(isoDate, TIMEZONE), TIMEZONE);
   const dayKey = DAY_INDEX_MAP[istDate.getDay()];
 
-  const ranges = schedule.weekly[dayKey] || [];
-  if (!Array.isArray(ranges) || ranges.length === 0) {
+  // Layer 2 vs Layer 1: Specific date ranges override weekly template ranges
+  let ranges = [];
+  if (override?.ranges && Array.isArray(override.ranges) && override.ranges.length > 0) {
+    ranges = override.ranges;
+  } else if (schedule.weekly && Array.isArray(schedule.weekly[dayKey])) {
+    ranges = schedule.weekly[dayKey];
+  }
+
+  if (!ranges || ranges.length === 0) {
     return [];
   }
 
+  // Quotas and limits resolution
   const slotMinutes = Number(schedule.slotMinutes) || 20;
-  const maxRepsPerSlot = Number(schedule.maxRepsPerSlot) || 1;
-  const maxRepsPerDay = Number(schedule.maxRepsPerDay) || 0;
-  const dayApproved = Number(dayLedgers[dateStr]) || 0;
+  const maxRepsPerSlot = Number(limits.maxRepsPerSlot ?? schedule.maxRepsPerSlot ?? 1);
+
+  // Daily quota: dateOverrides.maxReps -> dayLimits[dayKey] -> limits.maxRepsPerDay -> schedule.maxRepsPerDay
+  let maxRepsPerDay = 0;
+  if (override?.maxReps !== undefined && override?.maxReps !== null) {
+    maxRepsPerDay = Number(override.maxReps);
+  } else if (limits.dayLimits && limits.dayLimits[dayKey] !== undefined && Number(limits.dayLimits[dayKey]) > 0) {
+    maxRepsPerDay = Number(limits.dayLimits[dayKey]);
+  } else if (limits.maxRepsPerDay !== undefined && limits.maxRepsPerDay !== null) {
+    maxRepsPerDay = Number(limits.maxRepsPerDay);
+  } else if (schedule.maxRepsPerDay !== undefined && schedule.maxRepsPerDay !== null) {
+    maxRepsPerDay = Number(schedule.maxRepsPerDay);
+  }
+
+  const dayLedgerEntry = dayLedgers[dateStr];
+  const dayApproved = typeof dayLedgerEntry === 'number' ? dayLedgerEntry : (dayLedgerEntry?.approvedCount || 0);
   const isDayFull = maxRepsPerDay > 0 && dayApproved >= maxRepsPerDay;
 
+  // Weekly quota
+  const maxRepsPerWeek = Number(limits.maxRepsPerWeek || 0);
+  const isoWeek = getISOWeekString(dateStr);
+  const weekLedgerEntry = weekLedgers[isoWeek];
+  const weekApproved = typeof weekLedgerEntry === 'number' ? weekLedgerEntry : (weekLedgerEntry?.approvedCount || 0);
+  const isWeekFull = maxRepsPerWeek > 0 && weekApproved >= maxRepsPerWeek;
+
+  // Company quota per day
+  const maxPerCompanyPerDay = Number(limits.maxPerCompanyPerDay ?? 1);
+  const companyApproved = (repCompanyKey && dayLedgerEntry?.companies) 
+    ? Number(dayLedgerEntry.companies[repCompanyKey] || 0) 
+    : 0;
+  const isCompanyFull = Boolean(repCompanyKey && maxPerCompanyPerDay > 0 && companyApproved >= maxPerCompanyPerDay);
+
+  // Min lead time in minutes
+  const minLeadMinutes = Number(limits.minLeadMinutes || 0);
+
+  const categoryMode = schedule.categoryMode || 'soft';
   const slots = [];
 
   for (const range of ranges) {
@@ -100,6 +147,15 @@ export function generateSlotsForDate({
     const startMin = timeToMinutes(range.start);
     const endMin = timeToMinutes(range.end);
     if (endMin <= startMin) continue;
+
+    // Check category matching
+    const hasCategoryRestriction = Array.isArray(range.categories) && range.categories.length > 0;
+    const categoryMatches = !hasCategoryRestriction || !repCategory || range.categories.includes(repCategory);
+    if (hasCategoryRestriction && !categoryMatches && categoryMode === 'strict') {
+      continue; // Strictly hide slot from non-matching categories
+    }
+
+    const isPriorityOnly = Boolean(range.priorityOnly);
 
     for (let current = startMin; current + slotMinutes <= endMin; current += slotMinutes) {
       const sStart = minutesToTime(current);
@@ -110,13 +166,44 @@ export function generateSlotsForDate({
       const approvedCount = Number(slotLedgers[sKey]) || 0;
 
       let state = 'available';
+      let reason = 'Available';
 
       if (slotStartAtMs < currentServerMs) {
         state = 'past';
+        reason = 'Ended';
+      } else if (minLeadMinutes > 0 && slotStartAtMs < (currentServerMs + minLeadMinutes * 60000)) {
+        state = 'full';
+        reason = 'Too soon to book';
+      } else if (isWeekFull) {
+        state = 'full';
+        reason = 'Week full';
       } else if (isDayFull) {
         state = 'full';
+        reason = 'Day full';
+      } else if (isCompanyFull) {
+        state = 'full';
+        reason = 'Your company already booked';
       } else if (approvedCount >= maxRepsPerSlot) {
         state = 'full';
+        reason = 'Slot full';
+      } else if (isPriorityOnly && !isRepPreferred) {
+        state = 'priority';
+        reason = 'Priority';
+      } else if (repHasActiveToday) {
+        state = 'blocked';
+        reason = 'Already requested today';
+      } else if (repHasOverlap) {
+        state = 'blocked';
+        reason = 'Overlap with another visit';
+      } else if (repVisitedRecently) {
+        state = 'blocked';
+        reason = 'Visited recently';
+      } else if (repMonthlyCapReached) {
+        state = 'blocked';
+        reason = 'Monthly limit reached';
+      } else if (repPendingCapReached) {
+        state = 'blocked';
+        reason = 'Pending limit reached';
       }
 
       slots.push({
@@ -126,6 +213,10 @@ export function generateSlotsForDate({
         slotEnd: sEnd,
         slotStartAtMs,
         state,
+        reason,
+        clinicId: range.clinicId || '',
+        isPriorityOnly,
+        categoryWarning: hasCategoryRestriction && !categoryMatches,
         approvedCount,
         maxCount: maxRepsPerSlot,
       });
@@ -138,21 +229,20 @@ export function generateSlotsForDate({
 /**
  * Generates the full 14-day date strip with day state, chip labels, and slot counts
  * @param {Object} params
- * @param {Object} params.schedule Doctor RepSchedule
- * @param {Record<string, number>} [params.slotLedgers] map of slotKey -> approvedCount
- * @param {Record<string, number>} [params.dayLedgers] map of dateStr -> approvedCount
- * @param {number} [params.currentServerMs] current timestamp in ms
- * @param {string} [params.startDateStr] start date in yyyy-MM-dd
- * @param {number} [params.advanceDays] number of days (default 14)
  * @returns {Array<Object>} list of DayStrip objects
  */
 export function generateDateStrip({
   schedule,
+  limits = {},
   slotLedgers = {},
   dayLedgers = {},
+  weekLedgers = {},
   currentServerMs = Date.now(),
   startDateStr,
   advanceDays = 14,
+  isRepPreferred = false,
+  repCategory = '',
+  repCompanyKey = '',
 }) {
   const startStr = startDateStr || todayDateStr();
   const daysCount = Math.max(1, Number(advanceDays) || schedule?.advanceDays || 14);
@@ -171,9 +261,15 @@ export function generateDateStrip({
     const dateNumber = currentTarget.getUTCDate();
     const monthLabel = format(currentTarget, 'MMM');
 
-    // 1. Is blocked date?
+    // 1. Check if closed via override, holiday, or blocked list
+    const isHoliday = holidays.some(h => h.dateStr === dateStr);
     const isBlocked = Array.isArray(schedule?.blockedDates) && schedule.blockedDates.includes(dateStr);
-    if (isBlocked) {
+    const override = schedule?.dateOverrides?.[dateStr];
+    const isClosed = isBlocked || override?.closed === true || isHoliday;
+
+    if (isClosed) {
+      const holidayName = holidays.find(h => h.dateStr === dateStr)?.name;
+      const chipLabel = holidayName ? holidayName : (override?.note || 'Closed');
       result.push({
         dateStr,
         dayKey,
@@ -181,15 +277,18 @@ export function generateDateStrip({
         dateNumber,
         monthLabel,
         state: 'closed',
-        chipLabel: 'Closed',
+        chipLabel,
         availableCount: 0,
         slots: [],
       });
       continue;
     }
 
-    // 2. Are there ranges for this weekday?
-    const ranges = schedule?.weekly?.[dayKey] || [];
+    // 2. Are there ranges for this weekday / override?
+    const ranges = (override?.ranges && override.ranges.length > 0)
+      ? override.ranges 
+      : (schedule?.weekly?.[dayKey] || []);
+
     if (!Array.isArray(ranges) || ranges.length === 0) {
       result.push({
         dateStr,
@@ -209,13 +308,19 @@ export function generateDateStrip({
     const slots = generateSlotsForDate({
       dateStr,
       schedule,
+      limits,
       slotLedgers,
       dayLedgers,
+      weekLedgers,
       currentServerMs,
+      isRepPreferred,
+      repCategory,
+      repCompanyKey,
     });
 
     const availableSlots = slots.filter((s) => s.state === 'available');
     const fullSlots = slots.filter((s) => s.state === 'full');
+    const prioritySlots = slots.filter((s) => s.state === 'priority');
     const pastSlots = slots.filter((s) => s.state === 'past');
 
     let dayState = 'available';
@@ -224,9 +329,12 @@ export function generateDateStrip({
     if (availableSlots.length > 0) {
       dayState = 'available';
       chipLabel = `Available · ${availableSlots.length} left`;
+    } else if (prioritySlots.length > 0 && availableSlots.length === 0) {
+      dayState = 'priority';
+      chipLabel = 'Priority only';
     } else if (fullSlots.length > 0) {
       dayState = 'full';
-      chipLabel = 'Full';
+      chipLabel = fullSlots[0]?.reason || 'Full';
     } else if (pastSlots.length === slots.length && slots.length > 0) {
       dayState = 'past';
       chipLabel = 'Ended';

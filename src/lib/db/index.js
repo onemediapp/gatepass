@@ -16,3 +16,7 @@ export * from './notices';
 export * from './visitHistory';
 export * from './invites';
 export * from './transactions';
+export * from './companyRelations';
+export * from './reviewRequests';
+export * from './doctorRequests';
+export * from './weekLedger';

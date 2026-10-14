@@ -1,0 +1,9 @@
+[
+  { "dateStr": "2026-01-26", "name": "Republic Day", "verified": false, "note": "National Holiday (verify before launch)" },
+  { "dateStr": "2026-03-20", "name": "Ugadi / Telugu New Year", "verified": false, "note": "Regional Festival (verify before launch)" },
+  { "dateStr": "2026-08-15", "name": "Independence Day", "verified": false, "note": "National Holiday (verify before launch)" },
+  { "dateStr": "2026-10-02", "name": "Gandhi Jayanti", "verified": false, "note": "National Holiday (verify before launch)" },
+  { "dateStr": "2026-10-20", "name": "Dussehra / Vijayadashami", "verified": false, "note": "Regional Festival (verify before launch)" },
+  { "dateStr": "2026-11-08", "name": "Diwali / Deepavali", "verified": false, "note": "National Festival (verify before launch)" },
+  { "dateStr": "2026-12-25", "name": "Christmas", "verified": false, "note": "Gazetted Holiday (verify before launch)" }
+]

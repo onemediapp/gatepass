@@ -5,11 +5,15 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { subscribeAppointment, cancelAppointment } from '../lib/db/appointments';
+import { subscribeAppointment, updateAppointment } from '../lib/db/appointments';
+import { cancelAppointmentTransaction } from '../lib/db/transactions';
+import { createReviewRequest } from '../lib/db/reviewRequests';
+import { buildWhatsAppUrl, formatWhatsAppMessage } from '../lib/whatsapp';
 import { getDoctor } from '../lib/db/doctors';
 import { getClinic } from '../lib/db/clinics';
 import { useAuth } from '../lib/auth';
 import { useWakeLock } from '../hooks/useWakeLock';
+import ManageSheet from '../components/ui/ManageSheet';
 import { 
   serverNow, 
   todayDateStr, 
@@ -58,6 +62,9 @@ export default function StatusCheck() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showManageSheet, setShowManageSheet] = useState(false);
+  const [showReconsiderModal, setShowReconsiderModal] = useState(false);
+  const [reconsiderMessage, setReconsiderMessage] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Anti-fraud live clock states (1-second tick)
@@ -250,15 +257,97 @@ export default function StatusCheck() {
     window.open(url, '_blank');
   }, [appointment, doctor, clinic]);
 
-  const handleCancel = async () => {
+  const handleConfirmComing = async () => {
     if (!appointment || !user) return;
     setActionLoading(true);
     try {
-      await cancelAppointment(appointment.id, user.uid);
+      await updateAppointment(appointment.id, {
+        repConfirmedAt: new Date(),
+        lastChangeAt: new Date(),
+        lastChangeBy: 'rep'
+      });
+      setShowManageSheet(false);
+    } catch (err) {
+      alert(err.message || 'Failed to confirm attendance');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleMarkArrived = async () => {
+    if (!appointment || !user) return;
+    setActionLoading(true);
+    try {
+      await updateAppointment(appointment.id, {
+        arrivedAt: new Date(),
+        lastChangeAt: new Date(),
+        lastChangeBy: 'rep'
+      });
+      setShowManageSheet(false);
+    } catch (err) {
+      alert(err.message || 'Failed to mark arrival');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelVisit = async (reason) => {
+    if (!appointment || !user) return;
+    setActionLoading(true);
+    try {
+      await cancelAppointmentTransaction({
+        appointmentId: appointment.id,
+        userId: user.uid,
+        userRole: user.uid === appointment.doctorId ? 'doctor' : 'rep',
+        cancelReason: reason,
+        cancelCutoffMinutes: 60
+      });
+      setShowManageSheet(false);
       setShowCancelModal(false);
     } catch (err) {
-      console.error('Failed to cancel appointment:', err);
-      alert(err.message || 'Failed to cancel appointment.');
+      alert(err.message || 'Failed to cancel');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    await handleCancelVisit('Rep cancelled request');
+  };
+
+  const handleReschedule = () => {
+    const slug = doctor?.profileSlug || appointment.doctorId;
+    navigate(`/dr/${slug}/slots?rescheduleOf=${appointment.id}`);
+  };
+
+  const handleDismissMoved = async () => {
+    if (!appointment) return;
+    try {
+      await updateAppointment(appointment.id, {
+        movedSeenByRep: true
+      });
+    } catch (err) {
+      console.error('Failed to dismiss moved notice:', err);
+    }
+  };
+
+  const handleSendReconsider = async (e) => {
+    e.preventDefault();
+    if (!reconsiderMessage.trim() || !appointment || !user) return;
+    setActionLoading(true);
+    try {
+      await createReviewRequest({
+        doctorId: appointment.doctorId,
+        repId: user.uid,
+        repSnapshot: appointment.repSnapshot,
+        kind: 'reconsider',
+        appointmentId: appointment.id,
+        message: reconsiderMessage.trim().slice(0, 240)
+      });
+      setShowReconsiderModal(false);
+      alert('Your request to reconsider has been submitted to Dr. ' + (doctor?.name || 'the Doctor'));
+    } catch (err) {
+      alert(err.message || 'Failed to send reconsider request');
     } finally {
       setActionLoading(false);
     }

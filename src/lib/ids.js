@@ -49,6 +49,26 @@ export function dayLedgerId(doctorId, slotDate) {
 }
 
 /**
+ * ID for weekLedger document: {doctorId}_{isoWeek}
+ * @param {string} doctorId 
+ * @param {string} isoWeek e.g. "2026-W44"
+ * @returns {string}
+ */
+export function weekLedgerId(doctorId, isoWeek) {
+  return `${doctorId}_${isoWeek}`;
+}
+
+/**
+ * ID for companyRelations document: {doctorId}_{companyKey}
+ * @param {string} doctorId 
+ * @param {string} companyKey 12-char hex string
+ * @returns {string}
+ */
+export function companyRelationId(doctorId, companyKey) {
+  return `${doctorId}_${companyKey}`;
+}
+
+/**
  * Composite ID for repRelations: {doctorId}_{repId}
  * @param {string} doctorId 
  * @param {string} repId 

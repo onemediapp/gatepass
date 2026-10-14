@@ -205,3 +205,62 @@ export function formatSlotRange(slotStart, slotEnd) {
   const eFormatted = format(toZonedTime(eDate, TIMEZONE), 'h:mm a');
   return `${sFormatted} – ${eFormatted}`;
 }
+
+/**
+ * Returns ISO week string in IST (e.g. "2026-W44")
+ * @param {string|Date} dateOrStr 
+ * @returns {string}
+ */
+export function getISOWeekString(dateOrStr) {
+  let d;
+  if (typeof dateOrStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateOrStr)) {
+    d = parseSlotTimeToDate(dateOrStr, '12:00');
+  } else {
+    d = toDate(dateOrStr) || new Date();
+  }
+  const zoned = toZonedTime(d, TIMEZONE);
+  return format(zoned, "RRRR-'W'II");
+}
+
+/**
+ * Generates an iCalendar (.ics) string for downloading into Google/Apple/Outlook Calendar
+ * @param {Object} params
+ * @returns {string}
+ */
+export function generateIcsFileContent({
+  appointmentId,
+  doctorName,
+  clinicName,
+  slotDate,
+  slotStart,
+  slotEnd,
+  token
+}) {
+  const sDate = parseSlotTimeToDate(slotDate, slotStart);
+  const eDate = parseSlotTimeToDate(slotDate, slotEnd);
+  const toIcsDate = (dt) => dt.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const uid = `gatepass-${appointmentId || Date.now()}@gatepass.health`;
+  const cleanDocName = (doctorName || 'Doctor').replace(/^Dr\.\s*/, '');
+  const summary = `Gatepass: Dr. ${cleanDocName}${token ? ' (#' + token + ')' : ''}`;
+  const description = `Medical Rep Consultation with Dr. ${cleanDocName} at ${clinicName || 'Clinic'}.${token ? ' Gatepass Token: #' + token : ''}`;
+  const location = clinicName || 'Clinic';
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Gatepass//Medical Consultation Pass//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:${uid}`,
+    `DTSTAMP:${toIcsDate(new Date())}`,
+    `DTSTART:${toIcsDate(sDate)}`,
+    `DTEND:${toIcsDate(eDate)}`,
+    `SUMMARY:${summary}`,
+    `DESCRIPTION:${description}`,
+    `LOCATION:${location}`,
+    'STATUS:CONFIRMED',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
