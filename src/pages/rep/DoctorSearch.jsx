@@ -110,22 +110,22 @@ export default function DoctorSearch() {
   return (
     <div className="min-h-screen bg-cream-50 flex flex-col font-sans selection:bg-amber-100 selection:text-sand-600 pb-24">
       
-      {/* Top Header & Search Bar */}
-      <div className="bg-white/95 backdrop-blur-md border-b border-line sticky top-0 z-30 shadow-sm">
+      {/* Top Header & Search Bar (Frosted Glass) */}
+      <div className="bg-white/85 backdrop-blur-xl border-b border-line/80 sticky top-0 z-30 shadow-2xs">
         <div className="max-w-2xl mx-auto px-4 py-3 space-y-3">
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => navigate(-1)} 
-                className="p-2 -ml-2 rounded-[0.75rem] hover:bg-cream-50 transition-colors text-ink active:scale-95"
+                className="p-2 -ml-2 rounded-[0.875rem] hover:bg-slate-100 transition-colors text-ink active:scale-95"
                 title="Go back"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
                 <h1 className="font-display font-bold text-lg text-ink leading-tight">Find Doctors</h1>
-                <p className="font-mono text-[0.625rem] uppercase tracking-wider text-ink-mute">
+                <p className="font-mono text-[0.625rem] uppercase tracking-wider text-slate-400 font-semibold">
                   Verified Gatepass Specialists
                 </p>
               </div>
@@ -134,10 +134,10 @@ export default function DoctorSearch() {
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                "p-2 rounded-[0.75rem] border transition-all flex items-center gap-1.5 text-xs font-semibold",
+                "p-2.5 rounded-[0.875rem] border transition-all flex items-center gap-1.5 text-xs font-bold active:scale-95",
                 showFilters || filterCity || filterSpecialty
-                  ? "bg-navy-900 text-white border-navy-900 shadow-sm"
-                  : "bg-white text-ink-soft border-line hover:border-navy-500"
+                  ? "bg-navy-900 text-white border-navy-900 shadow-xs"
+                  : "bg-white text-slate-600 border-line hover:border-slate-300"
               )}
             >
               <Filter className="w-4 h-4" />
@@ -147,14 +147,14 @@ export default function DoctorSearch() {
 
           {/* Search Pill Input */}
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-mute" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               autoFocus
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by doctor name, specialty, or city..."
-              className="w-full bg-cream-50 border border-line rounded-[0.875rem] pl-10 pr-4 py-2.5 text-xs sm:text-sm font-medium text-ink outline-none focus:border-navy-500 focus:bg-white transition-all placeholder:text-ink-mute"
+              className="w-full bg-slate-50 border border-slate-200 rounded-[1rem] pl-10 pr-4 py-3 text-xs sm:text-sm font-medium text-ink outline-none focus:border-navy-900 focus:bg-white transition-all placeholder:text-slate-400 shadow-2xs"
             />
           </div>
 

@@ -368,27 +368,27 @@ export default function SlotPicker() {
                     setSelectedSlot(null);
                   }}
                   className={cn(
-                    "flex-shrink-0 flex flex-col items-center justify-center min-w-[5.25rem] p-2.5 rounded-[1rem] border transition-all select-none text-center",
+                    "flex-shrink-0 flex flex-col items-center justify-center min-w-[5.25rem] p-2.5 rounded-[1.25rem] border transition-all duration-150 select-none text-center active:scale-95",
                     isSelected
-                      ? "bg-navy-900 text-white border-navy-900 shadow-md ring-2 ring-amber-500/50"
+                      ? "bg-navy-900 text-white border-navy-900 shadow-md ring-2 ring-amber-400 scale-[1.02]"
                       : isAvailable
-                      ? "bg-white text-ink border-line hover:border-navy-500 hover:shadow-sm"
-                      : "bg-cream-50/70 text-ink-mute border-line/60 opacity-60"
+                      ? "bg-white text-ink border-line hover:border-teal-500 hover:shadow-xs cursor-pointer"
+                      : "bg-slate-100/70 text-slate-400 border-slate-200/60 opacity-60 cursor-not-allowed"
                   )}
                 >
-                  <span className="font-mono text-[0.6875rem] uppercase font-semibold block">
+                  <span className="font-mono text-[0.6875rem] uppercase font-bold block">
                     {day.dayLabel}
                   </span>
-                  <span className="font-display font-bold text-lg leading-tight my-0.5 block">
+                  <span className="font-display font-bold text-lg leading-tight my-0.5 block tabular-nums">
                     {day.dateNumber}
                   </span>
                   <span className={cn(
-                    "text-[0.5625rem] font-medium px-1.5 py-0.5 rounded-[0.25rem] leading-none mt-1 block truncate max-w-full",
+                    "text-[0.5625rem] font-bold px-1.5 py-0.5 rounded-[0.375rem] leading-none mt-1 block truncate max-w-full font-mono",
                     isSelected
                       ? "bg-white/20 text-white"
                       : isAvailable
-                      ? "bg-teal-50 text-teal-600 font-semibold"
-                      : "bg-cream-50 text-ink-mute"
+                      ? "bg-teal-50 text-teal-700 font-semibold"
+                      : "bg-slate-100 text-slate-400"
                   )}>
                     {day.chipLabel}
                   </span>
@@ -501,29 +501,30 @@ export default function SlotPicker() {
       </div>
 
       {/* ── Sticky Bottom Footer: Selected Slot Summary + Continue ──── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-line p-3 sm:p-4 z-40 shadow-[0_-4px_24px_rgba(11,23,48,0.08)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/85 backdrop-blur-xl border-t border-line/80 p-3.5 sm:p-4 z-40 shadow-[0_-8px_30px_rgba(15,23,42,0.08)]">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           
           <div className="min-w-0">
             {selectedSlot ? (
               <div>
-                <span className="font-mono text-[0.625rem] uppercase tracking-wider text-teal-600 font-semibold block">
+                <span className="font-mono text-[0.625rem] uppercase tracking-wider text-teal-700 font-bold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
                   Selected Time Slot
                 </span>
-                <div className="font-display font-bold text-xs sm:text-sm text-ink truncate flex items-center gap-1.5">
+                <div className="font-display font-bold text-xs sm:text-sm text-ink truncate flex items-center gap-1.5 mt-0.5">
                   <span>{formatDateIST(selectedDateStr, 'EEE, dd MMM')}</span>
                   <span>·</span>
-                  <span className="font-mono text-teal-600">
+                  <span className="font-mono text-teal-700 font-bold">
                     {formatConciseRange(selectedSlot.slotStart, selectedSlot.slotEnd)}
                   </span>
                 </div>
               </div>
             ) : (
               <div>
-                <span className="font-mono text-[0.625rem] uppercase tracking-wider text-ink-mute font-semibold block">
+                <span className="font-mono text-[0.625rem] uppercase tracking-wider text-slate-400 font-semibold block">
                   Select a Slot
                 </span>
-                <span className="text-xs text-ink-soft">
+                <span className="text-xs text-slate-500">
                   Tap an available time chip above
                 </span>
               </div>
@@ -534,10 +535,10 @@ export default function SlotPicker() {
             type="button"
             disabled={!selectedSlot}
             onClick={handleContinue}
-            className="py-3 px-6 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.875rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+            className="py-3 px-6 bg-navy-900 hover:bg-navy-800 text-white rounded-[1rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
           >
             <span>Continue</span>
-            <ChevronRight className="w-4 h-4 text-amber-500" />
+            <ChevronRight className="w-4 h-4 text-amber-400" />
           </button>
 
         </div>

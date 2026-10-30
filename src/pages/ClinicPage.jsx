@@ -126,24 +126,28 @@ export default function ClinicPage() {
   return (
     <div className="min-h-screen bg-cream-50 pb-20 font-sans selection:bg-amber-100 selection:text-sand-600">
       
-      {/* ── Clinic Header (Boarding Pass Motif) ───────────────────────── */}
-      <section className="bg-navy-900 text-white px-5 sm:px-8 pt-8 pb-10 rounded-b-[2rem] border-b border-navy-700 shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ── Clinic Header (Midnight Atmospheric Boarding Pass Motif) ── */}
+      <section className="bg-gradient-to-b from-navy-950 via-navy-900 to-navy-900 text-white px-5 sm:px-8 pt-9 pb-12 rounded-b-[2rem] border-b border-navy-800 shadow-md relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-[-10%] w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="max-w-2xl mx-auto space-y-4 relative z-10">
           <div className="flex items-center justify-between">
-            <MonoTag variant="neutral" className="bg-white/10 text-white border-white/20">
+            <div className="flex items-center gap-2">
+              <span className="font-display font-bold text-lg text-white">Gatepass</span>
+              <span className="w-2 h-2 rounded-[0.2rem] bg-amber-400 transform rotate-45 inline-block shadow-sm" />
+            </div>
+            <MonoTag variant="neutral" className="bg-white/10 text-white border-white/20 backdrop-blur-md">
               Reception Desk Access
             </MonoTag>
-            <div className="w-2.5 h-2.5 rounded-[0.25rem] bg-amber-500 transform rotate-45" />
           </div>
 
           <div>
             <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight leading-tight">
               {clinic.clinicName}
             </h1>
-            <p className="text-navy-100 text-xs sm:text-sm mt-1.5 flex items-start gap-1.5">
-              <MapPin className="w-4 h-4 mt-0.5 text-amber-500 flex-shrink-0" />
+            <p className="text-slate-300 text-xs sm:text-sm mt-1.5 flex items-start gap-1.5 font-medium">
+              <MapPin className="w-4 h-4 mt-0.5 text-amber-400 flex-shrink-0" />
               <span>{clinic.address}, {clinic.city}, {clinic.state || 'India'}</span>
             </p>
           </div>
@@ -151,12 +155,12 @@ export default function ClinicPage() {
           {(clinic.phone || clinic.repHours) && (
             <div className="pt-2 flex flex-wrap gap-2 text-xs">
               {clinic.phone && (
-                <div className="flex items-center gap-1.5 font-mono text-white/90 bg-white/10 px-3 py-1.5 rounded-[0.625rem] border border-white/10">
-                  <Phone className="w-3.5 h-3.5 text-amber-500" /> {clinic.phone}
+                <div className="flex items-center gap-1.5 font-mono text-white/90 bg-white/10 px-3 py-1.5 rounded-[0.75rem] border border-white/15 backdrop-blur-md">
+                  <Phone className="w-3.5 h-3.5 text-amber-400" /> {clinic.phone}
                 </div>
               )}
               {clinic.repHours && (
-                <div className="flex items-center gap-1.5 font-mono text-white/90 bg-white/10 px-3 py-1.5 rounded-[0.625rem] border border-white/10">
+                <div className="flex items-center gap-1.5 font-mono text-white/90 bg-white/10 px-3 py-1.5 rounded-[0.75rem] border border-white/15 backdrop-blur-md">
                   <Clock className="w-3.5 h-3.5 text-teal-400" /> Visiting Hours: {clinic.repHours}
                 </div>
               )}

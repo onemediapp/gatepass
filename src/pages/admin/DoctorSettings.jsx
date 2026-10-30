@@ -22,7 +22,8 @@ import {
   ShieldCheck, 
   Check, 
   MessageSquare,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 
 export default function DoctorSettings() {
@@ -121,6 +122,31 @@ export default function DoctorSettings() {
         </span>
         
         <div className="space-y-2.5">
+          {/* Clinic Pro SaaS Card */}
+          <EdgeCard edge="amber" className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-white to-white border-amber-500/30 hover:border-amber-500/60 transition-all">
+            <Link to="/admin/pricing" className="flex items-center justify-between group min-h-[2.75rem]">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-[0.875rem] bg-amber-500 text-navy-950 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm font-bold">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-bold text-base text-ink group-hover:text-sand-600 transition-colors">
+                      Clinic Pro SaaS Subscription
+                    </h3>
+                    <MonoTag variant="amber">₹1,499/mo</MonoTag>
+                  </div>
+                  <p className="text-xs text-ink-soft mt-0.5">
+                    Reception Touchscreen Kiosk, staff PIN delegation, WhatsApp delay broadcasts, and priority laminated posters.
+                  </p>
+                </div>
+              </div>
+              <div className="p-2 rounded-[0.75rem] bg-cream-50 group-hover:bg-amber-100 text-ink-mute group-hover:text-sand-600 transition-colors flex-shrink-0 ml-3">
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </Link>
+          </EdgeCard>
+
           {/* Rep Schedule Card */}
           <EdgeCard edge="amber" className="p-4 sm:p-5 bg-white hover:border-amber-500/40 transition-all">
             <Link to="/admin/schedule" className="flex items-center justify-between group min-h-[2.75rem]">

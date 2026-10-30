@@ -3,7 +3,21 @@ import { listClinicsByDoctor, createClinic, updateClinic } from '../../lib/db/cl
 import { linkDoctorClinic } from '../../lib/db/doctorClinics';
 import { getDoctor, updateDoctor } from '../../lib/db/doctors';
 import { useAuth } from '../../lib/auth';
-import { Building2, Plus, Edit2, X, Check, MapPin, Phone, Clock } from 'lucide-react';
+import { 
+  Building2, 
+  Plus, 
+  Edit2, 
+  X, 
+  Check, 
+  MapPin, 
+  Phone, 
+  Clock, 
+  Monitor, 
+  ExternalLink, 
+  Copy, 
+  Sparkles,
+  KeyRound 
+} from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import EdgeCard from '../../components/ui/EdgeCard';
 import Skeleton from '../../components/ui/Skeleton';
@@ -15,6 +29,7 @@ export default function DoctorClinics() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingClinic, setEditingClinic] = useState(null);
+  const [copiedSlug, setCopiedSlug] = useState(null);
   
   const [formData, setFormData] = useState({
     clinicName: '',
@@ -22,7 +37,8 @@ export default function DoctorClinics() {
     city: '',
     state: '',
     phone: '',
-    repHours: ''
+    repHours: '',
+    staffPin: '2026'
   });
 
   const [saving, setSaving] = useState(false);
@@ -45,7 +61,7 @@ export default function DoctorClinics() {
 
   const handleOpenNew = () => {
     setEditingClinic(null);
-    setFormData({ clinicName: '', address: '', city: '', state: '', phone: '', repHours: '' });
+    setFormData({ clinicName: '', address: '', city: '', state: '', phone: '', repHours: '', staffPin: '2026' });
     setShowModal(true);
   };
 
@@ -57,7 +73,8 @@ export default function DoctorClinics() {
       city: clinic.city || '',
       state: clinic.state || '',
       phone: clinic.phone || '',
-      repHours: clinic.repHours || ''
+      repHours: clinic.repHours || '',
+      staffPin: clinic.staffPin || '2026'
     });
     setShowModal(true);
   };
@@ -78,7 +95,8 @@ export default function DoctorClinics() {
           city: formData.city,
           state: formData.state,
           phone: formData.phone,
-          repHours: formData.repHours
+          repHours: formData.repHours,
+          staffPin: formData.staffPin || '2026'
         });
       } else {
         const baseSlug = generateSlug(formData.clinicName);
@@ -89,6 +107,7 @@ export default function DoctorClinics() {
           state: formData.state,
           phone: formData.phone,
           repHours: formData.repHours,
+          staffPin: formData.staffPin || '2026',
           slug: baseSlug,
           ownerDoctorId: user.uid,
           qrCodeData: `${window.location.origin}/clinic/${baseSlug}`,
@@ -170,19 +189,58 @@ export default function DoctorClinics() {
                 </p>
               </div>
               
-              <div className="mt-4 pt-3 border-t border-line space-y-1.5 text-xs text-ink-soft">
+              <div className="mt-4 pt-3 border-t border-line space-y-2">
                 {clinic.phone && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-ink-soft">
                     <Phone className="w-3 h-3 text-ink-mute" />
                     <span className="font-mono text-[0.6875rem]">{clinic.phone}</span>
                   </div>
                 )}
                 {clinic.repHours && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 text-xs text-ink-soft">
                     <Clock className="w-3 h-3 text-ink-mute" />
                     <span className="font-mono text-[0.6875rem]">MR Hours: {clinic.repHours}</span>
                   </div>
                 )}
+
+                {/* Reception Kiosk & Staff Delegation Box */}
+                <div className="mt-3 p-3 rounded-[0.875rem] bg-cream-100/70 border border-line/80 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Monitor className="w-3.5 h-3.5 text-sand-600" />
+                      <span className="font-bold text-xs text-ink">Reception Desk Kiosk</span>
+                    </div>
+                    <span className="font-mono text-[0.625rem] bg-navy-900 text-amber-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                      <KeyRound className="w-2.5 h-2.5" /> PIN: {clinic.staffPin || '2026'}
+                    </span>
+                  </div>
+                  <p className="text-[0.6875rem] text-ink-soft">
+                    Counter tablet mode for clinic receptionists to manage arriving reps without doctor account login.
+                  </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={`/kiosk/${clinic.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-1.5 px-3 bg-navy-900 text-white rounded-[0.625rem] text-xs font-bold hover:bg-navy-800 transition-colors flex items-center justify-center gap-1.5 text-center"
+                    >
+                      <span>Open Kiosk</span>
+                      <ExternalLink className="w-3 h-3 text-amber-400" />
+                    </a>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/kiosk/${clinic.slug}`);
+                        setCopiedSlug(clinic.slug);
+                        setTimeout(() => setCopiedSlug(null), 2000);
+                      }}
+                      className="px-2.5 py-1.5 border border-line rounded-[0.625rem] text-xs font-medium text-ink-soft hover:bg-white transition-colors flex items-center gap-1"
+                      title="Copy Kiosk URL"
+                    >
+                      {copiedSlug === clinic.slug ? <Check className="w-3.5 h-3.5 text-teal-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedSlug === clinic.slug ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </EdgeCard>
           ))}
@@ -270,6 +328,24 @@ export default function DoctorClinics() {
                   onChange={e => setFormData({...formData, repHours: e.target.value})}
                   className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
                 />
+              </div>
+
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Staff Reception PIN</label>
+                  <span className="text-[0.625rem] font-mono text-sand-600 font-bold">Default: 2026</span>
+                </div>
+                <input 
+                  type="text" 
+                  maxLength={6}
+                  placeholder="2026"
+                  value={formData.staffPin}
+                  onChange={e => setFormData({...formData, staffPin: e.target.value.replace(/\D/g, '')})}
+                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-mono font-bold text-ink placeholder:text-ink-mute text-xs tracking-widest transition-all"
+                />
+                <p className="text-[0.625rem] text-ink-soft px-0.5">
+                  Receptionists or front desk staff use this PIN on the counter tablet to manage arriving reps.
+                </p>
               </div>
             </div>
 

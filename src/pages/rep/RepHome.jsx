@@ -35,7 +35,8 @@ import {
   FileText,
   User,
   ShieldCheck,
-  Stethoscope
+  Stethoscope,
+  Download
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -188,26 +189,39 @@ export default function RepHome() {
     }
   };
 
+  // Quick counts
+  const approvedTodayCount = appointments.filter(a => a.status === 'approved' && a.slotDate === todayStr).length;
+  const pendingCount = appointments.filter(a => a.status === 'pending').length;
+  const completedCount = appointments.filter(a => a.status === 'completed').length;
+
   return (
     <div className="min-h-screen bg-cream-50 font-sans selection:bg-amber-100 selection:text-sand-600 pb-28">
       
-      {/* ── Top Hero Bar ─────────────────────────────────────────────── */}
-      <section className="bg-navy-900 text-white pt-8 pb-10 px-4 sm:px-6 rounded-b-[2rem] shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ── Top Hero Bar (Midnight Atmosphere) ─────────────────────────── */}
+      <section className="bg-gradient-to-b from-navy-950 via-navy-900 to-navy-900 text-white pt-8 pb-10 px-4 sm:px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-10 left-[-20%] w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        
         <div className="max-w-2xl mx-auto space-y-4 relative z-10">
           
           <div className="flex items-center justify-between">
-            <div>
-              <p className="font-mono text-[0.6875rem] uppercase tracking-wider text-navy-100/70 font-semibold">
-                {getTimeOfDayGreeting()}
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-display font-bold text-white tracking-tight">
-                {repFirstName}
-              </h1>
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-[0.875rem] bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center font-display font-bold text-white shadow-inner">
+                {repFirstName.charAt(0) || 'R'}
+              </div>
+              <div>
+                <p className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
+                  {getTimeOfDayGreeting()}
+                </p>
+                <h1 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
+                  {repFirstName}
+                </h1>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <MonoTag variant="neutral" className="bg-white/10 text-white border-white/20">
+              <MonoTag variant="neutral" className="bg-white/10 text-white border-white/20 backdrop-blur-md">
                 {repProfile?.companyName || 'Medical Rep'}
               </MonoTag>
             </div>
@@ -216,50 +230,66 @@ export default function RepHome() {
           {/* Large Search Pill Button */}
           <div 
             onClick={() => navigate('/rep/search')}
-            className="w-full bg-white/10 hover:bg-white/15 border border-white/20 rounded-[1.25rem] p-3.5 flex items-center gap-3 cursor-pointer transition-all active:scale-[0.99] group shadow-inner"
+            className="w-full bg-white/10 hover:bg-white/15 border border-white/20 rounded-[1.25rem] p-3.5 flex items-center gap-3 cursor-pointer transition-all duration-200 active:scale-[0.99] group shadow-inner backdrop-blur-md"
           >
-            <div className="w-8 h-8 rounded-[0.75rem] bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 rounded-[0.75rem] bg-amber-400/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
               <Search className="w-4 h-4" />
             </div>
-            <span className="text-xs sm:text-sm font-medium text-navy-100/80 group-hover:text-white transition-colors truncate">
-              Search doctors by name, specialty, or city...
+            <span className="text-xs sm:text-sm font-medium text-slate-300 group-hover:text-white transition-colors truncate">
+              Search doctors by name, specialty, or clinic...
             </span>
+          </div>
+
+          {/* Quick Metrics Capsule Strip */}
+          <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
+            <div className="bg-white/5 border border-white/10 rounded-[1rem] py-2 px-1 backdrop-blur-xs">
+              <span className="text-lg font-bold text-teal-400 block leading-tight tabular-nums">{approvedTodayCount}</span>
+              <span className="text-[0.625rem] uppercase text-slate-400 font-sans tracking-tight">Today</span>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-[1rem] py-2 px-1 backdrop-blur-xs">
+              <span className="text-lg font-bold text-amber-400 block leading-tight tabular-nums">{pendingCount}</span>
+              <span className="text-[0.625rem] uppercase text-slate-400 font-sans tracking-tight">Pending</span>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-[1rem] py-2 px-1 backdrop-blur-xs">
+              <span className="text-lg font-bold text-white block leading-tight tabular-nums">{completedCount}</span>
+              <span className="text-[0.625rem] uppercase text-slate-400 font-sans tracking-tight">Visited</span>
+            </div>
           </div>
 
         </div>
       </section>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 -mt-4 space-y-6 relative z-20">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 -mt-3 space-y-5 relative z-20">
 
         {/* ── Profile Completeness Banner (If < 100%) ──────────────────── */}
         {completeness < 100 && (
-          <EdgeCard edge="amber" className="p-4 bg-white space-y-2 shadow-sm">
+          <EdgeCard edge="amber" className="p-4 bg-white space-y-2 shadow-xs border-slate-200">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-[0.625rem] bg-amber-100 text-sand-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-[0.75rem] bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5 border border-amber-200">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-xs sm:text-sm text-ink leading-tight">
                     Complete your Rep Profile ({completeness}%)
                   </h3>
-                  <p className="text-[0.6875rem] sm:text-xs text-ink-soft mt-0.5 leading-relaxed">
-                    Add your division, product focus, and molecules so doctors can prioritize your appointment requests.
+                  <p className="text-[0.6875rem] sm:text-xs text-slate-500 mt-0.5 leading-relaxed">
+                    Add division, product focus & molecules so doctors approve your slots faster.
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => navigate('/rep/profile')}
-                className="px-3 py-1.5 bg-navy-900 hover:bg-navy-700 text-white text-[0.6875rem] font-bold rounded-[0.625rem] transition-colors flex-shrink-0"
+                className="px-3 py-1.5 bg-navy-900 hover:bg-navy-800 text-white text-[0.6875rem] font-bold rounded-[0.625rem] transition-colors flex-shrink-0 shadow-xs"
               >
                 Edit Profile
               </button>
             </div>
 
             {/* Progress Bar */}
-            <div className="h-1.5 w-full bg-cream-50 rounded-full overflow-hidden border border-line">
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
               <div
-                className="h-full bg-amber-500 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
                 style={{ width: `${completeness}%` }}
               />
             </div>
@@ -270,52 +300,52 @@ export default function RepHome() {
         {todayGatepass && (
           <section className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-teal-600 font-bold flex items-center gap-1.5">
+              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-teal-700 font-bold flex items-center gap-1.5">
                 <LiveDot active={true} />
                 Today's Active Gatepass
               </span>
               <MonoTag variant="teal">Pass Ready</MonoTag>
             </div>
 
-            <EdgeCard edge="teal" className="p-5 bg-white space-y-4 shadow-md">
+            <EdgeCard edge="teal" className="p-5 bg-white space-y-4 shadow-md border-teal-200/60">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-display font-bold text-ink leading-tight">
                     Dr. {todayGatepass.doctorSnapshot?.name || todayGatepass.doctorName}
                   </h2>
-                  <p className="text-xs text-ink-soft mt-0.5 flex items-center gap-1 font-medium">
+                  <p className="text-xs text-slate-600 mt-0.5 flex items-center gap-1 font-medium">
                     <Building2 className="w-3.5 h-3.5 text-teal-600" />
                     {todayGatepass.doctorSnapshot?.clinicName || todayGatepass.clinicName}
                   </p>
                 </div>
 
                 {todayGatepass.token && (
-                  <div className="px-3 py-1.5 bg-teal-50 border border-teal-600/30 rounded-[0.75rem] text-center">
-                    <span className="font-mono text-[0.625rem] text-teal-600 uppercase block font-semibold">
+                  <div className="px-3.5 py-1.5 bg-teal-50 border border-teal-500/30 rounded-[0.875rem] text-center shadow-2xs">
+                    <span className="font-mono text-[0.5625rem] text-teal-700 uppercase block font-bold tracking-wider">
                       Token
                     </span>
-                    <span className="font-mono text-base font-bold text-teal-600">
+                    <span className="font-mono text-base font-bold text-teal-700 tabular-nums">
                       #{todayGatepass.token}
                     </span>
                   </div>
                 )}
               </div>
 
-              <div className="p-3 bg-cream-50 rounded-[0.875rem] border border-line flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 font-mono text-ink">
-                  <Clock className="w-4 h-4 text-ink-mute" />
+              <div className="p-3 bg-slate-50 rounded-[0.875rem] border border-slate-200 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 font-mono text-ink font-semibold">
+                  <Clock className="w-4 h-4 text-teal-600" />
                   <span>
                     Slot: {todayGatepass.slotStart} – {todayGatepass.slotEnd}
                   </span>
                 </div>
-                <span className="text-[0.6875rem] text-ink-mute font-medium">
+                <span className="text-[0.6875rem] text-slate-500 font-medium">
                   Show at reception
                 </span>
               </div>
 
               <button
                 onClick={() => navigate(`/status/${todayGatepass.id}`)}
-                className="w-full py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-[0.875rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-sm active:scale-[0.99]"
+                className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-[1rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
               >
                 <span>Open Live Gatepass</span>
                 <ArrowRight className="w-4 h-4" />
@@ -326,31 +356,31 @@ export default function RepHome() {
 
         {/* ── Empty State: "Find your first doctor" ─────────────────────── */}
         {!loading && appointments.length === 0 && (
-          <EdgeCard edge="navy" className="p-6 bg-white text-center space-y-4">
-            <div className="w-14 h-14 rounded-[1.25rem] bg-navy-100 text-navy-900 flex items-center justify-center mx-auto shadow-sm">
+          <EdgeCard edge="navy" className="p-6 bg-white text-center space-y-4 shadow-sm border-slate-200">
+            <div className="w-14 h-14 rounded-[1.25rem] bg-navy-100 text-navy-900 flex items-center justify-center mx-auto shadow-xs">
               <Stethoscope className="w-7 h-7" />
             </div>
             <div>
               <h3 className="font-display font-bold text-base sm:text-lg text-ink">
                 Find Your First Doctor
               </h3>
-              <p className="text-xs text-ink-soft max-w-sm mx-auto mt-1">
-                Explore participating Kurnool specialists, check their weekly rep visiting hours, and book a verified consultation slot.
+              <p className="text-xs text-slate-600 max-w-sm mx-auto mt-1 leading-relaxed">
+                Explore participating Kurnool specialists, check their weekly visiting hours, and book a verified consultation slot.
               </p>
             </div>
             <div className="pt-2 flex flex-col sm:flex-row gap-2.5 max-w-md mx-auto">
               <button
                 onClick={() => navigate('/rep/search')}
-                className="flex-1 py-3 px-4 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="flex-1 py-3 px-4 bg-navy-900 hover:bg-navy-800 text-white rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
               >
-                <Search className="w-4 h-4 text-amber-500" />
+                <Search className="w-4 h-4 text-amber-400" />
                 Search Doctors
               </button>
               <button
                 onClick={() => navigate('/clinic/remedi-clinic-kurnool')}
-                className="flex-1 py-3 px-4 bg-white border border-line hover:border-navy-500 text-ink rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:border-navy-500 text-ink rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95"
               >
-                <QrCode className="w-4 h-4 text-ink-soft" />
+                <QrCode className="w-4 h-4 text-slate-500" />
                 Scan Clinic QR
               </button>
             </div>
@@ -361,8 +391,8 @@ export default function RepHome() {
         {doctorFeedNotices.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
-                From Your Doctors · Notices
+              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-semibold">
+                From Your Doctors · Clinical Notices
               </span>
             </div>
 
@@ -371,35 +401,35 @@ export default function RepHome() {
                 <EdgeCard
                   key={notice.id}
                   edge={getNoticeEdge(notice.type)}
-                  className="p-4 bg-white space-y-1.5 flex flex-col justify-between"
+                  className="p-4 bg-white space-y-1.5 flex flex-col justify-between shadow-xs border-slate-200"
                 >
                   <div className="space-y-1">
                     <div className="flex items-start justify-between gap-1.5">
                       <h4 className="font-display font-bold text-xs sm:text-sm text-ink leading-tight">
                         {notice.title}
                       </h4>
-                      <span className="font-mono text-[0.5625rem] uppercase px-1.5 py-0.5 rounded-[0.25rem] bg-cream-50 border border-line text-ink-mute flex-shrink-0">
+                      <span className="font-mono text-[0.5625rem] uppercase px-1.5 py-0.5 rounded-[0.375rem] bg-slate-100 border border-slate-200 text-slate-600 flex-shrink-0 font-semibold">
                         {notice.type.replace('_', ' ')}
                       </span>
                     </div>
-                    <p className="text-[0.6875rem] sm:text-xs text-ink-soft line-clamp-2 leading-relaxed">
+                    <p className="text-[0.6875rem] sm:text-xs text-slate-600 line-clamp-2 leading-relaxed">
                       {notice.body}
                     </p>
                   </div>
 
                   {notice.type === 'looking_for' ? (
                     <div className="pt-2 border-t border-line flex items-center justify-between gap-2">
-                      <span className="text-[0.625rem] text-ink-mute font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
+                      <span className="text-[0.625rem] text-slate-400 font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
                       <button
                         onClick={() => navigate(`/dr/${notice.doctorSlug || notice.doctorId}/slots?notice=${notice.id}`)}
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.625rem] text-xs font-semibold shadow-sm transition-all min-h-[2.75rem]"
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.625rem] text-xs font-semibold shadow-xs transition-all"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                         <span>I can help with this</span>
                       </button>
                     </div>
                   ) : (
-                    <div className="pt-2 border-t border-line flex items-center justify-between text-[0.625rem] text-ink-mute min-h-[2.75rem]">
+                    <div className="pt-2 border-t border-line flex items-center justify-between text-[0.625rem] text-slate-400">
                       <span className="font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
                       <button
                         onClick={() => navigate(`/dr/${notice.doctorSlug || notice.doctorId}`)}
@@ -419,7 +449,7 @@ export default function RepHome() {
         {recentRequests.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
+              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-semibold">
                 My Requests ({appointments.length})
               </span>
               <button
@@ -443,7 +473,7 @@ export default function RepHome() {
                   <EdgeCard
                     key={appt.id}
                     edge={edgeColor}
-                    className="p-4 bg-white hover:border-navy-500/30 transition-all cursor-pointer group"
+                    className="p-4 bg-white hover:border-slate-300 transition-all duration-200 cursor-pointer group shadow-xs hover:shadow-sm"
                     onClick={() => navigate(`/status/${appt.id}`)}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -454,7 +484,7 @@ export default function RepHome() {
                           </h4>
                           <StatusChip status={appt.status} />
                         </div>
-                        <p className="text-xs text-ink-soft mt-0.5 truncate">
+                        <p className="text-xs text-slate-500 mt-0.5 truncate font-medium">
                           {clinicName}
                         </p>
                       </div>
@@ -463,16 +493,16 @@ export default function RepHome() {
                         <span className="font-mono text-xs font-semibold text-ink block">
                           {appt.slotDate}
                         </span>
-                        <span className="font-mono text-[0.6875rem] text-ink-mute block">
+                        <span className="font-mono text-[0.6875rem] text-slate-400 block">
                           {appt.slotStart} – {appt.slotEnd}
                         </span>
                       </div>
                     </div>
 
                     {appt.productFocus && (
-                      <div className="mt-2.5 pt-2 border-t border-line flex items-center justify-between text-[0.6875rem] text-ink-mute">
-                        <span className="truncate">Focus: <strong className="text-ink-soft">{appt.productFocus}</strong></span>
-                        <ChevronRight className="w-3.5 h-3.5 text-ink-mute group-hover:translate-x-0.5 transition-transform" />
+                      <div className="mt-2.5 pt-2 border-t border-line flex items-center justify-between text-[0.6875rem] text-slate-500">
+                        <span className="truncate">Focus: <strong className="text-slate-700">{appt.productFocus}</strong></span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                       </div>
                     )}
                   </EdgeCard>
@@ -485,52 +515,63 @@ export default function RepHome() {
         {/* ── Daily Call Report (DCR) Generator ────────────────────────── */}
         <section className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
+            <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-semibold">
               Field Reporting Tool
             </span>
             <MonoTag variant="neutral">DCR Export</MonoTag>
           </div>
 
-          <EdgeCard edge="navy" className="p-5 bg-white space-y-4">
+          <EdgeCard edge="navy" className="p-5 bg-white space-y-4 shadow-xs border-slate-200">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-[0.75rem] bg-navy-100 text-navy-900 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-9 h-9 rounded-[0.75rem] bg-navy-100 text-navy-900 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
                 <FileText className="w-4 h-4" />
               </div>
               <div>
                 <h4 className="font-display font-bold text-sm text-ink leading-tight">
                   Daily Call Report (DCR)
                 </h4>
-                <p className="text-xs text-ink-soft mt-0.5">
-                  Generate and share your daily visit log directly to WhatsApp or your manager.
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  Generate and share your verified daily doctor visits log directly to WhatsApp or your Area Manager.
                 </p>
               </div>
             </div>
 
-            <div className="pt-2 flex gap-2.5">
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
               <button
-                onClick={handleCopyDcr}
-                className="flex-1 py-2.5 px-4 bg-white border border-line hover:border-navy-500 text-ink rounded-[0.75rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-[0.99]"
+                onClick={() => navigate('/rep/dcr')}
+                className="py-3 px-4 bg-navy-900 hover:bg-navy-800 text-white rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
               >
-                {copiedDcr ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5 text-ink-mute" />
-                    <span>Copy Text</span>
-                  </>
-                )}
+                <Download className="w-3.5 h-3.5 text-amber-400" />
+                <span>Open DCR & Download CSV</span>
               </button>
 
-              <button
-                onClick={handleShareDcr}
-                className="flex-1 py-2.5 px-4 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.75rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-[0.99]"
-              >
-                <Share2 className="w-3.5 h-3.5 text-amber-500" />
-                <span>Share WhatsApp</span>
-              </button>
+              <div className="flex gap-2 flex-1">
+                <button
+                  onClick={handleCopyDcr}
+                  className="flex-1 py-3 px-3 bg-white border border-line hover:border-navy-500 text-ink rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-[0.99] cursor-pointer"
+                >
+                  {copiedDcr ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-teal-600" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Copy Text</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleShareDcr}
+                  className="py-3 px-3.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] cursor-pointer"
+                  title="Share to WhatsApp"
+                >
+                  <Share2 className="w-3.5 h-3.5 text-teal-700" />
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </button>
+              </div>
             </div>
           </EdgeCard>
         </section>

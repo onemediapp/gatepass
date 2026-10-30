@@ -19,10 +19,15 @@ const RepRegister = lazy(() => import('./pages/rep/RepRegister'));
 const RepHome = lazy(() => import('./pages/rep/RepHome'));
 const RepHistory = lazy(() => import('./pages/rep/RepHistory'));
 const RepProfile = lazy(() => import('./pages/rep/RepProfile'));
+const RepDCR = lazy(() => import('./pages/rep/RepDCR'));
 const DoctorSearch = lazy(() => import('./pages/rep/DoctorSearch'));
 const DoctorProfile = lazy(() => import('./pages/doctor/DoctorProfile'));
 const SlotPicker = lazy(() => import('./pages/rep/SlotPicker'));
 const RequestDetails = lazy(() => import('./pages/rep/RequestDetails'));
+
+// Reception & SaaS Pages
+const ReceptionKiosk = lazy(() => import('./pages/kiosk/ReceptionKiosk'));
+const PricingPlans = lazy(() => import('./pages/pricing/PricingPlans'));
 
 // Doctor Pages
 const DoctorRegister = lazy(() => import('./pages/doctor/DoctorRegister'));
@@ -74,20 +79,25 @@ function ProtectedRoute({ children, requiredRole }) {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <RepNotificationListener>
           <Suspense fallback={<PageFallback />}>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              <Route path="/pricing" element={<PricingPlans />} />
+              <Route path="/plans" element={<PricingPlans />} />
               <Route path="/status/:appointmentId" element={<ProtectedRoute><StatusCheck /></ProtectedRoute>} />
               <Route path="/clinic/:slug" element={<ClinicPage />} />
               <Route path="/clinic/:clinicSlug" element={<ClinicPage />} />
+              <Route path="/clinic/:clinicSlug/reception" element={<ReceptionKiosk />} />
+              <Route path="/kiosk/:clinicSlug" element={<ReceptionKiosk />} />
 
               {/* Rep Routes */}
               <Route path="/rep/register" element={<ProtectedRoute><RepRegister /></ProtectedRoute>} />
               <Route path="/rep/home" element={<ProtectedRoute requiredRole="rep"><RepHome /></ProtectedRoute>} />
               <Route path="/rep/history" element={<ProtectedRoute requiredRole="rep"><RepHistory /></ProtectedRoute>} />
               <Route path="/rep/profile" element={<ProtectedRoute requiredRole="rep"><RepProfile /></ProtectedRoute>} />
+              <Route path="/rep/dcr" element={<ProtectedRoute requiredRole="rep"><RepDCR /></ProtectedRoute>} />
               <Route path="/rep/search" element={<ProtectedRoute requiredRole="rep"><DoctorSearch /></ProtectedRoute>} />
               <Route path="/dr/:slug" element={<ProtectedRoute requiredRole="rep"><DoctorProfile /></ProtectedRoute>} />
               <Route path="/dr/:slug/slots" element={<ProtectedRoute requiredRole="rep"><SlotPicker /></ProtectedRoute>} />

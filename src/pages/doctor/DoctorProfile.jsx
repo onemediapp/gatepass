@@ -476,11 +476,11 @@ export default function DoctorProfile() {
       </div>
 
       {/* ── Sticky Bottom CTA ("Pick a slot") ────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-line p-3 sm:p-4 z-40 shadow-[0_-4px_24px_rgba(11,23,48,0.08)]">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/85 backdrop-blur-xl border-t border-line/80 p-3.5 sm:p-4 z-40 shadow-[0_-8px_30px_rgba(15,23,42,0.08)]">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="min-w-0 hidden sm:block">
-            <span className="font-mono text-[0.625rem] uppercase tracking-wider text-ink-mute font-semibold block">
-              Consultation Booking
+            <span className="font-mono text-[0.625rem] uppercase tracking-wider text-teal-700 font-bold block">
+              Direct Clinical Detailing
             </span>
             <span className="font-bold text-xs text-ink truncate block">
               {displayName}
@@ -491,16 +491,16 @@ export default function DoctorProfile() {
             {canRequestSlots ? (
               <button
                 onClick={() => navigate(`/dr/${cleanSlug}/slots`)}
-                className="w-full py-3 px-6 bg-navy-900 hover:bg-navy-700 text-white rounded-[0.875rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
+                className="w-full py-3.5 px-6 bg-navy-900 hover:bg-navy-800 text-white rounded-[1rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98]"
               >
-                <Calendar className="w-4 h-4 text-amber-500" />
-                <span>Pick a Slot</span>
+                <Calendar className="w-4 h-4 text-amber-400" />
+                <span>Book Consultation Slot</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
               <button
                 disabled
-                className="w-full py-3 px-4 bg-line text-ink-mute rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed text-center"
+                className="w-full py-3.5 px-4 bg-slate-100 text-slate-400 rounded-[1rem] font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed text-center"
               >
                 {!hasHours ? 'No Visiting Slots Configured' : 'Not Taking Appointments'}
               </button>

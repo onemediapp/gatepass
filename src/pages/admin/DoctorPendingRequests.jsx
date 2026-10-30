@@ -375,21 +375,21 @@ export default function DoctorPendingRequests() {
         )}
       </div>
 
-      {/* ── Segmented Tab: Visits | Reviews ─────────────────────────── */}
-      <div className="flex border-b border-line gap-6">
+      {/* ── Segmented Tab: Visits | Reviews (Modern Capsule Control) ── */}
+      <div className="inline-flex p-1 bg-slate-100 rounded-[1rem] border border-slate-200/80 gap-1 self-start">
         <button
           onClick={() => setActiveTab('visits')}
           className={cn(
-            'pb-3 font-semibold text-xs transition-colors flex items-center gap-2 border-b-2',
+            'px-4 py-2 rounded-[0.75rem] font-bold text-xs transition-all duration-150 flex items-center gap-2 select-none active:scale-95',
             activeTab === 'visits'
-              ? 'border-navy-900 text-navy-900'
-              : 'border-transparent text-ink-mute hover:text-ink'
+              ? 'bg-white text-navy-950 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800'
           )}
         >
           <span>Visits</span>
           <span className={cn(
-            'px-2 py-0.5 rounded-full text-[0.625rem] font-bold',
-            activeTab === 'visits' ? 'bg-navy-900 text-white' : 'bg-cream-100 text-ink-mute'
+            'px-2 py-0.5 rounded-full text-[0.625rem] font-mono font-bold',
+            activeTab === 'visits' ? 'bg-navy-900 text-white' : 'bg-slate-200 text-slate-600'
           )}>
             {visibleRequests.length}
           </span>
@@ -398,16 +398,16 @@ export default function DoctorPendingRequests() {
         <button
           onClick={() => setActiveTab('reviews')}
           className={cn(
-            'pb-3 font-semibold text-xs transition-colors flex items-center gap-2 border-b-2',
+            'px-4 py-2 rounded-[0.75rem] font-bold text-xs transition-all duration-150 flex items-center gap-2 select-none active:scale-95',
             activeTab === 'reviews'
-              ? 'border-navy-900 text-navy-900'
-              : 'border-transparent text-ink-mute hover:text-ink'
+              ? 'bg-white text-navy-950 shadow-xs'
+              : 'text-slate-500 hover:text-slate-800'
           )}
         >
           <Inbox className="w-3.5 h-3.5" />
           <span>Reviews & Reconsiders</span>
           {reviewRequests.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-bold bg-amber-500 text-white">
+            <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-mono font-bold bg-amber-500 text-white">
               {reviewRequests.length}
             </span>
           )}
