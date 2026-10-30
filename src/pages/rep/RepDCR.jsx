@@ -32,9 +32,11 @@ import {
   Users, 
   ShieldCheck,
   TrendingUp,
-  Sparkles
+  Sparkles,
+  Menu
 } from 'lucide-react';
 import { RepBottomNav } from '../../components/layout/RepBottomNav';
+import RepDrawerMenu from '../../components/layout/RepDrawerMenu';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import Skeleton from '../../components/ui/Skeleton';
@@ -51,6 +53,7 @@ export default function RepDCR() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(todayDateStr());
   const [copied, setCopied] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -116,13 +119,24 @@ export default function RepDCR() {
       {/* ── Top Header (Hidden when printing) ────────────────────────── */}
       <header className="bg-white/90 backdrop-blur-xl border-b border-line/70 px-4 py-3 sticky top-0 z-30 shadow-2xs print:hidden">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => navigate('/rep/home')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold active:scale-95 transition-all"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Dashboard</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="p-1.5 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+              title="Open field menu"
+              aria-label="Open field menu"
+            >
+              <Menu className="w-4 h-4 text-navy-900" />
+            </button>
+            <button
+              onClick={() => navigate('/rep/home')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold active:scale-95 transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-2">
             <span className="font-mono text-[0.6875rem] text-slate-500 uppercase tracking-wider hidden sm:inline">
@@ -395,6 +409,12 @@ export default function RepDCR() {
       </main>
 
       <div className="print:hidden">
+        <RepDrawerMenu
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          repProfile={repProfile}
+          userData={userData}
+        />
         <RepBottomNav />
       </div>
     </div>

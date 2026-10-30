@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getDoctor } from '../../lib/db/doctors';
 import { getDoctorUidBySlug } from '../../lib/db/doctorSlugs';
@@ -34,7 +34,10 @@ import {
   PackageCheck,
   ShieldCheck,
   Tag,
-  Users
+  Users,
+  MessageSquare,
+  Pill,
+  Check
 } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
@@ -120,6 +123,40 @@ export default function RequestDetails() {
       'Requesting a short discussion on...',
       'Sharing therapeutic updates regarding...'
     ]
+  };
+
+  // Rep's portfolio products for 1-tap selection
+  const repProductsList = useMemo(() => {
+    if (rep?.products && Array.isArray(rep.products) && rep.products.length > 0) {
+      return rep.products.map(p => {
+        const name = (p.name || '').trim();
+        const mol = p.molecule ? ` (${p.molecule.trim()})` : '';
+        return `${name}${mol}`.trim();
+      }).filter(Boolean);
+    }
+    if (rep?.productNames && Array.isArray(rep.productNames) && rep.productNames.length > 0) {
+      return rep.productNames.map(p => p.trim()).filter(Boolean);
+    }
+    return [];
+  }, [rep]);
+
+  const toggleProductChip = (prodStr) => {
+    if (!productFocus.trim()) {
+      setProductFocus(prodStr);
+      return;
+    }
+    if (productFocus.includes(prodStr)) {
+      const parts = productFocus
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s && s !== prodStr);
+      setProductFocus(parts.join(', '));
+    } else {
+      const updated = `${productFocus.trim()}, ${prodStr}`;
+      if (updated.length <= 300) {
+        setProductFocus(updated);
+      }
+    }
   };
 
   useEffect(() => {
@@ -430,11 +467,14 @@ export default function RequestDetails() {
             </div>
 
             {/* 2. Product Focus (Required, <=300 chars) */}
-            <div className="space-y-1.5 pt-2 border-t border-line/70">
+            <div className="space-y-2 pt-2 border-t border-line/70">
               <div className="flex items-center justify-between">
-                <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
-                  Product / Molecule Focus <span className="text-coral-600">*</span>
-                </label>
+                <div className="flex items-center gap-1.5">
+                  <Pill className="w-4 h-4 text-teal-700" />
+                  <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
+                    Product / Molecule Focus <span className="text-coral-600">*</span>
+                  </label>
+                </div>
                 <span className={cn(
                   "font-mono text-[0.625rem]",
                   productFocus.length > 280 ? "text-coral-600 font-bold" : "text-ink-mute"
@@ -442,6 +482,43 @@ export default function RequestDetails() {
                   {productFocus.length}/300
                 </span>
               </div>
+
+              {/* 1-Tap quick selector from Rep's saved product portfolio */}
+              {repProductsList.length > 0 && (
+                <div className="p-2.5 bg-teal-50/50 rounded-[0.875rem] border border-teal-600/15 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[0.625rem] font-mono uppercase tracking-wider text-teal-900 font-semibold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      Tap your portfolio product to add:
+                    </span>
+                    <span className="text-[0.625rem] text-teal-700">
+                      {repProductsList.length} saved
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                    {repProductsList.map((prod, idx) => {
+                      const isSelected = productFocus.includes(prod);
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => toggleProductChip(prod)}
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95 flex items-center gap-1 border cursor-pointer",
+                            isSelected
+                              ? "bg-teal-700 text-white border-teal-800 shadow-2xs font-semibold"
+                              : "bg-white hover:bg-teal-100 text-teal-900 border-teal-200"
+                          )}
+                        >
+                          {isSelected && <Check className="w-3 h-3" />}
+                          <span>{prod}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <textarea
                 required
                 maxLength={300}
@@ -456,11 +533,32 @@ export default function RequestDetails() {
               </p>
             </div>
 
-            {/* 3. Therapeutic Category (Pre-filled) */}
+            {/* 3. Therapeutic Category (Pre-filled with quick specialty chips) */}
             <div className="space-y-1.5">
               <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
                 Therapeutic Segment
               </label>
+
+              {rep?.specialties && rep.specialties.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pb-1">
+                  {rep.specialties.map(spec => (
+                    <button
+                      key={spec}
+                      type="button"
+                      onClick={() => setCategory(spec)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-full text-xs font-mono transition-all active:scale-95 border cursor-pointer",
+                        category === spec
+                          ? "bg-navy-900 text-white border-navy-900 font-bold"
+                          : "bg-cream-100 hover:bg-cream-200 text-ink-soft border-line"
+                      )}
+                    >
+                      {spec}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <input
                 type="text"
                 value={category}
@@ -519,47 +617,56 @@ export default function RequestDetails() {
               />
             </div>
 
-            {/* 6. Message to Doctor (≤300 chars, with tap-to-fill starters) */}
-            {doctor?.comms?.allowVisitMessage !== false && (
-              <div className="space-y-2 pt-2 border-t border-line/70">
-                <div className="flex items-center justify-between">
-                  <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold">
-                    Message to Dr. {doctor.name} <span className="text-ink-mute/70 font-normal">(Optional)</span>
-                  </label>
-                  <span className={cn(
-                    "font-mono text-[0.625rem]",
-                    message.length > 270 ? "text-coral-600 font-bold" : "text-ink-mute"
-                  )}>
-                    {message.length}/300
-                  </span>
-                </div>
-                <textarea
-                  maxLength={300}
-                  rows={2}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Short note regarding clinical topic or specific queries..."
-                  className="w-full bg-cream-50/70 border border-line rounded-[1rem] px-4 py-3 text-xs sm:text-sm font-medium text-ink outline-none focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10 transition-all resize-none placeholder:text-ink-mute"
-                />
-
-                {/* Tap-to-fill Starters */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[0.625rem] font-mono uppercase text-ink-mute block">Tap to fill starter:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(MESSAGE_STARTERS[visitReason] || MESSAGE_STARTERS.other).map((starter, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setMessage(starter)}
-                        className="text-[0.6875rem] bg-white hover:bg-teal-50 hover:border-teal-300 hover:text-teal-900 text-ink-soft px-3 py-1 rounded-full border border-line text-left transition-all active:scale-95 shadow-2xs font-medium"
-                      >
-                        "{starter.slice(0, 36)}..."
-                      </button>
-                    ))}
+            {/* 6. Message / Note to Doctor (Prominent & always available) */}
+            <div className="space-y-2.5 pt-3 border-t border-line/70">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md bg-teal-100 text-teal-800 flex items-center justify-center">
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink font-bold block">
+                      Note to {doctorDisplayName} <span className="text-ink-mute/70 font-normal">(Optional)</span>
+                    </label>
                   </div>
                 </div>
+                <span className={cn(
+                  "font-mono text-[0.625rem]",
+                  message.length > 270 ? "text-coral-600 font-bold" : "text-ink-mute"
+                )}>
+                  {message.length}/300
+                </span>
               </div>
-            )}
+
+              <textarea
+                maxLength={300}
+                rows={3}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={`Add a note for ${doctorDisplayName} (e.g. key clinical trial updates, special queries, or time sensitivity)...`}
+                className="w-full bg-cream-50/70 border border-line rounded-[1rem] px-4 py-3 text-xs sm:text-sm font-medium text-ink outline-none focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10 transition-all resize-none placeholder:text-ink-mute"
+              />
+
+              {/* Tap-to-fill Starters */}
+              <div className="space-y-1.5 pt-1">
+                <span className="text-[0.625rem] font-mono uppercase text-ink-mute flex items-center gap-1 font-semibold">
+                  <Sparkles className="w-3 h-3 text-amber-500" />
+                  Tap to fill starter:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(MESSAGE_STARTERS[visitReason] || MESSAGE_STARTERS.other).map((starter, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setMessage(starter)}
+                      className="text-[0.6875rem] bg-white hover:bg-teal-50 hover:border-teal-300 hover:text-teal-900 text-ink-soft px-3 py-1.5 rounded-full border border-line text-left transition-all active:scale-95 shadow-2xs font-medium cursor-pointer"
+                    >
+                      "{starter.slice(0, 36)}..."
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
 
           </EdgeCard>
 

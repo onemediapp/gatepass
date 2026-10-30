@@ -24,6 +24,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (!loading && user && userData) {
+      sessionStorage.removeItem('pendingRole');
       const searchParams = new URLSearchParams(window.location.search);
       const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname;
       if (redirectUrl && redirectUrl !== '/') {
@@ -244,7 +245,7 @@ export default function LandingPage() {
             <button
               onClick={() => handleGoogleSignIn(selectedRole)}
               disabled={isSigningIn}
-              className="w-full flex items-center justify-center gap-3 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-[1rem] px-6 py-4 transition-all duration-150 shadow-md hover:shadow-lg active:scale-[0.99] disabled:opacity-70 text-sm sm:text-base border border-navy-700/50"
+              className="w-full flex items-center justify-center gap-3 bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-[1rem] px-6 py-4 transition-all duration-150 shadow-md hover:shadow-lg active:scale-[0.99] disabled:opacity-70 text-sm sm:text-base border border-navy-700/50 cursor-pointer"
             >
               <svg viewBox="0 0 24 24" className="w-5 h-5 flex-shrink-0">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="var(--color-google-blue)"/>

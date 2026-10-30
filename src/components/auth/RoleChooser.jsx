@@ -12,7 +12,7 @@ import { Activity, Briefcase, AlertCircle, ArrowRight, LogOut, ShieldCheck } fro
 import MonoTag from '../ui/MonoTag';
 
 export default function RoleChooser() {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const navigate = useNavigate();
   const [checkingInvite, setCheckingInvite] = useState(false);
   const [inviteError, setInviteError] = useState('');
@@ -43,6 +43,18 @@ export default function RoleChooser() {
   };
 
   useEffect(() => {
+    if (!user) return;
+    if (userData?.role?.includes('rep')) {
+      sessionStorage.removeItem('pendingRole');
+      navigate('/rep/home', { replace: true });
+      return;
+    }
+    if (userData?.role?.includes('doctor')) {
+      sessionStorage.removeItem('pendingRole');
+      navigate('/admin', { replace: true });
+      return;
+    }
+
     const pendingRole = sessionStorage.getItem('pendingRole');
     if (pendingRole === 'rep') {
       sessionStorage.removeItem('pendingRole');
@@ -51,7 +63,7 @@ export default function RoleChooser() {
       sessionStorage.removeItem('pendingRole');
       handleSelectDoctor();
     }
-  }, [user]);
+  }, [user, userData]);
 
   return (
     <div className="min-h-screen bg-cream-50 flex flex-col justify-center items-center px-4 py-12 font-sans selection:bg-amber-100 selection:text-sand-600">

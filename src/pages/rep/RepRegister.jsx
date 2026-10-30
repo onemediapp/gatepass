@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUser } from '../../lib/db/users';
-import { createRep } from '../../lib/db/reps';
+import { createRep, getRep } from '../../lib/db/reps';
 import { useAuth } from '../../lib/auth';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
 import { SearchableSelect } from '../../components/ui/SearchableSelect';
-import { TagInput } from '../../components/ui/TagInput';
 import { PhoneInput } from '../../components/ui/PhoneInput';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import { ChevronRight, ChevronLeft, Briefcase, Pill, Building2, Check, AlertCircle } from 'lucide-react';
+import SpecialtySelector from '../../components/rep/SpecialtySelector';
+import ProductListManager from '../../components/rep/ProductListManager';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import { cn } from '../../lib/utils';
@@ -23,29 +29,9 @@ const designationOptions = [
   { value: 'Other', label: 'Other' },
 ];
 
-const therapeuticOptions = [
-  { value: 'Cardiology', label: 'Cardiology' },
-  { value: 'Diabetology', label: 'Diabetology' },
-  { value: 'General Medicine', label: 'General Medicine' },
-  { value: 'Orthopedics', label: 'Orthopedics' },
-  { value: 'Pediatrics', label: 'Pediatrics' },
-  { value: 'Gynecology', label: 'Gynecology' },
-  { value: 'Dermatology', label: 'Dermatology' },
-  { value: 'Neurology', label: 'Neurology' },
-  { value: 'Psychiatry', label: 'Psychiatry' },
-  { value: 'Oncology', label: 'Oncology' },
-  { value: 'Gastroenterology', label: 'Gastroenterology' },
-  { value: 'Respiratory', label: 'Respiratory / Pulmonology' },
-  { value: 'Ophthalmology', label: 'Ophthalmology' },
-  { value: 'ENT', label: 'ENT' },
-  { value: 'Dentistry', label: 'Dentistry' },
-];
-
-const dosageFormsList = ['Tablet', 'Injection', 'Syrup', 'Patch', 'Device', 'Other'];
-
 export default function RepRegister() {
   const navigate = useNavigate();
-  const { user, setUserData } = useAuth();
+  const { user, userData, setUserData } = useAuth();
   
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,8 +43,11 @@ export default function RepRegister() {
     companyName: '',
     division: '',
     designation: '',
+    specialties: [],
+    subSpecialties: [],
     therapeuticCategory: '',
     therapeuticCategory2: '',
+    products: [],
     productNames: [],
     molecules: '',
     dosageForms: [],
@@ -67,17 +56,62 @@ export default function RepRegister() {
     medInfoHelpline: '',
   });
 
+  // Check if rep is already registered; if so, redirect directly to /rep/home!
+  useEffect(() => {
+    if (!user) return;
+    async function checkExisting() {
+      try {
+        const existingRep = await getRep(user.uid);
+        if (existingRep && userData?.role?.includes('rep')) {
+          sessionStorage.removeItem('pendingRole');
+          navigate('/rep/home', { replace: true });
+          return;
+        }
+
+        if (existingRep) {
+          const initialSpecialties = Array.isArray(existingRep.specialties) && existingRep.specialties.length > 0
+            ? existingRep.specialties
+            : [existingRep.therapeuticCategory, existingRep.therapeuticCategory2].filter(Boolean);
+
+          const initialProducts = Array.isArray(existingRep.products) && existingRep.products.length > 0
+            ? existingRep.products
+            : (Array.isArray(existingRep.productNames) ? existingRep.productNames.map(p => ({
+                id: Math.random().toString(36).substring(2, 9),
+                name: typeof p === 'string' ? p : p.name,
+                molecule: typeof p === 'object' ? p.molecule : (existingRep.molecules || ''),
+                dosageForm: typeof p === 'object' ? p.dosageForm : (existingRep.dosageForms?.[0] || 'Tablet')
+              })) : []);
+
+          setFormData(prev => ({
+            ...prev,
+            mobile: userData?.mobile || prev.mobile,
+            companyName: existingRep.companyName || prev.companyName,
+            division: existingRep.division || prev.division,
+            designation: existingRep.designation || prev.designation,
+            specialties: initialSpecialties,
+            subSpecialties: Array.isArray(existingRep.subSpecialties) ? existingRep.subSpecialties : [],
+            therapeuticCategory: existingRep.therapeuticCategory || prev.therapeuticCategory,
+            therapeuticCategory2: existingRep.therapeuticCategory2 || prev.therapeuticCategory2,
+            products: initialProducts,
+            productNames: Array.isArray(existingRep.productNames) ? existingRep.productNames : initialProducts.map(p => p.name),
+            molecules: existingRep.molecules || prev.molecules,
+            dosageForms: existingRep.dosageForms || prev.dosageForms,
+            samplesAvailable: existingRep.samplesAvailable !== undefined ? existingRep.samplesAvailable : prev.samplesAvailable,
+            companyOffice: existingRep.companyOffice || prev.companyOffice,
+            medInfoHelpline: existingRep.medInfoHelpline || prev.medInfoHelpline,
+          }));
+        } else if (userData?.mobile) {
+          setFormData(prev => ({ ...prev, mobile: userData.mobile }));
+        }
+      } catch (err) {
+        console.error('Error checking existing rep:', err);
+      }
+    }
+    checkExisting();
+  }, [user, userData, navigate]);
+
   const updateForm = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const toggleDosageForm = (form) => {
-    setFormData(prev => ({
-      ...prev,
-      dosageForms: prev.dosageForms.includes(form)
-        ? prev.dosageForms.filter(f => f !== form)
-        : [...prev.dosageForms, form]
-    }));
   };
 
   const handleNext = () => {
@@ -85,7 +119,9 @@ export default function RepRegister() {
       if (!formData.companyName || !formData.designation || formData.mobile.length < 10) return;
     }
     if (step === 2) {
-      if (!formData.therapeuticCategory || formData.productNames.length === 0) return;
+      const hasSpecialties = (formData.specialties && formData.specialties.length > 0) || formData.therapeuticCategory;
+      const hasProducts = (formData.products && formData.products.length > 0) || (formData.productNames && formData.productNames.length > 0);
+      if (!hasSpecialties || !hasProducts) return;
     }
     setStep(prev => prev + 1);
   };
@@ -99,7 +135,7 @@ export default function RepRegister() {
     
     try {
       const cleanMobile = (formData.mobile || '').replace(/\D/g, '');
-      const userData = {
+      const userDataPayload = {
         name: user.displayName || 'Rep',
         email: user.email || '',
         photoUrl: user.photoURL || '',
@@ -107,26 +143,41 @@ export default function RepRegister() {
         role: ['rep'],
         isActive: true,
       };
-      await createUser(user.uid, userData);
-      
+      await createUser(user.uid, userDataPayload);
+
+      const primaryCategory = Array.isArray(formData.specialties) && formData.specialties.length > 0
+        ? formData.specialties[0]
+        : (formData.therapeuticCategory || 'General Medicine');
+      const secondaryCategory = Array.isArray(formData.specialties) && formData.specialties.length > 1
+        ? formData.specialties[1]
+        : (formData.therapeuticCategory2 || '');
+
+      const productNamesList = (formData.products && formData.products.length > 0)
+        ? formData.products.map(p => p.name).filter(Boolean)
+        : (formData.productNames || []);
+
       const repData = {
         uid: user.uid,
         companyName: formData.companyName,
         companyHistory: [],
         division: formData.division,
         designation: formData.designation,
-        therapeuticCategory: formData.therapeuticCategory,
-        therapeuticCategory2: formData.therapeuticCategory2 || '',
-        productNames: formData.productNames,
-        molecules: formData.molecules,
-        dosageForms: formData.dosageForms,
+        specialties: formData.specialties || [primaryCategory],
+        subSpecialties: formData.subSpecialties || [],
+        therapeuticCategory: primaryCategory,
+        therapeuticCategory2: secondaryCategory,
+        products: formData.products || [],
+        productNames: productNamesList,
+        molecules: formData.molecules || '',
+        dosageForms: formData.dosageForms || [],
         samplesAvailable: formData.samplesAvailable,
         companyOffice: formData.companyOffice || '',
         medInfoHelpline: formData.medInfoHelpline || '',
       };
       await createRep(user.uid, repData);
       
-      setUserData(userData);
+      setUserData(userDataPayload);
+      sessionStorage.removeItem('pendingRole');
       navigate('/rep/home');
       
     } catch (error) {
@@ -159,20 +210,15 @@ export default function RepRegister() {
           </div>
           <MonoTag variant="neutral">MR Pass</MonoTag>
         </div>
-        <div className="max-w-md mx-auto mt-4 h-1 bg-line rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-navy-900 transition-all duration-300"
-            style={{ width: `${(step / 3) * 100}%` }}
-          />
-        </div>
       </div>
 
-      <div className="flex-1 max-w-md w-full mx-auto p-4 sm:p-6 flex flex-col pt-6 relative z-10">
+      <div className="flex-1 max-w-md w-full mx-auto p-5 sm:p-6 flex flex-col justify-between">
+        
         {step === 1 && (
           <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
             <div>
-              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Professional ID</h2>
-              <p className="text-ink-soft text-sm mt-1">Set up your company and designation identity.</p>
+              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Organization</h2>
+              <p className="text-ink-soft text-sm mt-1">Tell us which company you represent.</p>
             </div>
 
             <div className="space-y-4">
@@ -183,20 +229,21 @@ export default function RepRegister() {
                 <input 
                   type="text" 
                   className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
-                  placeholder="e.g. Sun Pharma"
+                  placeholder="e.g. Sun Pharma, Torrent, Cipla"
                   value={formData.companyName}
                   onChange={(e) => updateForm('companyName', e.target.value)}
+                  autoFocus
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-                  Division / Brand Team
+                  Division <span className="text-ink-mute font-normal">(Optional)</span>
                 </label>
                 <input 
                   type="text" 
                   className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
-                  placeholder="e.g. Cardio-Diab"
+                  placeholder="e.g. Cardio-Diab, Spectra, Core"
                   value={formData.division}
                   onChange={(e) => updateForm('division', e.target.value)}
                 />
@@ -231,89 +278,48 @@ export default function RepRegister() {
         {step === 2 && (
           <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
             <div>
-              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Portfolio</h2>
-              <p className="text-ink-soft text-sm mt-1">What do you typically detail to doctors?</p>
+              <h2 className="text-2xl font-display font-bold text-ink tracking-tight">Specialties & Portfolio</h2>
+              <p className="text-ink-soft text-sm mt-1">Select your targeted medical specialties and products.</p>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-                  Primary Therapeutic Category <span className="text-coral-600">*</span>
-                </label>
-                <SearchableSelect 
-                  options={therapeuticOptions}
-                  value={formData.therapeuticCategory}
-                  onChange={(val) => updateForm('therapeuticCategory', val)}
+            <div className="space-y-5">
+              <div className="p-4 bg-white rounded-[1.25rem] border border-line shadow-xs">
+                <SpecialtySelector 
+                  specialties={formData.specialties || []}
+                  subSpecialties={formData.subSpecialties || []}
+                  onChange={({ specialties, subSpecialties }) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      specialties,
+                      subSpecialties,
+                      therapeuticCategory: specialties[0] || '',
+                      therapeuticCategory2: specialties[1] || ''
+                    }));
+                  }}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-                  Secondary Category <span className="text-ink-mute font-normal">(Opt)</span>
-                </label>
-                <SearchableSelect 
-                  options={therapeuticOptions.filter(o => o.value !== formData.therapeuticCategory)}
-                  value={formData.therapeuticCategory2}
-                  onChange={(val) => updateForm('therapeuticCategory2', val)}
-                  placeholder="Select secondary category"
+              <div className="p-4 bg-white rounded-[1.25rem] border border-line shadow-xs">
+                <ProductListManager
+                  products={formData.products || []}
+                  productNames={formData.productNames || []}
+                  onChange={({ products, productNames }) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      products,
+                      productNames
+                    }));
+                  }}
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-                  Key Brands You Carry <span className="text-coral-600">*</span>
-                </label>
-                <TagInput 
-                  tags={formData.productNames}
-                  onChange={(tags) => updateForm('productNames', tags)}
-                  placeholder="Type brand name & press Enter"
+              <div className="bg-white rounded-[1rem] shadow-sm border border-line px-4 py-3">
+                <ToggleSwitch 
+                  label="Samples Available"
+                  description="I carry physician starter samples or leave-behinds on visits."
+                  checked={formData.samplesAvailable}
+                  onChange={(val) => updateForm('samplesAvailable', val)}
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-                  Key Molecules
-                </label>
-                <textarea 
-                  className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-white shadow-sm outline-none resize-none min-h-[5rem] font-medium text-ink placeholder:text-ink-mute text-sm transition-all"
-                  placeholder="e.g. Metformin, Sitagliptin..."
-                  value={formData.molecules}
-                  onChange={(e) => updateForm('molecules', e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-                  Dosage Forms
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {dosageFormsList.map(form => (
-                    <button
-                      key={form}
-                      type="button"
-                      onClick={() => toggleDosageForm(form)}
-                      className={cn(
-                        "px-3 py-1.5 rounded-[0.625rem] text-xs font-mono font-medium transition-all border outline-none",
-                        formData.dosageForms.includes(form)
-                          ? "bg-navy-900 text-white border-navy-900 shadow-sm"
-                          : "bg-white text-ink-soft border-line hover:border-ink-mute"
-                      )}
-                    >
-                      {form}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <div className="bg-white rounded-[1rem] shadow-sm border border-line px-4 py-3">
-                  <ToggleSwitch 
-                    label="Samples Available"
-                    description="I usually carry product samples on my visits."
-                    checked={formData.samplesAvailable}
-                    onChange={(val) => updateForm('samplesAvailable', val)}
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -371,9 +377,11 @@ export default function RepRegister() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  <MonoTag variant="neutral">
-                    {formData.therapeuticCategory || 'Category'}
-                  </MonoTag>
+                  {(formData.specialties || []).slice(0, 3).map((spec) => (
+                    <MonoTag key={spec} variant="neutral">
+                      {spec}
+                    </MonoTag>
+                  ))}
                   {formData.samplesAvailable && (
                     <MonoTag variant="teal">
                       Has Samples
@@ -397,7 +405,7 @@ export default function RepRegister() {
           {step > 1 && (
             <button
               onClick={handleBack}
-              className="flex-shrink-0 bg-white text-ink border border-line font-bold rounded-[0.875rem] w-12 h-12 hover:bg-cream-50 transition-all active:scale-95 flex items-center justify-center shadow-sm"
+              className="flex-shrink-0 bg-white text-ink border border-line font-bold rounded-[0.875rem] w-12 h-12 hover:bg-cream-50 transition-all active:scale-95 flex items-center justify-center shadow-sm cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -408,9 +416,9 @@ export default function RepRegister() {
               onClick={handleNext}
               disabled={
                 (step === 1 && (!formData.companyName || !formData.designation || formData.mobile.length < 10)) ||
-                (step === 2 && (!formData.therapeuticCategory || formData.productNames.length === 0))
+                (step === 2 && ((!formData.specialties || formData.specialties.length === 0) && !formData.therapeuticCategory))
               }
-              className="flex-1 bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 hover:bg-navy-700 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-40 shadow-sm text-sm"
+              className="flex-1 bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 hover:bg-navy-700 transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-40 shadow-sm text-sm cursor-pointer"
             >
               Continue <ChevronRight className="w-4 h-4 text-amber-500" />
             </button>
@@ -418,7 +426,7 @@ export default function RepRegister() {
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 transition-all active:scale-[0.99] hover:bg-navy-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm text-sm"
+              className="flex-1 bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 transition-all active:scale-[0.99] hover:bg-navy-700 flex items-center justify-center gap-2 disabled:opacity-50 shadow-sm text-sm cursor-pointer"
             >
               {isSubmitting ? 'Saving...' : 'Complete Profile'} <Check className="w-4 h-4 text-teal-50" />
             </button>

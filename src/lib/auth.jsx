@@ -51,6 +51,7 @@ export const AuthProvider = ({ children }) => {
       userDocUnsub();
 
       if (currentUser) {
+        setLoading(true);
         userDocUnsub = onSnapshot(
           doc(db, 'users', currentUser.uid),
           (snap) => {

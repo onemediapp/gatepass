@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { subscribeRepAppointments } from '../../lib/db/appointments';
 import { useAuth } from '../../lib/auth';
-import { Calendar, ChevronRight, Clock, Search, Ticket, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
+import { Calendar, ChevronRight, Clock, Search, Ticket, CheckCircle2, AlertCircle, FileText, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { RepBottomNav } from '../../components/layout/RepBottomNav';
+import RepDrawerMenu from '../../components/layout/RepDrawerMenu';
 import Skeleton from '../../components/ui/Skeleton';
 import StatusChip from '../../components/ui/StatusChip';
 import EdgeCard from '../../components/ui/EdgeCard';
@@ -16,6 +17,7 @@ export default function RepHistory() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -60,7 +62,13 @@ export default function RepHistory() {
         <Skeleton className="w-full h-11 rounded-[1rem]" />
         <Skeleton className="w-full h-24 rounded-[1.25rem]" />
         <Skeleton className="w-full h-24 rounded-[1.25rem]" />
-        <RepBottomNav />
+        <RepDrawerMenu
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userData={user}
+      />
+
+      <RepBottomNav />
       </div>
     );
   }
@@ -86,14 +94,24 @@ export default function RepHistory() {
       
       {/* Header */}
       <div className="mb-5 flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Your Passes</h1>
-            <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-cream-200 text-ink-soft">
-              {counts.total}
-            </span>
+        <div className="flex items-start gap-2.5">
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="p-2 -ml-1 text-navy-950 hover:bg-white rounded-[0.75rem] transition-colors flex items-center gap-1.5 border border-line/70 bg-white shadow-2xs cursor-pointer active:scale-95 mt-0.5"
+            aria-label="Open menu"
+          >
+            <Menu className="w-4 h-4 text-navy-900" />
+          </button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Your Passes</h1>
+              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-cream-200 text-ink-soft">
+                {counts.total}
+              </span>
+            </div>
+            <p className="text-ink-soft text-xs mt-0.5">Track confirmed visits, pending slots, and history.</p>
           </div>
-          <p className="text-ink-soft text-xs mt-0.5">Track confirmed visits, pending slots, and history.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -239,6 +257,12 @@ export default function RepHistory() {
           })}
         </div>
       )}
+
+      <RepDrawerMenu
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userData={user}
+      />
 
       <RepBottomNav />
     </div>

@@ -36,8 +36,10 @@ import {
   User,
   ShieldCheck,
   Stethoscope,
-  Download
+  Download,
+  Menu
 } from 'lucide-react';
+import RepDrawerMenu from '../../components/layout/RepDrawerMenu';
 import { cn } from '../../lib/utils';
 
 function calculateRepCompleteness(rep, userData) {
@@ -70,6 +72,7 @@ export default function RepHome() {
   const [linkedDoctorIds, setLinkedDoctorIds] = useState(new Set());
   const [copiedDcr, setCopiedDcr] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const todayStr = todayDateStr();
 
@@ -206,9 +209,15 @@ export default function RepHome() {
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-[0.875rem] bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center font-display font-bold text-white shadow-inner">
-                {repFirstName.charAt(0) || 'R'}
-              </div>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="w-11 h-11 rounded-[0.875rem] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 flex items-center justify-center font-display font-bold text-white shadow-inner active:scale-95 transition-all cursor-pointer"
+                title="Open field menu"
+                aria-label="Open field menu"
+              >
+                <Menu className="w-5 h-5 text-amber-400" />
+              </button>
               <div>
                 <p className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
@@ -221,6 +230,14 @@ export default function RepHome() {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="px-2.5 py-1.5 rounded-[0.75rem] bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Menu className="w-4 h-4 text-amber-400" />
+                <span>Menu</span>
+              </button>
               <MonoTag variant="neutral" className="bg-white/10 text-white border-white/20 backdrop-blur-md">
                 {repProfile?.companyName || 'Medical Rep'}
               </MonoTag>
@@ -577,6 +594,14 @@ export default function RepHome() {
         </section>
 
       </main>
+
+      {/* Slide-out Mobile Menu Drawer */}
+      <RepDrawerMenu
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        repProfile={repProfile}
+        userData={userData}
+      />
 
       {/* Fixed Rep Bottom Nav */}
       <RepBottomNav />

@@ -19,9 +19,12 @@ import {
   ChevronRight, 
   Stethoscope, 
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Menu
 } from 'lucide-react';
 import { RepBottomNav } from '../../components/layout/RepBottomNav';
+import RepDrawerMenu from '../../components/layout/RepDrawerMenu';
+import { useAuth } from '../../lib/auth';
 import EdgeCard from '../../components/ui/EdgeCard';
 import LiveDot from '../../components/ui/LiveDot';
 import MonoTag from '../../components/ui/MonoTag';
@@ -30,10 +33,12 @@ import { cn } from '../../lib/utils';
 
 export default function DoctorSearch() {
   const navigate = useNavigate();
+  const { user, userData } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCity, setFilterCity] = useState('');
   const [filterSpecialty, setFilterSpecialty] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [isSearching, setIsSearching] = useState(false);
   const [results, setResults] = useState([]);
@@ -115,13 +120,22 @@ export default function DoctorSearch() {
         <div className="max-w-2xl mx-auto px-4 py-3 space-y-3">
           
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button 
                 onClick={() => navigate(-1)} 
                 className="p-2 -ml-2 rounded-[0.875rem] hover:bg-slate-100 transition-colors text-ink active:scale-95"
                 title="Go back"
               >
                 <ArrowLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                className="p-2 rounded-[0.875rem] hover:bg-slate-100 transition-colors text-ink active:scale-95"
+                title="Open menu"
+                aria-label="Open menu"
+              >
+                <Menu className="w-5 h-5 text-navy-900" />
               </button>
               <div>
                 <h1 className="font-display font-bold text-lg text-ink leading-tight">Find Doctors</h1>
@@ -325,6 +339,13 @@ export default function DoctorSearch() {
         )}
 
       </div>
+
+      {/* Slide-out Mobile Menu Drawer */}
+      <RepDrawerMenu
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userData={userData}
+      />
 
       {/* Fixed Rep Bottom Nav */}
       <RepBottomNav />
