@@ -263,6 +263,86 @@ export default function LandingPage() {
             </div>
           </div>
 
+          {/* Quick Pilot Portals Directory */}
+          <div className="mt-8 pt-6 border-t border-line/60">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[0.6875rem] font-mono uppercase tracking-wider font-bold text-slate-400">
+                Gatepass 2.0 Portals & Live Pilot
+              </span>
+              <span className="text-[0.625rem] bg-teal-50 text-teal-700 font-mono font-bold px-2 py-0.5 rounded-full border border-teal-200">
+                REMEDI Kurnool
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <a
+                href="/kiosk/karthik-remedi"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all flex flex-col gap-1 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-teal-600 transition-colors">Reception Kiosk</span>
+                  <span className="text-[0.625rem] font-mono text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200 font-bold">PIN 2026</span>
+                </div>
+                <span className="text-[0.6875rem] text-slate-500">Scan QR & Cabin tracker</span>
+              </a>
+
+              <a
+                href="/clinic-admin"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all flex flex-col gap-1 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">Clinic Management</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                </div>
+                <span className="text-[0.6875rem] text-slate-500">Branches, staff & rules</span>
+              </a>
+
+              <a
+                href="/enterprise"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all flex flex-col gap-1 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-amber-600 transition-colors">Pharma Enterprise</span>
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                </div>
+                <span className="text-[0.6875rem] text-slate-500">Field force, DCR & territory</span>
+              </a>
+
+              <a
+                href="/platform-admin"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all flex flex-col gap-1 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">Platform Admin</span>
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                </div>
+                <span className="text-[0.6875rem] text-slate-500">Verification & subscriptions</span>
+              </a>
+
+              <a
+                href="/rep/search"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all flex flex-col gap-1 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-purple-600 transition-colors">Doctor Discovery</span>
+                  <span className="w-2 h-2 rounded-full bg-purple-500" />
+                </div>
+                <span className="text-[0.6875rem] text-slate-500">Kurnool doctor search</span>
+              </a>
+
+              <a
+                href="/dr/karthik-remedi"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/80 transition-all flex flex-col gap-1 text-left group"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900 group-hover:text-teal-600 transition-colors">Doctor Booking</span>
+                  <span className="w-2 h-2 rounded-full bg-teal-500" />
+                </div>
+                <span className="text-[0.6875rem] text-slate-500">Dr. T. Karthik live profile</span>
+              </a>
+            </div>
+          </div>
+
         </div>
       </main>
 
