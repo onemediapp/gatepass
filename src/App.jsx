@@ -153,6 +153,25 @@ export default function App() {
                 <Route path="rules" element={<ClinicRulesNotices />} />
               </Route>
 
+              {/* Pharma Enterprise Portal */}
+              <Route path="/enterprise" element={<ProtectedRoute><EnterpriseLayout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/enterprise/dashboard" replace />} />
+                <Route path="dashboard" element={<EnterpriseDashboard />} />
+                <Route path="reps" element={<EnterpriseReps />} />
+                <Route path="territory" element={<EnterpriseTerritory />} />
+                <Route path="reports" element={<EnterpriseAnalytics />} />
+              </Route>
+
+              {/* Platform Admin Portal */}
+              <Route path="/platform-admin" element={<ProtectedRoute><PlatformAdminLayout /></ProtectedRoute>}>
+                <Route index element={<Navigate to="/platform-admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="verify-clinics" element={<DoctorClinicVerification />} />
+                <Route path="verify-doctors" element={<DoctorClinicVerification />} />
+                <Route path="verify-pharma" element={<MRCompanyVerification />} />
+                <Route path="subscriptions" element={<PlatformSubscriptions />} />
+              </Route>
+
               <Route path="/owner" element={<Navigate to="/admin/owner" replace />} />
 
               {/* Default fallback */}
