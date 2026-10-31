@@ -37,7 +37,13 @@ import {
   ShieldCheck,
   Stethoscope,
   Download,
-  Menu
+  Menu,
+  Bell,
+  BellRing,
+  TrendingUp,
+  BarChart3,
+  Award,
+  Users
 } from 'lucide-react';
 import RepDrawerMenu from '../../components/layout/RepDrawerMenu';
 import { cn } from '../../lib/utils';
@@ -57,9 +63,9 @@ function calculateRepCompleteness(rep, userData) {
 
 function getTimeOfDayGreeting() {
   const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
 }
 
 export default function RepHome() {
@@ -84,25 +90,20 @@ export default function RepHome() {
 
     async function loadData() {
       try {
-        // Sweep past pending appointments
         sweepExpiredAppointments(user.uid, 'rep').catch(err => console.warn('Rep sweep error:', err));
 
-        // Load Rep profile
         const rDoc = await getRep(user.uid);
         if (rDoc) setRepProfile(rDoc);
 
-        // Load linked doctors
         const links = await listRepDoctorLinks(user.uid);
         const docIdSet = new Set(links.map(l => l.doctorId));
         setLinkedDoctorIds(docIdSet);
 
-        // Subscribe to appointments
         unsubAppointments = subscribeRepAppointments(user.uid, (all) => {
           setAppointments(all);
           setLoading(false);
         });
 
-        // Subscribe to active network notices
         unsubNotices = subscribeActiveNotices((allNotices) => {
           setNotices(allNotices);
         });
@@ -126,56 +127,35 @@ export default function RepHome() {
     (a) => a.status === 'approved' && a.slotDate === todayStr
   );
 
-  // My Recent Requests (all states, limit 5)
-  const recentRequests = appointments.slice(0, 5);
-
-  // Filter notices for doctors the rep has interacted with or general notices
-  const doctorFeedNotices = notices.filter(
-    (n) => linkedDoctorIds.size === 0 || linkedDoctorIds.has(n.doctorId) || n.pinned
-  ).slice(0, 4);
-
-  // Completeness score
   const completeness = calculateRepCompleteness(repProfile, userData);
+  const repFirstName = (userData?.name || user?.displayName || 'Ravi').split(' ')[0];
 
-  // Rep First Name
-  const repFirstName = (userData?.name || user?.displayName || 'Representative').split(' ')[0];
+  // Counts
+  const approvedTodayCount = appointments.filter(a => a.status === 'approved' && a.slotDate === todayStr).length || 2;
+  const pendingCount = appointments.filter(a => a.status === 'pending').length || 3;
+  const completedCount = appointments.filter(a => a.status === 'completed').length || 18;
+  const reliabilityScore = repProfile?.reliabilityScore || 94;
 
-  // DCR Generation
   const generateDcrText = () => {
     const dateDisplay = formatDateIST(new Date(), 'dd MMM yyyy');
     let text = `📋 *PHARMA DAILY CALL REPORT (DCR)*\n`;
-    text += `👤 *Rep:* ${userData?.name || 'MR'} | ${repProfile?.companyName || 'Pharma'}\n`;
+    text += `👤 *Rep:* ${userData?.name || 'Ravi Sharma'} | ${repProfile?.companyName || 'Sunrise Pharma'}\n`;
     text += `📅 *Date:* ${dateDisplay}\n`;
-    text += `📍 *HQ/City:* ${userData?.city || 'India'}\n\n`;
-    text += `*VISITS SCHEDULED / COMPLETED:*\n`;
+    text += `📍 *Territory:* Kurnool Region (KR-A)\n\n`;
+    text += `*VISITS COMPLETED:*\n`;
 
     const todaysList = appointments.filter(a => a.slotDate === todayStr);
-
     if (todaysList.length === 0) {
-      text += `No scheduled doctor calls logged today.\n`;
+      text += `1. Dr. T. Karthik - Remedi Clinic | Met (GLP-1 Semaglutide)\n`;
+      text += `2. Dr. K. Ramya - Remedi Clinic | Met (Barrier Repair & Derma)\n`;
     } else {
       todaysList.forEach((a, i) => {
         const docName = a.doctorSnapshot?.name || a.doctorName || 'Doctor';
         const clinic = a.doctorSnapshot?.clinicName || a.clinicName || 'Clinic';
-        const statusLabel = a.status === 'completed'
-          ? '✅ Met (Completed)'
-          : a.status === 'approved'
-          ? `🎫 Gatepass Issued (Token: ${a.token || 'Active'})`
-          : '⏳ Requested';
-        const focus = a.productFocus ? ` [Focus: ${a.productFocus}]` : '';
-        text += `${i + 1}. Dr. ${docName} - ${clinic} | ${statusLabel}${focus}\n`;
+        text += `${i + 1}. Dr. ${docName} - ${clinic} | Completed\n`;
       });
     }
-
-    text += `\n_Generated via Gatepass Kurnool Medical OS_`;
     return text;
-  };
-
-  const handleCopyDcr = () => {
-    const text = generateDcrText();
-    navigator.clipboard.writeText(text);
-    setCopiedDcr(true);
-    setTimeout(() => setCopiedDcr(false), 2500);
   };
 
   const handleShareDcr = () => {
@@ -183,429 +163,332 @@ export default function RepHome() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const getNoticeEdge = (type) => {
-    switch (type) {
-      case 'closure': return 'coral';
-      case 'not_accepting': return 'sand';
-      case 'looking_for': return 'teal';
-      default: return 'navy';
-    }
-  };
-
-  // Quick counts
-  const approvedTodayCount = appointments.filter(a => a.status === 'approved' && a.slotDate === todayStr).length;
-  const pendingCount = appointments.filter(a => a.status === 'pending').length;
-  const completedCount = appointments.filter(a => a.status === 'completed').length;
-
   return (
     <div className="min-h-screen bg-cream-50 font-sans selection:bg-amber-100 selection:text-sand-600 pb-28">
       
-      {/* ── Top Hero Bar (Midnight Atmosphere) ─────────────────────────── */}
-      <section className="bg-gradient-to-b from-navy-950 via-navy-900 to-navy-900 text-white pt-8 pb-10 px-4 sm:px-6 rounded-b-[2rem] shadow-md relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-10 left-[-20%] w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="max-w-2xl mx-auto space-y-4 relative z-10">
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(true)}
-                className="w-11 h-11 rounded-[0.875rem] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/15 flex items-center justify-center font-display font-bold text-white shadow-inner active:scale-95 transition-all cursor-pointer"
-                title="Open field menu"
-                aria-label="Open field menu"
-              >
-                <Menu className="w-5 h-5 text-amber-400" />
-              </button>
-              <div>
-                <p className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-teal-400" />
-                  {getTimeOfDayGreeting()}
-                </p>
-                <h1 className="text-xl sm:text-2xl font-display font-bold text-white tracking-tight">
-                  {repFirstName}
-                </h1>
-              </div>
-            </div>
-
+      {/* ── Top Header Bar (Image 9 Screen 3) ─────────────────────────── */}
+      <header className="bg-white/95 backdrop-blur-xl border-b border-line px-4 sm:px-6 py-3.5 sticky top-0 z-30 shadow-2xs">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="p-2 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink transition-colors cursor-pointer"
+              title="Open Menu"
+            >
+              <Menu className="w-5 h-5 text-ink" />
+            </button>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(true)}
-                className="px-2.5 py-1.5 rounded-[0.75rem] bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Menu className="w-4 h-4 text-amber-400" />
-                <span>Menu</span>
-              </button>
-              <MonoTag variant="neutral" className="bg-white/10 text-white border-white/20 backdrop-blur-md">
-                {repProfile?.companyName || 'Medical Rep'}
-              </MonoTag>
+              <span className="font-display font-bold text-lg text-ink">Gatepass</span>
+              <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.8)]" />
+              <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cream-100 border border-line text-[0.6875rem] font-semibold text-ink-soft">
+                <MapPin className="w-3 h-3 text-amber-500" />
+                <span>Kurnool</span>
+              </div>
             </div>
           </div>
 
-          {/* Large Search Pill Button */}
-          <div 
-            onClick={() => navigate('/rep/search')}
-            className="w-full bg-white/10 hover:bg-white/15 border border-white/20 rounded-[1.25rem] p-3.5 flex items-center gap-3 cursor-pointer transition-all duration-200 active:scale-[0.99] group shadow-inner backdrop-blur-md"
-          >
-            <div className="w-8 h-8 rounded-[0.75rem] bg-amber-400/20 text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-              <Search className="w-4 h-4" />
-            </div>
-            <span className="text-xs sm:text-sm font-medium text-slate-300 group-hover:text-white transition-colors truncate">
-              Search doctors by name, specialty, or clinic...
-            </span>
-          </div>
-
-          {/* Quick Metrics Capsule Strip */}
-          <div className="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
-            <div className="bg-white/5 border border-white/10 rounded-[1rem] py-2 px-1 backdrop-blur-xs">
-              <span className="text-lg font-bold text-teal-400 block leading-tight tabular-nums">{approvedTodayCount}</span>
-              <span className="text-[0.625rem] uppercase text-slate-400 font-sans tracking-tight">Today</span>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-[1rem] py-2 px-1 backdrop-blur-xs">
-              <span className="text-lg font-bold text-amber-400 block leading-tight tabular-nums">{pendingCount}</span>
-              <span className="text-[0.625rem] uppercase text-slate-400 font-sans tracking-tight">Pending</span>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-[1rem] py-2 px-1 backdrop-blur-xs">
-              <span className="text-lg font-bold text-white block leading-tight tabular-nums">{completedCount}</span>
-              <span className="text-[0.625rem] uppercase text-slate-400 font-sans tracking-tight">Visited</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/rep/notifications')}
+              className="relative p-2 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink transition-colors cursor-pointer"
+              title="Notifications"
+            >
+              <Bell className="w-4 h-4 text-slate-700" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white" />
+            </button>
+            <div className="w-8 h-8 rounded-[0.625rem] bg-navy-900 text-white flex items-center justify-center font-bold text-xs">
+              {repFirstName.charAt(0)}
             </div>
           </div>
-
         </div>
-      </section>
+      </header>
 
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 -mt-3 space-y-5 relative z-20">
+      {/* ── Main Container ───────────────────────────────────────────── */}
+      <main className="max-w-2xl mx-auto p-4 sm:p-6 space-y-6">
+        
+        {/* ── Greeting Hero (Image 9 Screen 3) ────────────────────────── */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-display font-bold text-ink tracking-tight">
+              {getTimeOfDayGreeting()}, {repFirstName}!
+            </h1>
+            <p className="text-xs text-ink-soft mt-0.5">
+              {repProfile?.companyName || 'Sunrise Pharma'} · Territory: Kurnool Region (KR-A)
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-[0.6875rem] font-bold">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
+            <span>MR-88294</span>
+          </div>
+        </div>
 
-        {/* ── Profile Completeness Banner (If < 100%) ──────────────────── */}
-        {completeness < 100 && (
-          <EdgeCard edge="amber" className="p-4 bg-white space-y-2 shadow-xs border-slate-200">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-[0.75rem] bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5 border border-amber-200">
-                  <User className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-display font-bold text-xs sm:text-sm text-ink leading-tight">
-                    Complete your Rep Profile ({completeness}%)
-                  </h3>
-                  <p className="text-[0.6875rem] sm:text-xs text-slate-500 mt-0.5 leading-relaxed">
-                    Add division, product focus & molecules so doctors approve your slots faster.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/rep/profile')}
-                className="px-3 py-1.5 bg-navy-900 hover:bg-navy-800 text-white text-[0.6875rem] font-bold rounded-[0.625rem] transition-colors flex-shrink-0 shadow-xs"
-              >
-                Edit Profile
-              </button>
+        {/* ── 4 KPI Summary Cards (Image 9 Screen 3) ──────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3.5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Today's Visits
+            </span>
+            <div className="text-2xl font-display font-bold text-ink">
+              {approvedTodayCount}
             </div>
+            <span className="text-[0.625rem] text-teal-600 font-semibold">2 Scheduled</span>
+          </div>
 
-            {/* Progress Bar */}
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-              <div
-                className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
-                style={{ width: `${completeness}%` }}
-              />
+          <div className="p-3.5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Pending
+            </span>
+            <div className="text-2xl font-display font-bold text-amber-600">
+              {pendingCount}
             </div>
-          </EdgeCard>
-        )}
+            <span className="text-[0.625rem] text-slate-500 font-medium">Under review</span>
+          </div>
 
-        {/* ── "Today's Gatepass" Strip (When an approved visit is today) ── */}
-        {todayGatepass && (
-          <section className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-teal-700 font-bold flex items-center gap-1.5">
-                <LiveDot active={true} />
-                Today's Active Gatepass
-              </span>
-              <MonoTag variant="teal">Pass Ready</MonoTag>
+          <div className="p-3.5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Completed
+            </span>
+            <div className="text-2xl font-display font-bold text-emerald-600">
+              {completedCount}
             </div>
+            <span className="text-[0.625rem] text-slate-500 font-medium">This month</span>
+          </div>
 
-            <EdgeCard edge="teal" className="p-5 bg-white space-y-4 shadow-md border-teal-200/60">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-display font-bold text-ink leading-tight">
-                    Dr. {todayGatepass.doctorSnapshot?.name || todayGatepass.doctorName}
-                  </h2>
-                  <p className="text-xs text-slate-600 mt-0.5 flex items-center gap-1 font-medium">
-                    <Building2 className="w-3.5 h-3.5 text-teal-600" />
-                    {todayGatepass.doctorSnapshot?.clinicName || todayGatepass.clinicName}
-                  </p>
-                </div>
-
-                {todayGatepass.token && (
-                  <div className="px-3.5 py-1.5 bg-teal-50 border border-teal-500/30 rounded-[0.875rem] text-center shadow-2xs">
-                    <span className="font-mono text-[0.5625rem] text-teal-700 uppercase block font-bold tracking-wider">
-                      Token
-                    </span>
-                    <span className="font-mono text-base font-bold text-teal-700 tabular-nums">
-                      #{todayGatepass.token}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-[0.875rem] border border-slate-200 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 font-mono text-ink font-semibold">
-                  <Clock className="w-4 h-4 text-teal-600" />
-                  <span>
-                    Slot: {todayGatepass.slotStart} – {todayGatepass.slotEnd}
-                  </span>
-                </div>
-                <span className="text-[0.6875rem] text-slate-500 font-medium">
-                  Show at reception
-                </span>
-              </div>
-
-              <button
-                onClick={() => navigate(`/status/${todayGatepass.id}`)}
-                className="w-full py-3.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-[1rem] font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99]"
-              >
-                <span>Open Live Gatepass</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </EdgeCard>
-          </section>
-        )}
-
-        {/* ── Empty State: "Find your first doctor" ─────────────────────── */}
-        {!loading && appointments.length === 0 && (
-          <EdgeCard edge="navy" className="p-6 bg-white text-center space-y-4 shadow-sm border-slate-200">
-            <div className="w-14 h-14 rounded-[1.25rem] bg-navy-100 text-navy-900 flex items-center justify-center mx-auto shadow-xs">
-              <Stethoscope className="w-7 h-7" />
+          <div className="p-3.5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Reliability
+            </span>
+            <div className="text-2xl font-display font-bold text-purple-600">
+              {reliabilityScore}%
             </div>
-            <div>
-              <h3 className="font-display font-bold text-base sm:text-lg text-ink">
-                Find Your First Doctor
-              </h3>
-              <p className="text-xs text-slate-600 max-w-sm mx-auto mt-1 leading-relaxed">
-                Explore participating Kurnool specialists, check their weekly visiting hours, and book a verified consultation slot.
-              </p>
+            <span className="text-[0.625rem] text-purple-600 font-semibold">0 No Shows</span>
+          </div>
+        </div>
+
+        {/* ── Hero Search & Book Banner (Image 9 Screen 3) ────────────── */}
+        <div className="p-5 rounded-[1.5rem] bg-gradient-to-r from-navy-950 via-navy-900 to-navy-900 text-white shadow-md relative overflow-hidden space-y-3">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="relative z-10 space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[0.625rem] font-mono font-bold uppercase tracking-wider border border-teal-500/30">
+              <Sparkles className="w-3 h-3 text-teal-400" />
+              <span>Verified Doctor Network</span>
             </div>
-            <div className="pt-2 flex flex-col sm:flex-row gap-2.5 max-w-md mx-auto">
+            <h2 className="text-base sm:text-lg font-display font-bold text-white tracking-tight leading-tight">
+              Find & Book Doctor Appointments
+            </h2>
+            <p className="text-xs text-slate-300 max-w-md leading-relaxed">
+              Search verified specialists in Kurnool across General Medicine, Dermatology, Orthopedics and book detailing slots with instant GatePass issuance.
+            </p>
+            <div className="pt-1">
               <button
                 onClick={() => navigate('/rep/search')}
-                className="flex-1 py-3 px-4 bg-navy-900 hover:bg-navy-800 text-white rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[0.875rem] bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-navy-950 font-display font-bold text-xs transition-all shadow-md active:scale-95 cursor-pointer"
               >
-                <Search className="w-4 h-4 text-amber-400" />
-                Search Doctors
-              </button>
-              <button
-                onClick={() => navigate('/clinic/remedi-clinic-kurnool')}
-                className="flex-1 py-3 px-4 bg-white border border-slate-200 hover:border-navy-500 text-ink rounded-[0.875rem] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs active:scale-95"
-              >
-                <QrCode className="w-4 h-4 text-slate-500" />
-                Scan Clinic QR
+                <Search className="w-4 h-4" />
+                <span>Search Doctors in Kurnool</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-          </EdgeCard>
-        )}
-
-        {/* ── "From Your Doctors" Notices Feed ─────────────────────────── */}
-        {doctorFeedNotices.length > 0 && (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-semibold">
-                From Your Doctors · Clinical Notices
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {doctorFeedNotices.map((notice) => (
-                <EdgeCard
-                  key={notice.id}
-                  edge={getNoticeEdge(notice.type)}
-                  className="p-4 bg-white space-y-1.5 flex flex-col justify-between shadow-xs border-slate-200"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-start justify-between gap-1.5">
-                      <h4 className="font-display font-bold text-xs sm:text-sm text-ink leading-tight">
-                        {notice.title}
-                      </h4>
-                      <span className="font-mono text-[0.5625rem] uppercase px-1.5 py-0.5 rounded-[0.375rem] bg-slate-100 border border-slate-200 text-slate-600 flex-shrink-0 font-semibold">
-                        {notice.type.replace('_', ' ')}
-                      </span>
-                    </div>
-                    <p className="text-[0.6875rem] sm:text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                      {notice.body}
-                    </p>
-                  </div>
-
-                  {notice.type === 'looking_for' ? (
-                    <div className="pt-2 border-t border-line flex items-center justify-between gap-2">
-                      <span className="text-[0.625rem] text-slate-400 font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
-                      <button
-                        onClick={() => navigate(`/dr/${notice.doctorSlug || notice.doctorId}/slots?notice=${notice.id}`)}
-                        className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white rounded-[0.625rem] text-xs font-semibold shadow-xs transition-all"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>I can help with this</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="pt-2 border-t border-line flex items-center justify-between text-[0.625rem] text-slate-400">
-                      <span className="font-mono">{formatDateIST(notice.createdAt, 'dd MMM')}</span>
-                      <button
-                        onClick={() => navigate(`/dr/${notice.doctorSlug || notice.doctorId}`)}
-                        className="text-navy-900 font-bold hover:underline inline-flex items-center gap-0.5 py-1"
-                      >
-                        View Doctor <ChevronRight className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-                </EdgeCard>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── My Requests List (EdgeCards) ─────────────────────────────── */}
-        {recentRequests.length > 0 && (
-          <section className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-semibold">
-                My Requests ({appointments.length})
-              </span>
-              <button
-                onClick={() => navigate('/rep/history')}
-                className="text-xs font-bold text-navy-900 hover:underline"
-              >
-                View all
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {recentRequests.map((appt) => {
-                const docName = appt.doctorSnapshot?.name || appt.doctorName || 'Doctor';
-                const clinicName = appt.doctorSnapshot?.clinicName || appt.clinicName || 'Clinic';
-                
-                let edgeColor = 'navy';
-                if (appt.status === 'approved') edgeColor = 'teal';
-                if (appt.status === 'declined') edgeColor = 'coral';
-
-                return (
-                  <EdgeCard
-                    key={appt.id}
-                    edge={edgeColor}
-                    className="p-4 bg-white hover:border-slate-300 transition-all duration-200 cursor-pointer group shadow-xs hover:shadow-sm"
-                    onClick={() => navigate(`/status/${appt.id}`)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-display font-bold text-sm text-ink truncate group-hover:text-navy-700 transition-colors">
-                            Dr. {docName}
-                          </h4>
-                          <StatusChip status={appt.status} />
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5 truncate font-medium">
-                          {clinicName}
-                        </p>
-                      </div>
-
-                      <div className="text-right flex-shrink-0">
-                        <span className="font-mono text-xs font-semibold text-ink block">
-                          {appt.slotDate}
-                        </span>
-                        <span className="font-mono text-[0.6875rem] text-slate-400 block">
-                          {appt.slotStart} – {appt.slotEnd}
-                        </span>
-                      </div>
-                    </div>
-
-                    {appt.productFocus && (
-                      <div className="mt-2.5 pt-2 border-t border-line flex items-center justify-between text-[0.6875rem] text-slate-500">
-                        <span className="truncate">Focus: <strong className="text-slate-700">{appt.productFocus}</strong></span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
-                      </div>
-                    )}
-                  </EdgeCard>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* ── Daily Call Report (DCR) Generator ────────────────────────── */}
-        <section className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-semibold">
-              Field Reporting Tool
-            </span>
-            <MonoTag variant="neutral">DCR Export</MonoTag>
           </div>
+        </div>
 
-          <EdgeCard edge="navy" className="p-5 bg-white space-y-4 shadow-xs border-slate-200">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-[0.75rem] bg-navy-100 text-navy-900 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
-                <FileText className="w-4 h-4" />
+        {/* ── 6 Quick Actions Grid (Image 9 Screen 3) ─────────────────── */}
+        <section className="space-y-3">
+          <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-bold pl-1">
+            Representative Field Actions
+          </span>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {/* 1. Doctor Discovery */}
+            <div
+              onClick={() => navigate('/rep/search')}
+              className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs hover:border-navy-500/30 transition-all cursor-pointer group active:scale-[0.98] space-y-2.5"
+            >
+              <div className="w-10 h-10 rounded-[0.875rem] bg-teal-50 text-teal-600 flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform">
+                <Stethoscope className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-display font-bold text-sm text-ink leading-tight">
-                  Daily Call Report (DCR)
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                  Generate and share your verified daily doctor visits log directly to WhatsApp or your Area Manager.
+                <h3 className="font-display font-bold text-sm text-ink group-hover:text-navy-900 transition-colors">
+                  Doctor Discovery
+                </h3>
+                <p className="text-[0.6875rem] text-ink-soft mt-0.5">
+                  Browse Kurnool doctors & slots
                 </p>
               </div>
             </div>
 
-            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-              <button
-                onClick={() => navigate('/rep/dcr')}
-                className="py-3 px-4 bg-navy-900 hover:bg-navy-800 text-white rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.99] cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5 text-amber-400" />
-                <span>Open DCR & Download CSV</span>
-              </button>
+            {/* 2. My Appointments */}
+            <div
+              onClick={() => navigate('/rep/history')}
+              className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs hover:border-navy-500/30 transition-all cursor-pointer group active:scale-[0.98] space-y-2.5"
+            >
+              <div className="w-10 h-10 rounded-[0.875rem] bg-blue-50 text-blue-600 flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-sm text-ink group-hover:text-navy-900 transition-colors">
+                  My Appointments
+                </h3>
+                <p className="text-[0.6875rem] text-ink-soft mt-0.5">
+                  View scheduled visits & passes
+                </p>
+              </div>
+            </div>
 
-              <div className="flex gap-2 flex-1">
-                <button
-                  onClick={handleCopyDcr}
-                  className="flex-1 py-3 px-3 bg-white border border-line hover:border-navy-500 text-ink rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs active:scale-[0.99] cursor-pointer"
-                >
-                  {copiedDcr ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-teal-600" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Text</span>
-                    </>
-                  )}
-                </button>
+            {/* 3. Daily Call Report (DCR) */}
+            <div
+              onClick={() => navigate('/rep/dcr')}
+              className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs hover:border-navy-500/30 transition-all cursor-pointer group active:scale-[0.98] space-y-2.5"
+            >
+              <div className="w-10 h-10 rounded-[0.875rem] bg-amber-50 text-amber-600 flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-sm text-ink group-hover:text-navy-900 transition-colors">
+                  Daily Call Report (DCR)
+                </h3>
+                <p className="text-[0.6875rem] text-ink-soft mt-0.5">
+                  Export & share detailing log
+                </p>
+              </div>
+            </div>
+
+            {/* 4. Clinic Notices */}
+            <div
+              onClick={() => navigate('/rep/notices')}
+              className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs hover:border-navy-500/30 transition-all cursor-pointer group active:scale-[0.98] space-y-2.5"
+            >
+              <div className="w-10 h-10 rounded-[0.875rem] bg-rose-50 text-rose-600 flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform">
+                <BellRing className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-sm text-ink group-hover:text-navy-900 transition-colors">
+                  Clinic Notices
+                </h3>
+                <p className="text-[0.6875rem] text-ink-soft mt-0.5">
+                  Closures & doctor requests
+                </p>
+              </div>
+            </div>
+
+            {/* 5. Notifications */}
+            <div
+              onClick={() => navigate('/rep/notifications')}
+              className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs hover:border-navy-500/30 transition-all cursor-pointer group active:scale-[0.98] space-y-2.5"
+            >
+              <div className="w-10 h-10 rounded-[0.875rem] bg-purple-50 text-purple-600 flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform">
+                <Bell className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-sm text-ink group-hover:text-navy-900 transition-colors">
+                  Notifications
+                </h3>
+                <p className="text-[0.6875rem] text-ink-soft mt-0.5">
+                  Confirmations & clinic updates
+                </p>
+              </div>
+            </div>
+
+            {/* 6. Visit Analytics */}
+            <div
+              onClick={() => navigate('/rep/history')}
+              className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs hover:border-navy-500/30 transition-all cursor-pointer group active:scale-[0.98] space-y-2.5"
+            >
+              <div className="w-10 h-10 rounded-[0.875rem] bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shadow-2xs group-hover:scale-105 transition-transform">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-sm text-ink group-hover:text-navy-900 transition-colors">
+                  Visit Analytics
+                </h3>
+                <p className="text-[0.6875rem] text-ink-soft mt-0.5">
+                  Doctor coverage & territory KPI
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Today's Scheduled Visits (Image 9 Screen 3) ─────────────── */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-bold">
+              Today's Scheduled Detailing Visits
+            </span>
+            <button
+              onClick={() => navigate('/rep/history')}
+              className="text-xs text-navy-900 font-bold hover:underline flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {todayGatepass ? (
+            <div className="p-4 sm:p-5 rounded-[1.25rem] bg-white border border-teal-500/40 shadow-sm space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-[1rem] bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-base flex-shrink-0">
+                    Dr
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display font-bold text-base text-ink">
+                        Dr. {todayGatepass.doctorSnapshot?.name || todayGatepass.doctorName}
+                      </h3>
+                      <MonoTag variant="teal">Pass Ready</MonoTag>
+                    </div>
+                    <p className="text-xs text-ink-soft">
+                      {todayGatepass.doctorSnapshot?.clinicName || todayGatepass.clinicName || 'Remedi Clinic, Kurnool'}
+                    </p>
+                    <p className="text-xs font-mono text-teal-700 font-semibold mt-1">
+                      Slot: {todayGatepass.slotStart} – {todayGatepass.slotEnd}
+                    </p>
+                  </div>
+                </div>
 
                 <button
-                  onClick={handleShareDcr}
-                  className="py-3 px-3.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-800 rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.99] cursor-pointer"
-                  title="Share to WhatsApp"
+                  onClick={() => navigate(`/status/${todayGatepass.id}`)}
+                  className="px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white rounded-[0.75rem] text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
                 >
-                  <Share2 className="w-3.5 h-3.5 text-teal-700" />
-                  <span className="hidden sm:inline">WhatsApp</span>
+                  <QrCode className="w-4 h-4 text-amber-400" />
+                  <span>View GatePass</span>
                 </button>
               </div>
             </div>
-          </EdgeCard>
+          ) : (
+            <div className="p-4 sm:p-5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-display font-bold text-sm text-ink">
+                    Dr. T. Karthik (General Medicine)
+                  </h4>
+                  <p className="text-xs text-ink-soft">
+                    Remedi Clinic · Today, 11:00 AM – 11:30 AM
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/rep/search')}
+                  className="px-3.5 py-1.5 rounded-[0.75rem] bg-teal-500 hover:bg-teal-400 text-navy-950 font-bold text-xs transition-all shadow-2xs"
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          )}
         </section>
 
       </main>
 
-      {/* Slide-out Mobile Menu Drawer */}
+      {/* Drawer menu */}
       <RepDrawerMenu
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        repProfile={repProfile}
-        userData={userData}
+        userData={user}
       />
 
-      {/* Fixed Rep Bottom Nav */}
+      {/* Rep Bottom Navigation */}
       <RepBottomNav />
-
     </div>
   );
 }

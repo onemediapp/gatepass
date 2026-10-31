@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useEffect } from 'react';
 import { listClinicsByDoctor, createClinic, updateClinic } from '../../lib/db/clinics';
 import { linkDoctorClinic } from '../../lib/db/doctorClinics';
@@ -16,12 +21,16 @@ import {
   ExternalLink, 
   Copy, 
   Sparkles,
-  KeyRound 
+  KeyRound,
+  Users,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { handleFirestoreError, OperationType } from '../../utils/firebaseErrors';
-import EdgeCard from '../../components/ui/EdgeCard';
 import Skeleton from '../../components/ui/Skeleton';
-import MonoTag from '../../components/ui/MonoTag';
+import { cn } from '../../lib/utils';
+
+const CLINIC_TYPES = ['Clinic', 'Hospital', 'Day Care', 'Other'];
 
 export default function DoctorClinics() {
   const { user } = useAuth();
@@ -34,10 +43,12 @@ export default function DoctorClinics() {
   const [formData, setFormData] = useState({
     clinicName: '',
     address: '',
-    city: '',
-    state: '',
+    city: 'Kurnool',
+    state: 'Andhra Pradesh',
     phone: '',
-    repHours: '',
+    clinicType: 'Clinic',
+    mapLocation: '',
+    kioskEnabled: true,
     staffPin: '2026'
   });
 
@@ -61,7 +72,17 @@ export default function DoctorClinics() {
 
   const handleOpenNew = () => {
     setEditingClinic(null);
-    setFormData({ clinicName: '', address: '', city: '', state: '', phone: '', repHours: '', staffPin: '2026' });
+    setFormData({
+      clinicName: '',
+      address: '',
+      city: 'Kurnool',
+      state: 'Andhra Pradesh',
+      phone: '',
+      clinicType: 'Clinic',
+      mapLocation: 'Gayathri Estates, Kurnool, Andhra Pradesh',
+      kioskEnabled: true,
+      staffPin: '2026'
+    });
     setShowModal(true);
   };
 
@@ -70,10 +91,12 @@ export default function DoctorClinics() {
     setFormData({
       clinicName: clinic.clinicName || '',
       address: clinic.address || '',
-      city: clinic.city || '',
-      state: clinic.state || '',
+      city: clinic.city || 'Kurnool',
+      state: clinic.state || 'Andhra Pradesh',
       phone: clinic.phone || '',
-      repHours: clinic.repHours || '',
+      clinicType: clinic.clinicType || 'Clinic',
+      mapLocation: clinic.mapLocation || clinic.address || '',
+      kioskEnabled: clinic.kioskEnabled !== false,
       staffPin: clinic.staffPin || '2026'
     });
     setShowModal(true);
@@ -83,7 +106,8 @@ export default function DoctorClinics() {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.random().toString(36).substring(2, 7);
   };
 
-  const handleSave = async () => {
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
     if (!formData.clinicName || !formData.address) return;
     setSaving(true);
     
@@ -95,7 +119,9 @@ export default function DoctorClinics() {
           city: formData.city,
           state: formData.state,
           phone: formData.phone,
-          repHours: formData.repHours,
+          clinicType: formData.clinicType,
+          mapLocation: formData.mapLocation,
+          kioskEnabled: formData.kioskEnabled,
           staffPin: formData.staffPin || '2026'
         });
       } else {
@@ -106,7 +132,9 @@ export default function DoctorClinics() {
           city: formData.city,
           state: formData.state,
           phone: formData.phone,
-          repHours: formData.repHours,
+          clinicType: formData.clinicType,
+          mapLocation: formData.mapLocation,
+          kioskEnabled: formData.kioskEnabled,
           staffPin: formData.staffPin || '2026',
           slug: baseSlug,
           ownerDoctorId: user.uid,
@@ -139,228 +167,306 @@ export default function DoctorClinics() {
       <div className="pb-10 max-w-4xl mx-auto space-y-4 font-sans">
         <Skeleton className="w-48 h-8 rounded-[0.75rem]" />
         <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-40 rounded-[1.25rem]" />
-          <Skeleton className="h-40 rounded-[1.25rem]" />
+          <Skeleton className="h-44 rounded-[1.25rem]" />
+          <Skeleton className="h-44 rounded-[1.25rem]" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="pb-10 max-w-4xl mx-auto font-sans selection:bg-amber-100 selection:text-sand-600">
-      <div className="flex items-center justify-between mb-6">
+    <div className="pb-10 max-w-4xl mx-auto font-sans selection:bg-amber-100 selection:text-sand-600 space-y-6">
+      
+      {/* ── Top Header (Reference Image 2 Screen 1) ──────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Practice Locations</h1>
-          <p className="text-ink-soft text-xs mt-0.5">Manage clinics where medical representatives can visit you.</p>
+          <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Clinic Locations</h1>
+          <p className="text-ink-soft text-xs mt-0.5">Manage your clinic branches and visiting locations.</p>
         </div>
         <button 
           onClick={handleOpenNew}
-          className="bg-navy-900 text-white px-4 py-2.5 rounded-[0.875rem] font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-navy-700 transition-all active:scale-[0.99]"
+          className="bg-navy-900 text-white px-4 py-2.5 rounded-[0.875rem] font-bold text-xs flex items-center gap-1.5 shadow-sm hover:bg-navy-800 transition-all active:scale-95 cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4 text-amber-500" /> Add Clinic
+          <Plus className="w-4 h-4 text-amber-400" />
+          <span>Add Clinic</span>
         </button>
       </div>
 
+      {/* ── Clinics List ────────────────────────────────────────────── */}
       {clinics.length === 0 ? (
         <div className="text-center py-12 text-ink-mute font-medium bg-white rounded-[1.25rem] border border-line border-dashed text-xs">
           You haven't set up any clinics yet. Click "Add Clinic" to get started.
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {clinics.map(clinic => (
-            <EdgeCard key={clinic.id} edge="teal" className="p-5 flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-[0.75rem] flex items-center justify-center border border-teal-600/20">
-                    <Building2 className="w-5 h-5" />
+        <div className="space-y-4">
+          {clinics.map((clinic, idx) => {
+            const isPrimary = idx === 0;
+            return (
+              <div 
+                key={clinic.id} 
+                className="p-5 rounded-[1.5rem] bg-white border border-line shadow-card hover:border-teal-300 transition-all space-y-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-[1rem] bg-teal-50 border border-teal-200 text-teal-700 flex items-center justify-center shrink-0">
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-base font-display font-bold text-ink">
+                          {clinic.clinicName}
+                        </h2>
+                        {isPrimary && (
+                          <span className="px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 text-[0.625rem] font-bold">
+                            Primary
+                          </span>
+                        )}
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-[0.625rem] font-bold font-mono",
+                          clinic.isActive !== false ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500"
+                        )}>
+                          {clinic.isActive !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 flex items-start gap-1 mt-1">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                        <span>{clinic.address}, {clinic.city}, {clinic.state}</span>
+                      </p>
+
+                      {clinic.phone && (
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-1 font-mono">
+                          <Phone className="w-3 h-3 text-slate-400" />
+                          <span>{clinic.phone}</span>
+                        </p>
+                      )}
+                    </div>
                   </div>
+
                   <button 
                     onClick={() => handleOpenEdit(clinic)}
-                    className="p-1.5 text-ink-mute hover:text-navy-900 hover:bg-cream-50 rounded-[0.5rem] transition-all"
+                    className="p-2 text-slate-400 hover:text-ink hover:bg-slate-100 rounded-[0.75rem] transition-colors cursor-pointer"
                     title="Edit clinic"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Edit2 className="w-4 h-4" />
                   </button>
                 </div>
-                <h2 className="text-base font-display font-bold text-ink mb-1">{clinic.clinicName}</h2>
-                <p className="text-ink-soft text-xs flex items-start gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <span>{clinic.address}, {clinic.city}, {clinic.state}</span>
-                </p>
-              </div>
-              
-              <div className="mt-4 pt-3 border-t border-line space-y-2">
-                {clinic.phone && (
-                  <div className="flex items-center gap-1.5 text-xs text-ink-soft">
-                    <Phone className="w-3 h-3 text-ink-mute" />
-                    <span className="font-mono text-[0.6875rem]">{clinic.phone}</span>
-                  </div>
-                )}
-                {clinic.repHours && (
-                  <div className="flex items-center gap-1.5 text-xs text-ink-soft">
-                    <Clock className="w-3 h-3 text-ink-mute" />
-                    <span className="font-mono text-[0.6875rem]">MR Hours: {clinic.repHours}</span>
-                  </div>
-                )}
 
-                {/* Reception Kiosk & Staff Delegation Box */}
-                <div className="mt-3 p-3 rounded-[0.875rem] bg-cream-100/70 border border-line/80 flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Monitor className="w-3.5 h-3.5 text-sand-600" />
-                      <span className="font-bold text-xs text-ink">Reception Desk Kiosk</span>
-                    </div>
-                    <span className="font-mono text-[0.625rem] bg-navy-900 text-amber-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
-                      <KeyRound className="w-2.5 h-2.5" /> PIN: {clinic.staffPin || '2026'}
+                {/* Bottom Tags / Kiosk Indicators (Reference Image 2 Screen 1) */}
+                <div className="pt-3 border-t border-line/70 flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1.5 text-slate-600 font-medium">
+                      <Users className="w-3.5 h-3.5 text-slate-400" />
+                      <span>4 Doctors</span>
+                    </span>
+
+                    <span className="inline-flex items-center gap-1.5 text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200 text-[0.6875rem] font-semibold">
+                      <Monitor className="w-3 h-3" />
+                      <span>Reception Kiosk</span>
                     </span>
                   </div>
-                  <p className="text-[0.6875rem] text-ink-soft">
-                    Counter tablet mode for clinic receptionists to manage arriving reps without doctor account login.
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    <a
-                      href={`/kiosk/${clinic.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-1.5 px-3 bg-navy-900 text-white rounded-[0.625rem] text-xs font-bold hover:bg-navy-800 transition-colors flex items-center justify-center gap-1.5 text-center"
-                    >
-                      <span>Open Kiosk</span>
-                      <ExternalLink className="w-3 h-3 text-amber-400" />
-                    </a>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/kiosk/${clinic.slug}`);
-                        setCopiedSlug(clinic.slug);
-                        setTimeout(() => setCopiedSlug(null), 2000);
-                      }}
-                      className="px-2.5 py-1.5 border border-line rounded-[0.625rem] text-xs font-medium text-ink-soft hover:bg-white transition-colors flex items-center gap-1"
-                      title="Copy Kiosk URL"
-                    >
-                      {copiedSlug === clinic.slug ? <Check className="w-3.5 h-3.5 text-teal-600" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedSlug === clinic.slug ? 'Copied' : 'Copy'}</span>
-                    </button>
-                  </div>
+
+                  <a 
+                    href={`/kiosk/${clinic.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center gap-1"
+                  >
+                    <span>Open Kiosk</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
-            </EdgeCard>
-          ))}
+            );
+          })}
         </div>
       )}
 
+      {/* ── Add / Edit Clinic Modal (Reference Image 2 Screen 2) ──────── */}
       {showModal && (
-        <div className="fixed inset-0 bg-navy-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[1.75rem] w-full max-w-lg shadow-[0_20px_60px_rgba(11,23,48,0.2)] overflow-hidden max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-5 py-4 border-b border-line flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10">
-              <h2 className="text-lg font-display font-bold text-ink">
-                {editingClinic ? 'Edit Clinic' : 'Add New Clinic'}
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1.5 text-ink-mute hover:text-ink hover:bg-cream-50 rounded-[0.5rem] transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-[1.75rem] max-w-lg w-full border border-line shadow-2xl overflow-hidden my-6">
             
-            <div className="p-5 overflow-y-auto space-y-4">
-              <div className="space-y-1">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Clinic Name *</label>
-                <input 
-                  type="text" 
-                  value={formData.clinicName}
-                  onChange={e => setFormData({...formData, clinicName: e.target.value})}
-                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-                  placeholder="e.g. Remedi Clinic"
-                />
-              </div>
-              
-              <div className="space-y-1">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Address *</label>
-                <input 
-                  type="text" 
-                  value={formData.address}
-                  onChange={e => setFormData({...formData, address: e.target.value})}
-                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-                  placeholder="e.g. Gayatri Estates, Kurnool"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">City</label>
-                  <input 
-                    type="text" 
-                    value={formData.city}
-                    onChange={e => setFormData({...formData, city: e.target.value})}
-                    className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-                    placeholder="Kurnool"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">State</label>
-                  <input 
-                    type="text" 
-                    value={formData.state}
-                    onChange={e => setFormData({...formData, state: e.target.value})}
-                    className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-                    placeholder="Andhra Pradesh"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Phone Number</label>
-                <input 
-                  type="tel" 
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-                  placeholder="08518-..."
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">MR Meeting Hours</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Mon, Wed, Fri 2PM-4PM"
-                  value={formData.repHours}
-                  onChange={e => setFormData({...formData, repHours: e.target.value})}
-                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-                />
-              </div>
-
-              <div className="space-y-1 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="font-mono text-xs uppercase tracking-wider text-ink-mute font-semibold px-0.5">Staff Reception PIN</label>
-                  <span className="text-[0.625rem] font-mono text-sand-600 font-bold">Default: 2026</span>
-                </div>
-                <input 
-                  type="text" 
-                  maxLength={6}
-                  placeholder="2026"
-                  value={formData.staffPin}
-                  onChange={e => setFormData({...formData, staffPin: e.target.value.replace(/\D/g, '')})}
-                  className="w-full border border-line rounded-[0.875rem] px-3.5 py-2.5 focus:ring-2 focus:ring-navy-100 focus:border-navy-500 bg-cream-50 outline-none font-mono font-bold text-ink placeholder:text-ink-mute text-xs tracking-widest transition-all"
-                />
-                <p className="text-[0.625rem] text-ink-soft px-0.5">
-                  Receptionists or front desk staff use this PIN on the counter tablet to manage arriving reps.
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-line flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="font-display font-bold text-base text-ink">
+                  {editingClinic ? 'Edit Clinic' : 'Add Clinic'}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Enter clinic details and configure settings.
                 </p>
               </div>
-            </div>
-
-            <div className="p-4 border-t border-line bg-cream-50 mt-auto">
               <button 
-                onClick={handleSave}
-                disabled={saving || !formData.clinicName || !formData.address}
-                className="w-full bg-navy-900 text-white font-bold rounded-[0.875rem] px-5 py-3 hover:bg-navy-700 transition-all active:scale-[0.99] flex items-center justify-center gap-2 shadow-sm text-xs disabled:opacity-50"
+                onClick={() => setShowModal(false)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-ink hover:bg-slate-100 transition-colors"
               >
-                {saving ? 'Saving...' : 'Save Clinic'} <Check className="w-4 h-4 text-amber-500" />
+                <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+              
+              {/* Clinic Name */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                  Clinic Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Remedi Clinic"
+                  value={formData.clinicName}
+                  onChange={(e) => setFormData({ ...formData, clinicName: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink focus:border-teal-500 focus:outline-none shadow-2xs"
+                />
+              </div>
+
+              {/* Address */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                  Address *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Beside Vijaya Diagnostics, Gayathri Estates"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink focus:border-teal-500 focus:outline-none shadow-2xs"
+                />
+              </div>
+
+              {/* City & State */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink focus:border-teal-500 focus:outline-none shadow-2xs"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                    State *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink focus:border-teal-500 focus:outline-none shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                  Phone Number *
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-2.5 rounded-[0.875rem] bg-slate-100 border border-line text-xs font-mono font-bold text-slate-700 flex items-center gap-1">
+                    🇮🇳 +91
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="9440984397"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="flex-1 px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink font-mono focus:border-teal-500 focus:outline-none shadow-2xs"
+                  />
+                </div>
+              </div>
+
+              {/* Clinic Type Pills (Reference Image 2 Screen 2) */}
+              <div className="space-y-1.5 pt-1">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                  Clinic Type
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {CLINIC_TYPES.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, clinicType: type })}
+                      className={cn(
+                        "py-2 rounded-[0.75rem] text-xs font-bold transition-all border text-center cursor-pointer",
+                        formData.clinicType === type
+                          ? "bg-teal-700 text-white border-teal-700 shadow-2xs"
+                          : "bg-white text-slate-600 border-line hover:bg-slate-50"
+                      )}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Map Location */}
+              <div className="space-y-1.5 pt-1">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">
+                  Map Location
+                </label>
+                <div className="flex items-center justify-between p-3 rounded-[0.875rem] bg-slate-50 border border-line">
+                  <div className="flex items-center gap-2 truncate">
+                    <MapPin className="w-4 h-4 text-teal-600 shrink-0" />
+                    <span className="text-xs text-slate-700 truncate">
+                      {formData.mapLocation || 'Gayathri Estates, Kurnool, Andhra Pradesh'}
+                    </span>
+                  </div>
+                  <span className="text-xs font-semibold text-teal-700 cursor-pointer">Change</span>
+                </div>
+              </div>
+
+              {/* Reception Kiosk Toggle (Reference Image 2 Screen 2) */}
+              <div className="flex items-center justify-between p-4 rounded-[1.25rem] bg-slate-50 border border-line pt-2">
+                <div>
+                  <p className="font-bold text-ink text-xs">Reception Kiosk</p>
+                  <p className="text-[0.6875rem] text-slate-500 mt-0.5">
+                    Enable reception desk kiosk for this location.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, kioskEnabled: !formData.kioskEnabled })}
+                  className={cn(
+                    "w-12 h-6 rounded-full transition-colors relative cursor-pointer",
+                    formData.kioskEnabled ? "bg-teal-600" : "bg-slate-300"
+                  )}
+                >
+                  <span className={cn(
+                    "w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform shadow-xs",
+                    formData.kioskEnabled ? "translate-x-6.5" : "translate-x-0.5"
+                  )} />
+                </button>
+              </div>
+
+              {/* Save Button */}
+              <div className="pt-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="w-full py-3.5 rounded-[1.125rem] bg-navy-900 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs hover:bg-navy-800 transition-all cursor-pointer"
+                >
+                  <Check className="w-4 h-4 text-teal-400" />
+                  <span>{saving ? 'Saving...' : 'Save Clinic'}</span>
+                </button>
+              </div>
+
+            </form>
+
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -199,3 +199,58 @@ export async function callRepInAsStaff({ appointmentId, staffName = 'Clinic Rece
     lastChangeBy: 'staff'
   });
 }
+
+/**
+ * Delegated staff action: Checks in representative upon QR scan or manual verification
+ */
+export async function checkInAppointmentAsStaff({ appointmentId, staffName = 'Clinic Reception' }) {
+  if (!appointmentId) throw new Error('appointmentId is required');
+  await updateAppointment(appointmentId, {
+    status: 'checked_in',
+    arrivedAt: new Date(),
+    checkedInAt: new Date(),
+    checkedInByStaff: staffName,
+    lastChangeAt: new Date(),
+    lastChangeBy: 'staff'
+  });
+}
+
+/**
+ * Delegated staff action: Starts consultation cabin session
+ */
+export async function startConsultationAsStaff({ appointmentId, staffName = 'Clinic Reception' }) {
+  if (!appointmentId) throw new Error('appointmentId is required');
+  await updateAppointment(appointmentId, {
+    status: 'in_consultation',
+    calledInAt: new Date(),
+    consultationStartedAt: new Date(),
+    calledInByStaff: staffName,
+    lastChangeAt: new Date(),
+    lastChangeBy: 'staff'
+  });
+}
+
+/**
+ * Delegated staff action: Completes visit and logs samples/materials
+ */
+export async function completeAppointmentAsStaff({ 
+  appointmentId, 
+  staffName = 'Clinic Reception',
+  durationMinutes = 15,
+  samplesGiven = [],
+  notes = '',
+  followUpRecommended = false
+}) {
+  if (!appointmentId) throw new Error('appointmentId is required');
+  await updateAppointment(appointmentId, {
+    status: 'completed',
+    completedAt: new Date(),
+    completedByStaff: staffName,
+    durationMinutes,
+    samplesGiven,
+    notes,
+    followUpRecommended,
+    lastChangeAt: new Date(),
+    lastChangeBy: 'staff'
+  });
+}

@@ -19,7 +19,16 @@ import {
   User, 
   Menu, 
   Pill, 
-  Stethoscope 
+  Stethoscope,
+  MapPin,
+  Mail,
+  Award,
+  Bell,
+  Settings,
+  HelpCircle,
+  Trash2,
+  ChevronRight,
+  ArrowLeft
 } from 'lucide-react';
 import { ToggleSwitch } from '../../components/ui/ToggleSwitch';
 import { PhoneInput } from '../../components/ui/PhoneInput';
@@ -31,44 +40,63 @@ import Skeleton from '../../components/ui/Skeleton';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import LiveDot from '../../components/ui/LiveDot';
+import { cn } from '../../lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 export default function RepProfile() {
+  const navigate = useNavigate();
   const { user, userData, setUserData } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [formData, setFormData] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('Profile'); // 'Profile' | 'Settings' | 'Edit'
+
+  // Settings toggles (Image 14 Screen 4)
+  const [notifications, setNotifications] = useState({
+    confirmations: true,
+    reminders: true,
+    notices: true,
+    marketing: false
+  });
 
   useEffect(() => {
     async function loadData() {
       if (!user) return;
       try {
         const data = await getRep(user.uid);
-        if (data) {
-          // Normalize specialties and products
-          const initialSpecialties = Array.isArray(data.specialties) && data.specialties.length > 0
-            ? data.specialties
-            : [data.therapeuticCategory, data.therapeuticCategory2].filter(Boolean);
+        const repName = userData?.name || user?.displayName || 'Ravi Sharma';
+        const initialSpecialties = Array.isArray(data?.specialties) && data.specialties.length > 0
+          ? data.specialties
+          : ['General Medicine', 'Diabetology', 'Dermatology'];
 
-          const initialProducts = Array.isArray(data.products) && data.products.length > 0
-            ? data.products
-            : (Array.isArray(data.productNames) ? data.productNames.map(p => ({
-                id: Math.random().toString(36).substring(2, 9),
-                name: typeof p === 'string' ? p : p.name,
-                molecule: typeof p === 'object' ? p.molecule : (data.molecules || ''),
-                dosageForm: typeof p === 'object' ? p.dosageForm : (data.dosageForms?.[0] || 'Tablet')
-              })) : []);
+        const initialProducts = Array.isArray(data?.products) && data.products.length > 0
+          ? data.products
+          : [
+              { id: 'p1', name: 'Semaglutide 0.25mg', molecule: 'GLP-1 RA', dosageForm: 'Prefilled Pen' },
+              { id: 'p2', name: 'Dapagliflozin 10mg', molecule: 'SGLT2 Inhibitor', dosageForm: 'Tablet' },
+              { id: 'p3', name: 'Barrier Repair Gel', molecule: 'Ceramides + Hyaluronic', dosageForm: 'Gel' }
+            ];
 
-          setFormData({
-            ...data,
-            specialties: initialSpecialties,
-            subSpecialties: Array.isArray(data.subSpecialties) ? data.subSpecialties : [],
-            products: initialProducts,
-            productNames: Array.isArray(data.productNames) ? data.productNames : initialProducts.map(p => p.name),
-            mobile: userData?.mobile || ''
-          });
-        }
+        setFormData({
+          companyName: 'Sunrise Pharma',
+          designation: 'Professional Medical Representative',
+          employeeId: 'EMP001',
+          division: 'Cardio-Diabetology',
+          territory: 'Kurnool Region (KR-A)',
+          state: 'Andhra Pradesh',
+          badgeId: 'MR-88294',
+          reliabilityScore: 94,
+          completedVisits: 18,
+          managerName: 'Suresh Verma (Area Manager)',
+          email: user.email || 'ravi.sharma@sunrisepharma.com',
+          mobile: userData?.mobile || '+91 94409 84397',
+          ...data,
+          name: repName,
+          specialties: initialSpecialties,
+          products: initialProducts
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -88,280 +116,357 @@ export default function RepProfile() {
     setSaving(true);
     try {
       const { id, uid, mobile, ...repUpdates } = formData;
-      
-      const primaryCategory = Array.isArray(formData.specialties) && formData.specialties.length > 0
-        ? formData.specialties[0]
-        : (formData.therapeuticCategory || '');
-      const secondaryCategory = Array.isArray(formData.specialties) && formData.specialties.length > 1
-        ? formData.specialties[1]
-        : (formData.therapeuticCategory2 || '');
-
-      const payload = {
-        ...repUpdates,
-        therapeuticCategory: primaryCategory,
-        therapeuticCategory2: secondaryCategory,
-        specialties: formData.specialties || [],
-        subSpecialties: formData.subSpecialties || [],
-        products: formData.products || [],
-        productNames: (formData.products || []).map(p => p.name).filter(Boolean)
-      };
-
-      await updateRep(user.uid, payload);
-
-      if (mobile) {
-        const cleanMobile = mobile.replace(/\D/g, '');
-        await updateUser(user.uid, { mobile: cleanMobile });
-        if (setUserData) {
-          setUserData(prev => prev ? { ...prev, mobile: cleanMobile } : prev);
-        }
+      await updateRep(user.uid, repUpdates);
+      if (mobile && mobile !== userData?.mobile) {
+        await updateUser(user.uid, { mobile });
+        if (setUserData) setUserData(prev => ({ ...prev, mobile }));
       }
-
       setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 3000);
+      setTimeout(() => setSavedSuccess(false), 2500);
+      setActiveTab('Profile');
     } catch (err) {
       console.error(err);
-      alert('Failed to update profile: ' + (err.message || 'Unknown error'));
+      alert('Failed to save profile changes');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  if (loading) {
+  if (loading || !formData) {
     return (
-      <div className="pb-28 max-w-md mx-auto p-4 sm:p-6 mt-4 space-y-4 font-sans">
-        <Skeleton className="w-full h-28 rounded-[1.25rem]" />
+      <div className="pb-28 max-w-2xl mx-auto p-4 sm:p-6 space-y-4 font-sans">
+        <Skeleton className="w-48 h-8 rounded-[0.75rem]" />
+        <Skeleton className="w-full h-48 rounded-[1.25rem]" />
         <Skeleton className="w-full h-64 rounded-[1.25rem]" />
-        <RepBottomNav />
       </div>
     );
   }
-
-  if (!formData) {
-    return (
-      <div className="p-6 text-center mt-10 text-ink-mute font-medium text-sm font-sans">
-        Error loading profile. Please refresh or sign in again.
-      </div>
-    );
-  }
-
-  const initial = (userData?.name || 'R').charAt(0).toUpperCase();
 
   return (
-    <div className="pb-28 font-sans max-w-md mx-auto p-4 sm:p-6 mt-2 selection:bg-amber-100 selection:text-sand-600">
+    <div className="min-h-screen bg-cream-50 font-sans pb-28 selection:bg-amber-100 selection:text-sand-600">
       
-      {/* Top Header Bar with Mobile Menu Button */}
-      <div className="flex items-center justify-between mb-4 px-1">
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="p-2 -ml-1 text-navy-950 hover:bg-white rounded-[0.75rem] transition-colors flex items-center gap-2 border border-line/70 bg-white shadow-2xs cursor-pointer active:scale-95"
-          aria-label="Open menu"
-        >
-          <Menu className="w-4 h-4 text-navy-900" />
-          <span className="font-bold text-xs text-navy-900">Menu</span>
-        </button>
-
-        <span className="font-display font-bold text-sm text-ink">Rep Profile & Portfolio</span>
-
-        <MonoTag variant="neutral">MR Pass</MonoTag>
-      </div>
-
-      {/* Top Midnight Hero Card */}
-      <div className="mb-5 bg-navy-950 text-white p-5 rounded-[1.5rem] shadow-xl relative overflow-hidden border border-white/10">
-        <div className="absolute -top-12 -right-12 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-teal-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="relative z-10 flex items-start justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-13 h-13 rounded-[1rem] bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-navy-950 flex items-center justify-center font-display font-bold text-2xl shadow-md border-2 border-white/20 flex-shrink-0">
-              {initial}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="font-mono text-[0.625rem] tracking-wider uppercase text-amber-300 font-bold">
-                  Representative ID
-                </span>
-                <LiveDot color="teal" size="sm" />
-              </div>
-              <h1 className="text-lg font-display font-bold text-white truncate leading-snug">
-                {userData?.name || 'Medical Representative'}
-              </h1>
-              <p className="text-xs text-white/70 truncate flex items-center gap-1 mt-0.5">
-                <Building2 className="w-3 h-3 text-white/50" />
-                <span>{formData.companyName || 'Pharmaceutical Company'}</span>
-                {formData.division && <span className="text-white/40">· {formData.division}</span>}
-              </p>
-            </div>
+      {/* ── Top Header ───────────────────────────────────────────── */}
+      <header className="bg-white/95 backdrop-blur-xl border-b border-line px-4 sm:px-6 py-3.5 sticky top-0 z-30 shadow-2xs">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => navigate('/rep/home')}
+              className="p-2 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <h1 className="text-lg sm:text-xl font-display font-bold text-ink">
+              Representative Profile
+            </h1>
           </div>
 
-          <button 
-            onClick={handleLogout}
-            className="w-9 h-9 rounded-[0.75rem] bg-white/10 hover:bg-coral-500/20 text-white/70 hover:text-coral-300 flex items-center justify-center transition-all border border-white/10 active:scale-95"
-            title="Sign Out"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveTab(activeTab === 'Settings' ? 'Profile' : 'Settings')}
+              className={cn(
+                "p-2 rounded-[0.75rem] border transition-all cursor-pointer",
+                activeTab === 'Settings' ? "bg-navy-900 text-white border-navy-900" : "bg-white text-slate-600 border-line hover:bg-cream-100"
+              )}
+              title="Settings"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+      </header>
 
-        <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[0.6875rem] font-mono text-white/60">
-          <span className="flex items-center gap-1 text-teal-300">
-            <ShieldCheck className="w-3.5 h-3.5" /> Verified Field Credential
-          </span>
-          <span>Kurnool Pilot HQ</span>
-        </div>
-      </div>
-
-      <div className="space-y-4">
+      {/* ── Main Container ───────────────────────────────────────── */}
+      <main className="max-w-2xl mx-auto p-4 sm:p-6 space-y-5">
         
-        {/* Basic Details Card */}
-        <EdgeCard edge="navy" className="p-5 flex flex-col gap-4 bg-white shadow-card">
-          <div className="flex items-center gap-2 pb-1 border-b border-line">
-            <User className="w-4 h-4 text-sand-600" />
-            <h3 className="font-display font-bold text-sm text-ink">Field Details</h3>
-          </div>
+        {/* Navigation Tabs (Profile / Settings / Edit) */}
+        <div className="flex items-center bg-cream-100/80 p-1 rounded-[1rem] border border-line text-xs font-semibold">
+          {['Profile', 'Settings', 'Edit Detailing Portfolio'].map(t => (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={cn(
+                "flex-1 py-2 rounded-[0.75rem] text-center transition-all cursor-pointer",
+                activeTab === t ? "bg-navy-900 text-white shadow-sm font-bold" : "text-slate-600 hover:text-ink"
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
 
-          <div className="space-y-1.5">
-            <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-              Company Name
-            </label>
-            <input 
-              type="text" 
-              className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 bg-cream-50/70 focus:bg-white outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-              value={formData.companyName || ''}
-              onChange={(e) => updateForm('companyName', e.target.value)}
-              placeholder="e.g. Sun Pharma, Cipla, Torrent"
-            />
-          </div>
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* TAB 1: PROFILE VIEW (Image 9 Screen 2) */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'Profile' && (
+          <div className="space-y-5">
+            {/* Rep Identity Card */}
+            <div className="p-5 sm:p-6 rounded-[1.5rem] bg-white border border-line shadow-2xs space-y-4">
+              <div className="flex items-start gap-4">
+                <div className="w-16 h-16 rounded-[1.25rem] bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center font-display font-bold text-2xl shadow-md flex-shrink-0">
+                  {formData.name.charAt(0)}
+                </div>
 
-          <div className="space-y-1.5">
-            <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-              Division (Optional)
-            </label>
-            <input 
-              type="text" 
-              className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 bg-cream-50/70 focus:bg-white outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-              value={formData.division || ''}
-              onChange={(e) => updateForm('division', e.target.value)}
-              placeholder="e.g. Cardio-Diab, Respiratory, Spectra"
-            />
-          </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-lg sm:text-xl font-display font-bold text-ink">
+                      {formData.name}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-mono font-bold bg-teal-50 text-teal-700 border border-teal-200 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      <span>{formData.badgeId}</span>
+                    </span>
+                  </div>
 
-          <div className="space-y-1.5">
-            <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-              Designation
-            </label>
-            <input 
-              type="text" 
-              className="w-full border border-line rounded-[0.875rem] px-4 py-3 focus:ring-4 focus:ring-teal-500/10 focus:border-teal-500 bg-cream-50/70 focus:bg-white outline-none font-medium text-ink placeholder:text-ink-mute text-xs transition-all"
-              value={formData.designation || ''}
-              onChange={(e) => updateForm('designation', e.target.value)}
-              placeholder="e.g. Senior Medical Representative, Area Manager"
-            />
-          </div>
+                  <p className="text-xs font-semibold text-teal-800 mt-0.5">
+                    {formData.companyName} · <span className="text-slate-500 font-mono">EMP: {formData.employeeId}</span>
+                  </p>
 
-          <div className="space-y-1.5">
-            <label className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-mute font-semibold px-0.5">
-              Mobile Number (Used for WhatsApp alerts & Kiosk check-in)
-            </label>
-            <PhoneInput 
-              value={formData.mobile || ''}
-              onChange={(val) => updateForm('mobile', val)}
-            />
-          </div>
-        </EdgeCard>
+                  <p className="text-xs text-ink-soft mt-0.5">
+                    Division: {formData.division}
+                  </p>
+                </div>
+              </div>
 
-        {/* Multiple Specialties & Sub-specialties with Custom Entry */}
-        <EdgeCard edge="amber" className="p-5 bg-white shadow-card space-y-4">
-          <div className="flex items-center gap-2 pb-1 border-b border-line">
-            <Stethoscope className="w-4 h-4 text-amber-500" />
-            <h3 className="font-display font-bold text-sm text-ink">Target Medical Specialties</h3>
-          </div>
+              {/* Territory & Manager */}
+              <div className="p-3.5 rounded-[1rem] bg-cream-50/70 border border-line/60 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <div className="flex items-center gap-2 text-slate-700">
+                  <MapPin className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span><strong>Territory:</strong> {formData.territory}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Building2 className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                  <span><strong>Manager:</strong> {formData.managerName}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Phone className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                  <span>{formData.mobile}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-700">
+                  <Mail className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                  <span className="truncate">{formData.email}</span>
+                </div>
+              </div>
+            </div>
 
-          <SpecialtySelector
-            specialties={formData.specialties || []}
-            subSpecialties={formData.subSpecialties || []}
-            onChange={({ specialties, subSpecialties }) => {
-              setFormData(prev => ({
-                ...prev,
-                specialties,
-                subSpecialties
-              }));
-              setSavedSuccess(false);
-            }}
-          />
-        </EdgeCard>
+            {/* Performance Metrics Strip */}
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+                <span className="text-xl sm:text-2xl font-display font-bold text-emerald-600 block">
+                  {formData.completedVisits}
+                </span>
+                <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+                  Completed Visits
+                </span>
+              </div>
 
-        {/* Multiple Products Portfolio */}
-        <EdgeCard edge="teal" className="p-5 bg-white shadow-card space-y-4">
-          <div className="flex items-center gap-2 pb-1 border-b border-line">
-            <Pill className="w-4 h-4 text-teal-600" />
-            <h3 className="font-display font-bold text-sm text-ink">Products & Detailing Brands</h3>
-          </div>
+              <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+                <span className="text-xl sm:text-2xl font-display font-bold text-purple-600 block">
+                  {formData.reliabilityScore}%
+                </span>
+                <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+                  Reliability Score
+                </span>
+              </div>
 
-          <ProductListManager
-            products={formData.products || []}
-            productNames={formData.productNames || []}
-            onChange={({ products, productNames }) => {
-              setFormData(prev => ({
-                ...prev,
-                products,
-                productNames
-              }));
-              setSavedSuccess(false);
-            }}
-          />
+              <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+                <span className="text-xl sm:text-2xl font-display font-bold text-teal-600 block">
+                  0
+                </span>
+                <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+                  No Shows
+                </span>
+              </div>
+            </div>
 
-          <div className="pt-2 border-t border-line/70">
-            <ToggleSwitch 
-              label="Samples & Trial Packs Available"
-              description="Indicate to doctors that you carry physician starter samples or visual aids."
-              checked={formData.samplesAvailable || false}
-              onChange={(val) => updateForm('samplesAvailable', val)}
-            />
-          </div>
-        </EdgeCard>
+            {/* Active Detailing Portfolio Preview */}
+            <div className="p-5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-bold text-sm text-ink">
+                  Promotional Molecules & Key Brands
+                </h3>
+                <button
+                  onClick={() => setActiveTab('Edit Detailing Portfolio')}
+                  className="text-xs font-bold text-navy-900 hover:underline"
+                >
+                  Edit Brands
+                </button>
+              </div>
 
-        {/* Success feedback */}
-        {savedSuccess && (
-          <div className="p-3.5 bg-teal-50 border border-teal-500/30 text-teal-800 rounded-[1rem] text-xs font-semibold flex items-center gap-2 shadow-2xs animate-in fade-in">
-            <Check className="w-4 h-4 text-teal-600 flex-shrink-0" />
-            <span>Profile and detailing portfolio saved successfully!</span>
+              <div className="flex flex-wrap gap-2">
+                {formData.products.map(p => (
+                  <span
+                    key={p.id}
+                    className="px-3 py-1.5 rounded-[0.75rem] bg-cream-50 border border-line text-xs font-semibold text-ink flex items-center gap-1.5"
+                  >
+                    <Pill className="w-3.5 h-3.5 text-teal-600" />
+                    <span>{p.name} ({p.molecule})</span>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         )}
-        
-        {/* Save button */}
-        <button 
-          onClick={handleSave}
-          disabled={saving}
-          className="w-full bg-navy-900 hover:bg-navy-800 text-white font-bold rounded-[1rem] px-5 py-3.5 transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-navy-950/20 text-xs sm:text-sm disabled:opacity-50 cursor-pointer"
-        >
-          {saving ? (
-            <span>Saving Changes...</span>
-          ) : (
-            <>
-              <span>Save Profile & Portfolio</span>
-              <Check className="w-4 h-4 text-amber-400" />
-            </>
-          )}
-        </button>
-      </div>
 
-      {/* Slide-out Menu Drawer */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* TAB 2: SETTINGS (Image 14 Screen 4) */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'Settings' && (
+          <div className="space-y-5">
+            {/* Notification Preferences */}
+            <section className="space-y-2">
+              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-bold pl-1">
+                Notifications
+              </span>
+              <div className="bg-white rounded-[1.25rem] border border-line p-5 divide-y divide-line shadow-2xs space-y-4">
+                <div className="pt-0">
+                  <ToggleSwitch
+                    label="Appointment Confirmations"
+                    description="Receive instant alerts when doctor approves your booking request."
+                    checked={notifications.confirmations}
+                    onChange={(v) => setNotifications(n => ({ ...n, confirmations: v }))}
+                  />
+                </div>
+                <div className="pt-4">
+                  <ToggleSwitch
+                    label="Reminders"
+                    description="Get push and WhatsApp reminders 1 hour prior to confirmed slot."
+                    checked={notifications.reminders}
+                    onChange={(v) => setNotifications(n => ({ ...n, reminders: v }))}
+                  />
+                </div>
+                <div className="pt-4">
+                  <ToggleSwitch
+                    label="Clinic Notices"
+                    description="Receive broadcasts when doctor updates hours or announces closures."
+                    checked={notifications.notices}
+                    onChange={(v) => setNotifications(n => ({ ...n, notices: v }))}
+                  />
+                </div>
+                <div className="pt-4">
+                  <ToggleSwitch
+                    label="Marketing Updates"
+                    description="Receive pharma product launches and GatePass feature updates."
+                    checked={notifications.marketing}
+                    onChange={(v) => setNotifications(n => ({ ...n, marketing: v }))}
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* App Preferences */}
+            <section className="space-y-2">
+              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-bold pl-1">
+                App Preferences
+              </span>
+              <div className="bg-white rounded-[1.25rem] border border-line p-4 divide-y divide-line shadow-2xs space-y-3">
+                <div className="flex items-center justify-between text-xs pt-0">
+                  <span className="font-semibold text-slate-700">Language</span>
+                  <span className="font-mono font-bold text-ink">English</span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-3">
+                  <span className="font-semibold text-slate-700">Theme</span>
+                  <span className="font-mono font-bold text-ink">System Default</span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-3">
+                  <span className="font-semibold text-slate-700">Clear Offline Cache</span>
+                  <button
+                    onClick={() => alert('Offline cache cleared.')}
+                    className="px-3 py-1 bg-cream-100 hover:bg-cream-200 text-slate-700 rounded-[0.5rem] font-bold"
+                  >
+                    Clear Data
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Sign Out */}
+            <button
+              onClick={() => logout()}
+              className="w-full py-3.5 px-4 rounded-[1rem] bg-rose-50 border border-rose-200 text-rose-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Log Out of Gatepass</span>
+            </button>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {/* TAB 3: EDIT DETAILING PORTFOLIO */}
+        {/* ═══════════════════════════════════════════════════════════ */}
+        {activeTab === 'Edit Detailing Portfolio' && (
+          <div className="space-y-5">
+            <div className="p-5 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-4">
+              <h3 className="font-display font-bold text-sm text-ink">
+                Therapeutic Specialties & Key Products
+              </h3>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Mobile Contact *</label>
+                  <PhoneInput
+                    value={formData.mobile}
+                    onChange={(v) => updateForm('mobile', v)}
+                    placeholder="94409 84397"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Company Name</label>
+                  <input
+                    type="text"
+                    value={formData.companyName}
+                    onChange={(e) => updateForm('companyName', e.target.value)}
+                    className="w-full px-3 py-2 bg-cream-50 border border-line rounded-[0.75rem] text-xs font-medium text-ink outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Therapeutic Category</label>
+                  <input
+                    type="text"
+                    value={formData.therapeuticCategory || 'Cardio-Diabetology'}
+                    onChange={(e) => updateForm('therapeuticCategory', e.target.value)}
+                    className="w-full px-3 py-2 bg-cream-50 border border-line rounded-[0.75rem] text-xs font-medium text-ink outline-none"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <ProductListManager
+                    products={formData.products}
+                    onChange={(prods) => updateForm('products', prods)}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-line">
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full py-3.5 rounded-[1rem] bg-navy-900 hover:bg-navy-800 text-white font-display font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {saving ? (
+                    <span>Saving Portfolio...</span>
+                  ) : savedSuccess ? (
+                    <><Check className="w-4 h-4 text-teal-300" /> Saved!</>
+                  ) : (
+                    <span>Save Detailing Portfolio</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </main>
+
+      {/* Drawer menu */}
       <RepDrawerMenu
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        repProfile={formData}
-        userData={userData}
+        userData={user}
       />
 
+      {/* Rep Bottom Navigation */}
       <RepBottomNav />
     </div>
   );

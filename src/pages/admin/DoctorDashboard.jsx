@@ -21,12 +21,14 @@ import {
   BarChart3,
   ShieldCheck,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Home
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { logout } from '../../lib/firebase';
 import { cn } from '../../lib/utils';
 import { sweepExpiredAppointments } from '../../lib/db/appointments';
+import DoctorHome from './DoctorHome';
 import DoctorPendingRequests from './DoctorPendingRequests';
 import DoctorToday from './DoctorToday';
 import DoctorUpcoming from './DoctorUpcoming';
@@ -36,9 +38,11 @@ import DoctorSettings from './DoctorSettings';
 import DoctorClinics from './DoctorClinics';
 import DoctorProfileEdit from './DoctorProfileEdit';
 import DoctorProfileLinks from './DoctorProfileLinks';
+import DoctorAnalytics from './DoctorAnalytics';
 import DoctorScheduleSettings from '../doctor/DoctorScheduleSettings';
 import OwnerStats from './OwnerStats';
 import PricingPlans from '../pricing/PricingPlans';
+import DoctorBottomNav from '../../components/layout/DoctorBottomNav';
 
 export default function DoctorDashboard() {
   const { user, userData } = useAuth();
@@ -58,7 +62,8 @@ export default function DoctorDashboard() {
   };
 
   const navItems = [
-    { to: '/admin', icon: Clock, label: 'Pending Requests', exact: true },
+    { to: '/admin', icon: Home, label: 'Dashboard Home', exact: true },
+    { to: '/admin/pending', icon: Clock, label: 'Pending Requests', exact: true },
     { to: '/admin/today', icon: Calendar, label: "Today's Schedule", exact: true },
     { to: '/admin/upcoming', icon: CalendarDays, label: 'Upcoming Visits', exact: true },
     { to: '/admin/reps', icon: Users, label: 'Verified Reps', exact: false },
@@ -79,11 +84,11 @@ export default function DoctorDashboard() {
     <div className="min-h-screen bg-cream-50 font-sans md:flex selection:bg-amber-100 selection:text-sand-600 relative">
       
       {/* Mobile Top Bar (Frosted Glass) */}
-      <div className="md:hidden bg-white/85 backdrop-blur-xl border-b border-line/80 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+      <div className="md:hidden bg-white/90 backdrop-blur-xl border-b border-line/80 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
         <div className="flex items-center gap-2">
           <span className="font-display font-bold text-lg text-ink tracking-tight">Gatepass</span>
           <span className="w-2 h-2 rounded-[0.2rem] bg-amber-500 transform rotate-45 inline-block shadow-sm" />
-          <span className="text-[0.625rem] font-mono uppercase bg-slate-100 text-slate-600 font-semibold px-1.5 py-0.5 rounded-full ml-1">
+          <span className="text-[0.625rem] font-mono uppercase bg-slate-100 text-slate-600 font-semibold px-2 py-0.5 rounded-full ml-1">
             Doctor
           </span>
         </div>
@@ -124,7 +129,7 @@ export default function DoctorDashboard() {
             <span className="font-display font-bold text-xl tracking-tight text-ink">Gatepass</span>
             <span className="w-2.5 h-2.5 rounded-[0.25rem] bg-amber-500 transform rotate-45 inline-block shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
             <span className="text-[0.625rem] font-mono uppercase bg-navy-100 text-navy-900 font-bold px-2 py-0.5 rounded-full">
-              Clinical OS
+              Doctor Portal
             </span>
           </div>
           <button
@@ -142,7 +147,7 @@ export default function DoctorDashboard() {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-display font-bold text-ink truncate text-sm">
-              Dr. {userData?.name?.replace(/^Dr\.?\s*/i, '')?.split(' ')[0] || 'Doctor'}
+              Dr. {userData?.name?.replace(/^Dr\.?\s*/i, '')?.split(' ')[0] || 'Karthik'}
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
@@ -161,7 +166,7 @@ export default function DoctorDashboard() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.exact
-              ? location.pathname === item.to || (item.to === '/admin' && location.pathname === '/admin/pending')
+              ? location.pathname === item.to || (item.to === '/admin' && location.pathname === '/admin/home')
               : location.pathname.startsWith(item.to);
 
             return (
@@ -251,9 +256,10 @@ export default function DoctorDashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-8 h-[100dvh] overflow-y-auto scroll-smooth">
+      <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-8 h-[100dvh] overflow-y-auto scroll-smooth pb-20 md:pb-8">
         <Routes>
-          <Route path="/" element={<DoctorPendingRequests />} />
+          <Route path="/" element={<DoctorHome />} />
+          <Route path="/home" element={<DoctorHome />} />
           <Route path="/pending" element={<DoctorPendingRequests />} />
           <Route path="/today" element={<DoctorToday />} />
           <Route path="/upcoming" element={<DoctorUpcoming />} />
@@ -265,6 +271,8 @@ export default function DoctorDashboard() {
           <Route path="/edit-profile" element={<DoctorProfileEdit />} />
           <Route path="/profile" element={<DoctorProfileLinks />} />
           <Route path="/owner" element={<OwnerStats />} />
+          <Route path="/analytics" element={<DoctorAnalytics />} />
+          <Route path="/stats" element={<DoctorAnalytics />} />
           <Route path="/pricing" element={<PricingPlans />} />
           
           {/* Fallback & Redirections */}
@@ -273,6 +281,9 @@ export default function DoctorDashboard() {
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <DoctorBottomNav onOpenMenu={() => setSidebarOpen(true)} />
     </div>
   );
 }

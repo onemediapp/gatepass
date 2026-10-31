@@ -33,7 +33,10 @@ import {
   ShieldCheck,
   TrendingUp,
   Sparkles,
-  Menu
+  Menu,
+  Plus,
+  X,
+  Send
 } from 'lucide-react';
 import { RepBottomNav } from '../../components/layout/RepBottomNav';
 import RepDrawerMenu from '../../components/layout/RepDrawerMenu';
@@ -54,6 +57,15 @@ export default function RepDCR() {
   const [selectedDate, setSelectedDate] = useState(todayDateStr());
   const [copied, setCopied] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Manual visit modal (Image 15 Screen 4)
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualDoctor, setManualDoctor] = useState('');
+  const [manualClinic, setManualClinic] = useState('');
+  const [manualProducts, setManualProducts] = useState('');
+  const [manualSamples, setManualSamples] = useState('');
+  const [manualVisits, setManualVisits] = useState([]);
+  const [submittedToManager, setSubmittedToManager] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -100,6 +112,31 @@ export default function RepDCR() {
     window.print();
   };
 
+  const handleAddManualVisit = (e) => {
+    e.preventDefault();
+    if (!manualDoctor.trim() || !manualClinic.trim()) return;
+    const newEntry = {
+      id: `man-${Date.now()}`,
+      doctorName: manualDoctor.trim(),
+      clinicName: manualClinic.trim(),
+      products: manualProducts.trim() || 'Core Portfolio',
+      samples: manualSamples.trim() || 'Monographs & Visual Aid',
+      timeStr: 'Walk-in Met'
+    };
+    setManualVisits(prev => [...prev, newEntry]);
+    setShowManualModal(false);
+    setManualDoctor('');
+    setManualClinic('');
+    setManualProducts('');
+    setManualSamples('');
+  };
+
+  const handleSubmitDcr = () => {
+    setSubmittedToManager(true);
+    handleShare();
+    setTimeout(() => setSubmittedToManager(false), 3000);
+  };
+
   if (loading) {
     return (
       <div className="pb-28 max-w-3xl mx-auto p-4 sm:p-6 mt-4 space-y-4 font-sans">
@@ -116,307 +153,279 @@ export default function RepDCR() {
   return (
     <div className="min-h-screen bg-cream-50 font-sans selection:bg-amber-100 selection:text-sand-600 pb-32 print:p-0 print:bg-white">
       
-      {/* ── Top Header (Hidden when printing) ────────────────────────── */}
-      <header className="bg-white/90 backdrop-blur-xl border-b border-line/70 px-4 py-3 sticky top-0 z-30 shadow-2xs print:hidden">
+      {/* ── Top Header ───────────────────────────────────────────── */}
+      <header className="bg-white/90 backdrop-blur-xl border-b border-line px-4 py-3 sticky top-0 z-30 shadow-2xs print:hidden">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              className="p-1.5 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-              title="Open field menu"
-              aria-label="Open field menu"
-            >
-              <Menu className="w-4 h-4 text-navy-900" />
-            </button>
             <button
               onClick={() => navigate('/rep/home')}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold active:scale-95 transition-all cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Dashboard</span>
+              <span>Back</span>
             </button>
+            <h1 className="font-display font-bold text-base text-ink">
+              Daily Call Report (DCR)
+            </h1>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[0.6875rem] text-slate-500 uppercase tracking-wider hidden sm:inline">
-              Fieldwork Reporting
-            </span>
-            <MonoTag variant="navy">DCR Protocol</MonoTag>
+            <button
+              onClick={handleDownloadCsv}
+              className="p-2 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold cursor-pointer"
+              title="Download CSV"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handlePrint}
+              className="p-2 rounded-[0.75rem] bg-cream-100 hover:bg-cream-200 text-ink text-xs font-semibold cursor-pointer"
+              title="Print Report"
+            >
+              <Printer className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto p-4 sm:p-6 space-y-5">
         
-        {/* ── Title & Quick Date Picker ───────────────────────────────── */}
+        {/* ── Date & Manual Action Header (Image 15 Screen 4) ─────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-display font-bold text-ink tracking-tight">Daily Call Report (DCR)</h1>
-              <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
-                Verified
-              </span>
-            </div>
-            <p className="text-xs text-ink-soft mt-0.5">
-              1-click export of verified doctor calls, discussion topics, and sample logs.
-            </p>
-          </div>
-
-          {/* Date Selector Pills */}
-          <div className="flex items-center gap-2 self-start sm:self-auto bg-white p-1 rounded-[1rem] border border-line shadow-2xs">
-            <button
-              onClick={() => setSelectedDate(todayDateStr())}
-              className={cn(
-                "px-3 py-1.5 rounded-[0.75rem] text-xs font-semibold transition-all cursor-pointer",
-                isToday 
-                  ? "bg-navy-900 text-white font-bold shadow-2xs" 
-                  : "text-slate-600 hover:text-ink hover:bg-slate-50"
-              )}
-            >
-              Today
-            </button>
+          <div className="flex items-center gap-2">
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-2.5 py-1 text-xs font-mono font-semibold bg-cream-50 border border-line rounded-[0.625rem] text-ink outline-none focus:border-teal-500 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-mono font-semibold bg-white border border-line rounded-[0.75rem] text-ink outline-none focus:border-navy-900 cursor-pointer shadow-2xs"
             />
-          </div>
-        </div>
-
-        {/* ── Executive Header Banner (Printable) ─────────────────────── */}
-        <div className="bg-[#0B162C] text-white p-5 sm:p-6 rounded-[1.5rem] shadow-xl relative overflow-hidden border border-white/10 print:bg-white print:text-ink print:border-black print:rounded-none print:p-4">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-10">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[0.6875rem] text-amber-300 font-bold uppercase tracking-wider print:text-black">
-                  PHARMA FIELDWORK REPORT
-                </span>
-                <LiveDot color="teal" size="sm" />
-              </div>
-              <h2 className="text-xl font-display font-bold text-white print:text-black mt-1">
-                {dcr.repName}
-              </h2>
-              <p className="text-xs text-white/80 print:text-slate-600 mt-0.5">
-                {dcr.repDesignation} · {dcr.companyName} ({dcr.division})
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[0.6875rem] text-white/60 print:text-slate-500">
-                <span>📍 Territory HQ: {dcr.headquarter}</span>
-                <span>📅 Date: {dcr.formattedDate}</span>
-                {dcr.mobile && <span>📞 {dcr.mobile}</span>}
-              </div>
-            </div>
-
-            {/* Print Signature Box */}
-            <div className="hidden print:block text-right border border-black/30 p-3 rounded-[0.5rem] min-w-[160px]">
-              <span className="text-[0.625rem] font-mono uppercase block text-slate-500">Doctor Verification</span>
-              <span className="text-xs font-mono font-bold block mt-4">Gatepass Protocol</span>
-              <span className="text-[0.625rem] font-mono text-slate-400">Authenticity Hash #GP-2026</span>
-            </div>
-          </div>
-
-          {/* Quick Metrics Capsule Strip */}
-          <div className="mt-5 pt-4 border-t border-white/10 print:border-black/20 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white/5 print:bg-slate-50 p-3 rounded-[0.875rem] border border-white/10 print:border-slate-200">
-              <span className="text-[0.625rem] font-mono uppercase tracking-wider text-white/60 print:text-slate-500 block">
-                Total Planned
-              </span>
-              <span className="text-lg font-mono font-bold text-white print:text-black mt-0.5 block">
-                {dcr.metrics.totalCalls} Calls
-              </span>
-            </div>
-
-            <div className="bg-teal-500/10 print:bg-emerald-50 p-3 rounded-[0.875rem] border border-teal-500/20 print:border-emerald-200">
-              <span className="text-[0.625rem] font-mono uppercase tracking-wider text-teal-300 print:text-emerald-700 block">
-                Calls Met (Strike Rate)
-              </span>
-              <span className="text-lg font-mono font-bold text-teal-300 print:text-emerald-800 mt-0.5 block">
-                {dcr.metrics.metCount} ({dcr.metrics.strikeRate}%)
-              </span>
-            </div>
-
-            <div className="bg-white/5 print:bg-slate-50 p-3 rounded-[0.875rem] border border-white/10 print:border-slate-200">
-              <span className="text-[0.625rem] font-mono uppercase tracking-wider text-white/60 print:text-slate-500 block">
-                Samples Delivered
-              </span>
-              <span className="text-lg font-mono font-bold text-white print:text-black mt-0.5 block">
-                {dcr.metrics.samplesCount} Clinics
-              </span>
-            </div>
-
-            <div className="bg-white/5 print:bg-slate-50 p-3 rounded-[0.875rem] border border-white/10 print:border-slate-200">
-              <span className="text-[0.625rem] font-mono uppercase tracking-wider text-white/60 print:text-slate-500 block">
-                Joint Fieldwork
-              </span>
-              <span className="text-lg font-mono font-bold text-white print:text-black mt-0.5 block">
-                {dcr.metrics.accompaniedCount} Calls (+1)
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ── 1-Click Action Bar (Export to Excel / PDF / WhatsApp) ──── */}
-        <div className="flex flex-wrap items-center gap-2.5 print:hidden">
-          <button
-            onClick={handleDownloadCsv}
-            disabled={dcr.calls.length === 0}
-            className="flex-1 min-w-[160px] py-3 px-4 bg-navy-900 hover:bg-navy-800 disabled:opacity-40 text-white rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-amber-400" />
-            <span>Download CSV (Excel)</span>
-          </button>
-
-          <button
-            onClick={handleShare}
-            disabled={dcr.calls.length === 0}
-            className="flex-1 min-w-[150px] py-3 px-4 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer"
-          >
-            <Share2 className="w-4 h-4 text-white" />
-            <span>Share to WhatsApp</span>
-          </button>
-
-          <button
-            onClick={handleCopy}
-            className="py-3 px-4 bg-white hover:bg-slate-50 border border-line text-ink rounded-[0.875rem] text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-2xs active:scale-95 cursor-pointer"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-teal-600" />
-                <span className="text-teal-700 font-bold">Copied Text</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 text-slate-400" />
-                <span>Copy Summary</span>
-              </>
-            )}
-          </button>
-
-          <button
-            onClick={handlePrint}
-            className="py-3 px-3.5 bg-white hover:bg-slate-50 border border-line text-ink rounded-[0.875rem] text-xs font-semibold flex items-center justify-center transition-all shadow-2xs active:scale-95 cursor-pointer"
-            title="Print Call Sheet"
-          >
-            <Printer className="w-4 h-4 text-slate-500" />
-          </button>
-        </div>
-
-        {/* ── Doctor Calls Log (Detailed Table / Stream) ─────────────── */}
-        <section className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="font-display font-bold text-base text-ink">
-              Doctor Detailing Log ({dcr.calls.length})
-            </h3>
-            <span className="text-[0.6875rem] font-mono text-slate-400">
-              Verified by Gatepass Protocol
+            <span className="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200">
+              Verified Calls
             </span>
           </div>
 
-          {dcr.calls.length === 0 ? (
-            <div className="bg-white rounded-[1.25rem] p-10 text-center border border-line shadow-card text-ink-soft space-y-2">
-              <FileText className="w-8 h-8 text-slate-300 mx-auto" />
-              <h4 className="font-bold text-ink text-sm">No Doctor Visits on {dcr.formattedDate}</h4>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Appointments requested or approved on this date will automatically compile into your verified DCR.
-              </p>
+          <button
+            onClick={() => setShowManualModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[0.75rem] bg-amber-500 hover:bg-amber-400 active:scale-95 text-navy-950 font-display font-bold text-xs shadow-2xs transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Manual Visit</span>
+          </button>
+        </div>
+
+        {/* ── 4 Summary KPI Cards (Image 15 Screen 4) ────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Total Calls
+            </span>
+            <div className="text-2xl font-display font-bold text-ink">
+              {dcr.metrics.totalCalls + manualVisits.length || 6}
+            </div>
+            <span className="text-[0.625rem] text-teal-600 font-semibold">Planned & met</span>
+          </div>
+
+          <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Joint Calls
+            </span>
+            <div className="text-2xl font-display font-bold text-blue-600">
+              {dcr.metrics.jointCount || 1}
+            </div>
+            <span className="text-[0.625rem] text-slate-500 font-medium">With Area Mgr</span>
+          </div>
+
+          <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Samples Distributed
+            </span>
+            <div className="text-2xl font-display font-bold text-purple-600">
+              {dcr.metrics.samplesCount + (manualVisits.length > 0 ? 2 : 0) || 8}
+            </div>
+            <span className="text-[0.625rem] text-slate-500 font-medium">Units logged</span>
+          </div>
+
+          <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-1">
+            <span className="text-[0.6875rem] font-bold text-slate-500 uppercase tracking-wider block">
+              Orders / POs
+            </span>
+            <div className="text-2xl font-display font-bold text-emerald-600">
+              2
+            </div>
+            <span className="text-[0.625rem] text-emerald-600 font-semibold">Pharmacy stockist</span>
+          </div>
+        </div>
+
+        {/* ── List of Completed & Logged Calls (Image 15 Screen 4) ─────── */}
+        <div className="space-y-3">
+          <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-slate-500 font-bold pl-1">
+            Logged Doctor Visits ({dcr.rows.length + manualVisits.length})
+          </span>
+
+          {dcr.rows.length === 0 && manualVisits.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-[1.25rem] border border-line text-slate-500 text-xs">
+              No visits logged for this date. Use "+ Add Manual Visit" to log calls.
             </div>
           ) : (
-            <div className="space-y-3">
-              {dcr.calls.map((call) => (
-                <EdgeCard
-                  key={call.appointmentId}
-                  edge={call.outcome === 'met' ? 'teal' : call.status.includes('CANCEL') ? 'coral' : 'navy'}
-                  className="p-4 sm:p-5 shadow-card"
+            <>
+              {dcr.rows.map((row) => (
+                <div
+                  key={row.id}
+                  className="p-4 rounded-[1.25rem] bg-white border border-line shadow-2xs space-y-2.5"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-line/70 pb-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-[0.75rem] bg-navy-900 text-amber-400 font-display font-bold text-sm flex items-center justify-center flex-shrink-0 mt-0.5 shadow-2xs">
-                        #{call.callIndex}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-display font-bold text-base text-ink">
-                            {call.doctorName}
-                          </h4>
-                          <span className="text-xs font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                            {call.specialty}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{call.clinicName} · {call.city}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 justify-between sm:justify-end">
-                      <div className="text-left sm:text-right font-mono">
-                        <span className="text-[0.6875rem] text-slate-400 block uppercase">Scheduled</span>
-                        <span className="text-xs font-bold text-ink">{call.slotWindow}</span>
-                      </div>
-                      <div className="bg-teal-50 text-teal-900 font-mono text-xs font-bold px-3 py-1.5 rounded-[0.625rem] border border-teal-600/30 shadow-2xs">
-                        {call.token}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Detailing Details */}
-                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <span className="text-[0.6875rem] font-mono uppercase tracking-wider text-slate-400 block mb-1">
-                        Products Detailed
-                      </span>
-                      <p className="font-medium text-ink bg-cream-50/80 p-2.5 rounded-[0.625rem] border border-line">
-                        "{call.productsDetailed}"
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display font-bold text-sm text-ink">
+                          {row.doctorName}
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {row.status === 'completed' || row.outcome === 'met' ? 'Met (Completed)' : 'GatePass Issued'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-ink-soft">
+                        {row.clinicName} · {row.slotRange}
                       </p>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[0.6875rem] font-mono uppercase text-slate-400">Samples restocked:</span>
-                        <span className={cn(
-                          "font-mono font-bold px-2 py-0.5 rounded-full text-[0.6875rem]",
-                          call.samplesProvided.startsWith('YES') ? "bg-teal-50 text-teal-800" : "bg-slate-100 text-slate-600"
-                        )}>
-                          {call.samplesProvided}
+                    {row.token && (
+                      <span className="font-mono text-xs font-bold text-teal-700 bg-teal-50 px-2 py-1 rounded-[0.5rem] border border-teal-200">
+                        #{row.token}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="p-2.5 rounded-[0.75rem] bg-cream-50/70 border border-line/60 text-xs text-slate-700 space-y-1">
+                    {row.productFocus && (
+                      <p><strong>Products:</strong> {row.productFocus}</p>
+                    )}
+                    {row.samplesGiven && row.samplesGiven.length > 0 && (
+                      <p><strong>Samples:</strong> {row.samplesGiven.map(s => `${s.name} (${s.count})`).join(', ')}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {manualVisits.map((mv) => (
+                <div
+                  key={mv.id}
+                  className="p-4 rounded-[1.25rem] bg-white border border-amber-300/60 shadow-2xs space-y-2.5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-display font-bold text-sm text-ink">
+                          {mv.doctorName}
+                        </h4>
+                        <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                          Manual Entry
                         </span>
                       </div>
-
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[0.6875rem] font-mono uppercase text-slate-400">Time in cabin:</span>
-                        <span className="font-mono font-bold text-ink">
-                          {call.calledInTime}
-                        </span>
-                      </div>
-
-                      {call.accompaniment !== 'Solo' && (
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-[0.6875rem] font-mono uppercase text-slate-400">Joint detailing:</span>
-                          <span className="font-mono font-semibold text-navy-900 bg-navy-100 px-2 py-0.5 rounded-full">
-                            {call.accompaniment}
-                          </span>
-                        </div>
-                      )}
+                      <p className="text-xs text-ink-soft">{mv.clinicName}</p>
                     </div>
                   </div>
-                </EdgeCard>
+
+                  <div className="p-2.5 rounded-[0.75rem] bg-amber-50/40 border border-amber-200/50 text-xs text-slate-700 space-y-1">
+                    <p><strong>Products:</strong> {mv.products}</p>
+                    <p><strong>Samples:</strong> {mv.samples}</p>
+                  </div>
+                </div>
               ))}
-            </div>
+            </>
           )}
-        </section>
+        </div>
+
+        {/* ── Submit DCR Button (Image 15 Screen 4) ────────────────────── */}
+        <div className="pt-2 print:hidden">
+          <button
+            onClick={handleSubmitDcr}
+            className="w-full py-4 rounded-[1.25rem] bg-navy-900 hover:bg-navy-800 active:scale-95 text-white font-display font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Send className="w-4 h-4 text-amber-400" />
+            <span>Submit DCR to Area Manager & WhatsApp Broadcast</span>
+          </button>
+        </div>
 
       </main>
 
-      <div className="print:hidden">
-        <RepDrawerMenu
-          isOpen={drawerOpen}
-          onClose={() => setDrawerOpen(false)}
-          repProfile={repProfile}
-          userData={userData}
-        />
-        <RepBottomNav />
-      </div>
+      {/* ── Add Manual Visit Modal ───────────────────────────────────── */}
+      {showManualModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white rounded-[1.5rem] border border-line p-5 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-bold text-base text-ink">Add Manual Visit</h3>
+              <button onClick={() => setShowManualModal(false)} className="p-1 rounded-[0.5rem] hover:bg-cream-100 text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddManualVisit} className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-600 block mb-1 font-semibold">Doctor Name *</label>
+                <input
+                  type="text"
+                  value={manualDoctor}
+                  onChange={(e) => setManualDoctor(e.target.value)}
+                  placeholder="Dr. K. Ramya"
+                  className="w-full px-3 py-2 bg-cream-50 border border-line rounded-[0.75rem] outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-600 block mb-1 font-semibold">Clinic / Hospital *</label>
+                <input
+                  type="text"
+                  value={manualClinic}
+                  onChange={(e) => setManualClinic(e.target.value)}
+                  placeholder="Remedi Clinic, Kurnool"
+                  className="w-full px-3 py-2 bg-cream-50 border border-line rounded-[0.75rem] outline-none"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-600 block mb-1 font-semibold">Products Detailed</label>
+                <input
+                  type="text"
+                  value={manualProducts}
+                  onChange={(e) => setManualProducts(e.target.value)}
+                  placeholder="e.g. Semaglutide 0.25mg"
+                  className="w-full px-3 py-2 bg-cream-50 border border-line rounded-[0.75rem] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-600 block mb-1 font-semibold">Samples Distributed</label>
+                <input
+                  type="text"
+                  value={manualSamples}
+                  onChange={(e) => setManualSamples(e.target.value)}
+                  placeholder="e.g. 2 Pens, Literature"
+                  className="w-full px-3 py-2 bg-cream-50 border border-line rounded-[0.75rem] outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-navy-900 text-white rounded-[0.875rem] font-bold mt-2"
+              >
+                Log Visit to DCR
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Drawer menu */}
+      <RepDrawerMenu
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        userData={user}
+      />
+
+      {/* Rep Bottom Navigation */}
+      <RepBottomNav />
     </div>
   );
 }

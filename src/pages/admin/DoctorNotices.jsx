@@ -16,9 +16,12 @@ import {
   AlertCircle, 
   Info, 
   Sparkles, 
-  ShieldAlert,
   Calendar,
-  Tag
+  Tag,
+  Eye,
+  Megaphone,
+  Ban,
+  Clock
 } from 'lucide-react';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
@@ -30,6 +33,7 @@ export default function DoctorNotices() {
   const { user } = useAuth();
   const [notices, setNotices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterTab, setFilterTab] = useState('all'); // 'all' | 'looking_for' | 'not_accepting' | 'closure'
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,13 +58,41 @@ export default function DoctorNotices() {
     return notices.find((n) => n.pinned && n.isActive);
   }, [notices]);
 
+  // Tab counts
+  const { filteredNotices, counts } = useMemo(() => {
+    let looking = 0;
+    let notAccepting = 0;
+    let closure = 0;
+
+    notices.forEach(n => {
+      if (n.type === 'looking_for') looking++;
+      else if (n.type === 'not_accepting') notAccepting++;
+      else if (n.type === 'closure') closure++;
+    });
+
+    const c = {
+      all: notices.length,
+      looking_for: looking,
+      not_accepting: notAccepting,
+      closure: closure
+    };
+
+    const filtered = notices.filter(n => {
+      if (filterTab === 'looking_for') return n.type === 'looking_for';
+      if (filterTab === 'not_accepting') return n.type === 'not_accepting';
+      if (filterTab === 'closure') return n.type === 'closure';
+      return true;
+    });
+
+    return { filteredNotices: filtered, counts: c };
+  }, [notices, filterTab]);
+
   const handleCreateNotice = async (e) => {
     e.preventDefault();
     if (!user || !formTitle.trim() || !formBody.trim()) return;
     setIsSubmitting(true);
 
     try {
-      // Enforce max one pinned notice: unpin previous if setting new pin
       if (formPinned && currentlyPinned) {
         await updateNotice(currentlyPinned.id, { pinned: false });
       }
@@ -106,76 +138,141 @@ export default function DoctorNotices() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Delete this notice?')) {
+    if (!confirm('Are you sure you want to remove this notice?')) return;
+    try {
       await deleteNotice(id);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 max-w-4xl mx-auto font-sans pb-10">
         <Skeleton className="w-48 h-8 rounded-[0.75rem]" />
+        <Skeleton className="w-full h-36 rounded-card" />
         <Skeleton className="w-full h-36 rounded-card" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-20 font-sans selection:bg-amber-100 selection:text-sand-600">
+    <div className="space-y-6 max-w-4xl mx-auto font-sans selection:bg-amber-100 selection:text-sand-600 pb-20">
       
-      {/* ── Header & Action ─────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      {/* ── Top Header (Reference Image 2 Screen 3) ─────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold text-ink">Clinic Notices</h1>
           <p className="text-xs text-ink-soft mt-0.5">
-            Communicate requirements, focus areas, and clinic closures to medical reps
+            Create and manage notices for representatives.
           </p>
         </div>
 
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-navy-900 hover:bg-navy-700 active:scale-95 text-white rounded-[0.875rem] text-xs font-semibold shadow-sm transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-navy-900 hover:bg-navy-800 active:scale-95 text-white rounded-[0.875rem] text-xs font-bold shadow-sm transition-all cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
-          <span>New Notice</span>
+          <Plus className="w-4 h-4 text-amber-400" />
+          <span>Create Notice</span>
+        </button>
+      </div>
+
+      {/* ── Filter Tabs (Reference Image 2 Screen 3) ────────────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          onClick={() => setFilterTab('all')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'all'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          All ({counts.all})
+        </button>
+        <button
+          onClick={() => setFilterTab('looking_for')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'looking_for'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          Looking For ({counts.looking_for})
+        </button>
+        <button
+          onClick={() => setFilterTab('not_accepting')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'not_accepting'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          Not Accepting ({counts.not_accepting})
+        </button>
+        <button
+          onClick={() => setFilterTab('closure')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'closure'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          Closure ({counts.closure})
         </button>
       </div>
 
       {/* ── Notices List ────────────────────────────────────────────── */}
-      {notices.length === 0 ? (
-        <div className="bg-white rounded-card p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
+      {filteredNotices.length === 0 ? (
+        <div className="bg-white rounded-[1.25rem] p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
           <div className="w-16 h-16 rounded-[1.25rem] bg-navy-100 text-navy-900 flex items-center justify-center mx-auto mb-4">
             <Bell className="w-8 h-8 text-ink-mute" />
           </div>
-          <h2 className="text-base font-display font-bold text-ink mb-1">No active notices</h2>
+          <h2 className="text-base font-display font-bold text-ink mb-1">No notices found</h2>
           <p className="text-xs text-ink-soft max-w-xs mx-auto mb-4">
-            Post focus areas (e.g. looking for cardiology formulations) or closure alerts.
+            Post focus areas (e.g. looking for GLP-1 products) or closure announcements.
           </p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-navy-900 text-white rounded-[0.75rem] text-xs font-semibold"
+            className="px-4 py-2 bg-navy-900 text-white rounded-[0.75rem] text-xs font-semibold cursor-pointer"
           >
             Create Notice
           </button>
         </div>
       ) : (
         <div className="space-y-4">
-          {notices.map((n) => {
-            const edgeTheme = n.type === 'looking_for' ? 'teal' : n.type === 'not_accepting' ? 'coral' : n.type === 'closure' ? 'coral' : 'navy';
+          {filteredNotices.map((n) => {
+            const isLooking = n.type === 'looking_for';
+            const isNotAccepting = n.type === 'not_accepting';
+            const isClosure = n.type === 'closure';
+
             return (
-              <EdgeCard key={n.id} edge={edgeTheme} className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-2">
+              <div 
+                key={n.id} 
+                className="p-5 rounded-[1.5rem] bg-white border border-line shadow-card hover:border-slate-300 transition-all space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2">
+                    {/* Badge */}
                     <span className={cn(
-                      'px-2 py-0.5 rounded-[0.5rem] text-[0.625rem] font-mono font-semibold uppercase',
-                      n.type === 'looking_for' ? 'bg-teal-50 text-teal-600' :
-                      n.type === 'not_accepting' ? 'bg-coral-50 text-coral-600' :
-                      n.type === 'closure' ? 'bg-coral-50 text-coral-600' : 'bg-navy-100 text-navy-900'
+                      'px-3 py-1 rounded-full text-xs font-bold',
+                      isLooking ? 'bg-teal-50 text-teal-700 border border-teal-200' :
+                      isNotAccepting ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                      isClosure ? 'bg-coral-50 text-coral-700 border border-coral-200' :
+                      'bg-blue-50 text-blue-700 border border-blue-200'
                     )}>
-                      {n.type.replace('_', ' ')}
+                      {isLooking ? 'Looking For' : isNotAccepting ? 'Not Accepting' : isClosure ? 'Clinic Closure' : 'Information'}
                     </span>
+
+                    <span className="px-2 py-0.5 rounded-full text-[0.625rem] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Active
+                    </span>
+
                     {n.pinned && (
-                      <span className="inline-flex items-center gap-1 text-[0.625rem] font-bold text-amber-500 bg-amber-100 px-2 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1 text-[0.625rem] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                         <Pin className="w-3 h-3 fill-amber-500" /> Pinned
                       </span>
                     )}
@@ -185,8 +282,8 @@ export default function DoctorNotices() {
                     <button
                       onClick={() => handleTogglePin(n)}
                       className={cn(
-                        'p-1.5 rounded-[0.5rem] transition-colors',
-                        n.pinned ? 'text-amber-500 bg-amber-50' : 'text-ink-mute hover:text-ink'
+                        'p-1.5 rounded-[0.5rem] transition-colors cursor-pointer',
+                        n.pinned ? 'text-amber-500 bg-amber-50' : 'text-slate-400 hover:text-ink'
                       )}
                       title={n.pinned ? 'Unpin notice' : 'Pin notice'}
                     >
@@ -194,7 +291,7 @@ export default function DoctorNotices() {
                     </button>
                     <button
                       onClick={() => handleDelete(n.id)}
-                      className="p-1.5 text-ink-mute hover:text-coral-600 rounded-[0.5rem] transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-coral-600 rounded-[0.5rem] transition-colors cursor-pointer"
                       title="Delete notice"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -202,160 +299,110 @@ export default function DoctorNotices() {
                   </div>
                 </div>
 
-                <h3 className="text-base font-display font-bold text-ink mb-1">
-                  {n.title}
-                </h3>
-                <p className="text-xs text-ink-soft leading-relaxed mb-3">
-                  {n.body}
-                </p>
+                <div>
+                  <h3 className="text-base font-display font-bold text-ink">
+                    {n.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 leading-relaxed mt-1">
+                    {n.body}
+                  </p>
+                </div>
 
-                {n.categories?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-2 border-t border-line/60">
-                    {n.categories.map((c) => (
-                      <span key={c} className="px-2 py-0.5 rounded-[0.375rem] bg-cream-50 text-ink-soft border border-line text-[0.625rem] font-mono">
-                        {c}
-                      </span>
-                    ))}
+                {/* Date range & audience footer */}
+                <div className="pt-2 border-t border-line/70 flex items-center justify-between text-[0.6875rem] text-slate-400">
+                  <div className="flex items-center gap-1.5 font-mono">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Active until Nov 2026</span>
                   </div>
-                )}
-              </EdgeCard>
+                  <div className="flex items-center gap-1 font-medium">
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Visible to all reps</span>
+                  </div>
+                </div>
+              </div>
             );
           })}
         </div>
       )}
 
-      {/* ── Create Notice Modal ─────────────────────────────────────── */}
+      {/* ── Create Notice Modal ───────────────────────────────────────── */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-card p-6 max-w-md w-full space-y-4 shadow-card border border-line animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-navy-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[1.75rem] max-w-md w-full border border-line shadow-2xl overflow-hidden p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-line pb-3">
-              <h3 className="text-base font-display font-bold text-ink">New Clinic Notice</h3>
-              <button onClick={() => setShowCreateModal(false)} className="p-1 text-ink-mute hover:text-ink">
+              <h3 className="font-display font-bold text-base text-ink">New Clinic Notice</h3>
+              <button 
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 text-slate-400 hover:text-ink"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateNotice} className="space-y-4">
-              {/* Type Chips */}
+            <form onSubmit={handleCreateNotice} className="space-y-4 text-xs">
               <div className="space-y-1.5">
-                <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block">
-                  Notice Type
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'looking_for', label: 'Looking for', desc: 'Specific medicines' },
-                    { id: 'not_accepting', label: 'Not accepting', desc: 'Category soft warning' },
-                    { id: 'closure', label: 'Closure', desc: 'OPD closed dates' },
-                    { id: 'info', label: 'Information', desc: 'General protocol' },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setFormType(t.id)}
-                      className={cn(
-                        'p-2.5 rounded-[0.75rem] border text-left transition-all text-xs',
-                        formType === t.id
-                          ? 'border-navy-900 bg-navy-900 text-white font-semibold'
-                          : 'border-line bg-cream-50 text-ink hover:bg-white'
-                      )}
-                    >
-                      <span className="block font-bold">{t.label}</span>
-                      <span className={cn('text-[0.625rem]', formType === t.id ? 'text-white/70' : 'text-ink-mute')}>
-                        {t.desc}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">Notice Type</label>
+                <select
+                  value={formType}
+                  onChange={(e) => setFormType(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs font-semibold text-ink focus:border-teal-500 focus:outline-none"
+                >
+                  <option value="looking_for">Looking For (Specialties / Products)</option>
+                  <option value="not_accepting">Not Accepting (Categories / Full)</option>
+                  <option value="closure">Clinic Closure (Leave / Emergency)</option>
+                  <option value="info">General Information</option>
+                </select>
               </div>
 
-              {/* Title */}
-              <div>
-                <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block mb-1">
-                  Title ({formTitle.length}/80)
-                </label>
+              <div className="space-y-1.5">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">Title</label>
                 <input
                   type="text"
                   required
-                  maxLength={80}
+                  placeholder="e.g. Looking for GLP-1 products"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="e.g. Looking for newer GLP-1 receptor agonists"
-                  className="w-full p-2.5 rounded-[0.75rem] border border-line text-xs text-ink focus:outline-none focus:ring-1 focus:ring-navy-900"
+                  className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink focus:border-teal-500 focus:outline-none"
                 />
               </div>
 
-              {/* Body */}
-              <div>
-                <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block mb-1">
-                  Message ({formBody.length}/240)
-                </label>
+              <div className="space-y-1.5">
+                <label className="font-bold text-ink uppercase tracking-wider font-mono text-[0.625rem]">Notice Details</label>
                 <textarea
                   required
+                  placeholder="Enter detailed notice information for medical representatives..."
                   rows={3}
-                  maxLength={240}
                   value={formBody}
                   onChange={(e) => setFormBody(e.target.value)}
-                  placeholder="Brief details about what clinical trials, studies, or samples you wish to see…"
-                  className="w-full p-2.5 rounded-[0.75rem] border border-line text-xs text-ink focus:outline-none focus:ring-1 focus:ring-navy-900 resize-none"
+                  className="w-full px-3.5 py-2.5 rounded-[0.875rem] border border-line bg-white text-xs text-ink focus:border-teal-500 focus:outline-none resize-none"
                 />
               </div>
 
-              {/* Categories */}
-              <div>
-                <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block mb-1">
-                  Categories (comma separated)
-                </label>
+              <div className="flex items-center justify-between p-3.5 rounded-[1rem] bg-slate-50 border border-line">
+                <span className="font-bold text-ink">Pin this notice to top</span>
                 <input
-                  type="text"
-                  value={formCategories}
-                  onChange={(e) => setFormCategories(e.target.value)}
-                  placeholder="Diabetology, Endocrinology, Cardiology"
-                  className="w-full p-2.5 rounded-[0.75rem] border border-line text-xs text-ink focus:outline-none focus:ring-1 focus:ring-navy-900"
+                  type="checkbox"
+                  checked={formPinned}
+                  onChange={(e) => setFormPinned(e.target.checked)}
+                  className="w-4 h-4 text-teal-600 rounded"
                 />
               </div>
 
-              {/* Pinned Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-[0.75rem] bg-cream-50 border border-line">
-                <div>
-                  <span className="text-xs font-bold text-ink block">Pin to top</span>
-                  <span className="text-[0.6875rem] text-ink-mute">Max one pinned notice across practice</span>
-                </div>
-                <ToggleSwitch checked={formPinned} onChange={setFormPinned} />
-              </div>
-
-              {/* Optional Expiry Date */}
-              <div>
-                <label className="text-[0.625rem] font-mono uppercase tracking-wider text-ink-mute block mb-1">
-                  Auto-expire Date (Optional)
-                </label>
-                <input
-                  type="date"
-                  value={formExpiryDate}
-                  onChange={(e) => setFormExpiryDate(e.target.value)}
-                  className="w-full p-2 rounded-[0.75rem] border border-line text-xs text-ink bg-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-line">
+              <div className="pt-2">
                 <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="py-2.5 bg-cream-50 text-ink rounded-[0.875rem] text-xs font-semibold hover:bg-line"
-                >
-                  Cancel
-                </button>
-                <button
-                  disabled={isSubmitting}
                   type="submit"
-                  className="py-2.5 bg-navy-900 text-white rounded-[0.875rem] text-xs font-semibold hover:bg-navy-700 disabled:opacity-50"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 rounded-[1.125rem] bg-navy-900 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs hover:bg-navy-800 transition-all cursor-pointer"
                 >
-                  {isSubmitting ? 'Posting…' : 'Publish Notice'}
+                  <Check className="w-4 h-4 text-teal-400" />
+                  <span>{isSubmitting ? 'Posting...' : 'Post Notice'}</span>
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
     </div>
   );
 }

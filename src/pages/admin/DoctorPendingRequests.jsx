@@ -22,6 +22,8 @@ import {
   Package, 
   AlertTriangle, 
   Sparkles, 
+  Search,
+  Filter,
   MoreHorizontal, 
   ChevronRight,
   UserCheck,
@@ -39,6 +41,7 @@ import SlotChip from '../../components/ui/SlotChip';
 import ReasonChip from '../../components/ui/ReasonChip';
 import TagChip from '../../components/ui/TagChip';
 import BannerNote from '../../components/ui/BannerNote';
+import DoctorRequestDetailsModal from '../../components/doctor/DoctorRequestDetailsModal';
 import { cn } from '../../lib/utils';
 
 export default function DoctorPendingRequests() {
@@ -46,6 +49,10 @@ export default function DoctorPendingRequests() {
   const [requests, setRequests] = useState([]);
   const [reviewRequests, setReviewRequests] = useState([]);
   const [activeTab, setActiveTab] = useState('visits'); // 'visits' | 'reviews'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'slot' | 'company'
+  const [selectedDetailReq, setSelectedDetailReq] = useState(null);
+  const [reviewFilter, setReviewFilter] = useState('all'); // 'all' | 'new' | 'reviewed'
   const [doctor, setDoctor] = useState(null);
   const [relations, setRelations] = useState({});
   const [loading, setLoading] = useState(true);
@@ -130,6 +137,32 @@ export default function DoctorPendingRequests() {
   const visibleRequests = useMemo(() => {
     return requests.filter(r => !relations[r.repId]?.blocked);
   }, [requests, relations]);
+
+  // Search & sort filtered requests (Reference Image 5 Screen 2)
+  const processedRequests = useMemo(() => {
+    let list = visibleRequests;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(r => {
+        const name = (r.repSnapshot?.name || '').toLowerCase();
+        const comp = (r.repSnapshot?.company || '').toLowerCase();
+        const reason = (r.visitReason || r.message || r.productFocus || '').toLowerCase();
+        return name.includes(q) || comp.includes(q) || reason.includes(q);
+      });
+    }
+
+    return [...list].sort((a, b) => {
+      if (sortBy === 'slot') {
+        const dCmp = (a.slotDate || '').localeCompare(b.slotDate || '');
+        if (dCmp !== 0) return dCmp;
+        return (a.slotStart || '').localeCompare(b.slotStart || '');
+      }
+      if (sortBy === 'company') {
+        return (a.repSnapshot?.company || '').localeCompare(b.repSnapshot?.company || '');
+      }
+      return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    });
+  }, [visibleRequests, searchQuery, sortBy]);
 
   // Count preferred reps in pending queue
   const preferredRequests = useMemo(() => {
@@ -416,20 +449,46 @@ export default function DoctorPendingRequests() {
 
       {/* ── Tab 1: VISITS LIST ───────────────────────────────────────── */}
       {activeTab === 'visits' && (
-        <>
-          {visibleRequests.length === 0 ? (
+        <div className="space-y-4">
+          {/* Search Bar & Sort Row (Reference Image 5 Screen 2) */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by representative, company, or product..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-[1rem] bg-white border border-line focus:border-teal-500 focus:outline-none text-xs text-ink placeholder:text-slate-400 shadow-2xs"
+              />
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <span className="text-xs text-slate-500 font-medium">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 rounded-[0.875rem] bg-white border border-line text-xs font-semibold text-ink focus:outline-none shadow-2xs cursor-pointer"
+              >
+                <option value="newest">Newest First</option>
+                <option value="slot">Soonest Slot</option>
+                <option value="company">Company</option>
+              </select>
+            </div>
+          </div>
+
+          {processedRequests.length === 0 ? (
             <div className="bg-white rounded-card p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
               <div className="w-16 h-16 rounded-[1.25rem] bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-4 border border-teal-600/20">
                 <Coffee className="w-8 h-8" />
               </div>
               <h2 className="text-base font-display font-bold text-ink mb-1">All Caught Up</h2>
               <p className="text-xs text-ink-soft max-w-xs mx-auto">
-                You have no pending appointment requests. New requests will appear here in real time.
+                {searchQuery ? "No requests match your search criteria." : "You have no pending appointment requests. New requests will appear here in real time."}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {visibleRequests.map((req) => {
+              {processedRequests.map((req) => {
                 const rel = relations[req.repId] || {};
                 const isPreferred = Boolean(rel.preferred);
                 const slotStatus = slotFullMap[req.id];
@@ -617,7 +676,7 @@ export default function DoctorPendingRequests() {
               })}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* ── Tab 2: REVIEWS & RECONSIDERS INBOX ──────────────────────── */}
@@ -902,6 +961,27 @@ export default function DoctorPendingRequests() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Doctor Request Details Modal (Reference Image 5 Screen 3) ── */}
+      {selectedDetailReq && (
+        <DoctorRequestDetailsModal
+          req={selectedDetailReq}
+          isProcessing={processingReqId === selectedDetailReq.id}
+          onClose={() => setSelectedDetailReq(null)}
+          onApprove={(r) => {
+            setSelectedDetailReq(null);
+            handleApprove(r);
+          }}
+          onDecline={(r) => {
+            setSelectedDetailReq(null);
+            setDeclineReq(r);
+          }}
+          onReschedule={(r) => {
+            setSelectedDetailReq(null);
+            setOfferReq(r);
+          }}
+        />
       )}
     </div>
   );

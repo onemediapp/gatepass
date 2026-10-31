@@ -229,34 +229,47 @@ export default function DoctorScheduleSettings() {
       <div className="flex items-center gap-1.5 p-1 bg-white border border-line rounded-[1rem] shadow-sm mb-6 overflow-x-auto">
         <button
           type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'overview'
+              ? 'bg-navy-900 text-white shadow-sm'
+              : 'text-ink-soft hover:text-ink hover:bg-cream-50'
+          }`}
+        >
+          <Clock className="w-3.5 h-3.5" />
+          Schedule Overview
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('schedule')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'schedule'
               ? 'bg-navy-900 text-white shadow-sm'
               : 'text-ink-soft hover:text-ink hover:bg-cream-50'
           }`}
         >
           <Calendar className="w-3.5 h-3.5" />
-          Schedule & Overrides
+          Edit Schedule
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('limits')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'limits'
               ? 'bg-navy-900 text-white shadow-sm'
               : 'text-ink-soft hover:text-ink hover:bg-cream-50'
           }`}
         >
           <Sliders className="w-3.5 h-3.5" />
-          Limits & Multi-Ledger Caps
+          Multi-Ledger Quotas
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('comms')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-[0.75rem] text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'comms'
               ? 'bg-navy-900 text-white shadow-sm'
               : 'text-ink-soft hover:text-ink hover:bg-cream-50'
@@ -266,6 +279,101 @@ export default function DoctorScheduleSettings() {
           Communication & WhatsApp
         </button>
       </div>
+
+      {/* TAB 0: Schedule Overview (Reference Image 3 Screen 1) */}
+      {activeTab === 'overview' && (
+        <div className="space-y-6">
+          {/* Clinic Status Row */}
+          <div className="flex items-center justify-between p-4 rounded-[1.25rem] bg-white border border-line shadow-card">
+            <span className="text-xs font-bold text-ink">Clinic Status</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+              On Schedule
+            </span>
+          </div>
+
+          {/* 3 Top Stat Cards (Reference Image 3 Screen 1) */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-card text-center">
+              <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-2">
+                <Clock className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-display font-bold text-ink">
+                {schedule.slotMinutes || 30} min
+              </p>
+              <p className="text-[0.6875rem] text-slate-400 font-medium mt-0.5">Slot Duration</p>
+            </div>
+
+            <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-card text-center">
+              <div className="w-9 h-9 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-2">
+                <Users className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-display font-bold text-ink">
+                {limits.maxRepsPerDay ?? schedule.maxRepsPerDay ?? 10}
+              </p>
+              <p className="text-[0.6875rem] text-slate-400 font-medium mt-0.5">Max Visits / Day</p>
+            </div>
+
+            <div className="p-4 rounded-[1.25rem] bg-white border border-line shadow-card text-center">
+              <div className="w-9 h-9 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center mx-auto mb-2">
+                <Sliders className="w-4 h-4" />
+              </div>
+              <p className="text-xl sm:text-2xl font-display font-bold text-ink">
+                {limits.maxRepsPerWeek || 6}
+              </p>
+              <p className="text-[0.6875rem] text-slate-400 font-medium mt-0.5">Max Visits / Week</p>
+            </div>
+          </div>
+
+          {/* Daily Schedule List */}
+          <div className="bg-white rounded-[1.5rem] border border-line shadow-card overflow-hidden divide-y divide-line">
+            {DAYS_ORDER.map((dayKey) => {
+              const dayConf = schedule.weekly ? schedule.weekly[dayKey] : null;
+              const isActive = dayConf && dayConf.active;
+              const windows = dayConf?.windows || [];
+              const timeDisplay = windows.length > 0
+                ? `${windows[0].start} - ${windows[0].end}`
+                : '-';
+              const slotsCount = isActive ? Math.round(windows.length * 4) : 0;
+
+              return (
+                <div key={dayKey} className="p-4 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="font-bold text-ink w-8 font-mono">
+                      {FULL_DAY_LABELS[dayKey]?.slice(0, 3)}
+                    </span>
+                    <span className="text-slate-600 font-mono">
+                      {timeDisplay}
+                    </span>
+                  </div>
+
+                  <div>
+                    {isActive ? (
+                      <span className="text-teal-700 font-semibold bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
+                        {slotsCount > 0 ? `${slotsCount} slots` : 'Open'}
+                      </span>
+                    ) : (
+                      <span className="text-coral-600 font-medium bg-coral-50/60 px-2.5 py-1 rounded-full border border-coral-200/60">
+                        Closed
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Edit Schedule CTA */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('schedule')}
+            className="w-full py-3.5 px-4 rounded-[1.25rem] bg-navy-900 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs hover:bg-navy-800 transition-all cursor-pointer"
+          >
+            <Calendar className="w-4 h-4 text-amber-400" />
+            <span>Edit Schedule</span>
+          </button>
+        </div>
+      )}
 
       {/* TAB 1: Schedule & Overrides */}
       {activeTab === 'schedule' && (

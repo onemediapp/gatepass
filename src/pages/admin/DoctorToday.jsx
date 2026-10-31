@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { subscribeDoctorAppointmentsByDate, updateAppointment } from '../../lib/db/appointments';
 import { recordRepOutcome, addRepRelationTag } from '../../lib/db/repRelations';
 import { subscribeDoctor, updateDoctor } from '../../lib/db/doctors';
@@ -56,6 +57,7 @@ export default function DoctorToday() {
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [cancelledEmergencyAppts, setCancelledEmergencyAppts] = useState([]);
   const [showDelayBroadcastModal, setShowDelayBroadcastModal] = useState(false);
+  const [filterTab, setFilterTab] = useState('all'); // 'all' | 'waiting' | 'in_consultation' | 'completed'
 
   const todayStr = todayDateStr();
 
@@ -222,6 +224,38 @@ export default function DoctorToday() {
 
   const activeVisitsCount = appointments.filter(a => a.status === 'approved' && !a.outcome).length;
 
+  const { filteredAppointments, tabCounts } = useMemo(() => {
+    let waiting = 0;
+    let inConsultation = 0;
+    let completed = 0;
+
+    appointments.forEach((appt) => {
+      if (appt.outcome === 'met' || appt.status === 'completed') {
+        completed++;
+      } else if (appt.calledInAt) {
+        inConsultation++;
+      } else if (appt.arrivedAt) {
+        waiting++;
+      }
+    });
+
+    const counts = {
+      all: appointments.length,
+      waiting,
+      in_consultation: inConsultation,
+      completed
+    };
+
+    const filtered = appointments.filter((appt) => {
+      if (filterTab === 'waiting') return Boolean(appt.arrivedAt && !appt.calledInAt && !appt.outcome);
+      if (filterTab === 'in_consultation') return Boolean(appt.calledInAt && !appt.outcome);
+      if (filterTab === 'completed') return Boolean(appt.outcome === 'met' || appt.status === 'completed');
+      return true;
+    });
+
+    return { filteredAppointments: filtered, tabCounts: counts };
+  }, [appointments, filterTab]);
+
   return (
     <div className="space-y-6 pb-20 font-sans selection:bg-amber-100 selection:text-sand-600">
       
@@ -357,21 +391,73 @@ export default function DoctorToday() {
         </div>
       </div>
 
+      {/* ── Status Filter Tabs (Reference Image 5 Screen 4) ──────────── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          onClick={() => setFilterTab('all')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'all'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          All ({tabCounts.all})
+        </button>
+        <button
+          onClick={() => setFilterTab('waiting')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'waiting'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          Waiting ({tabCounts.waiting})
+        </button>
+        <button
+          onClick={() => setFilterTab('in_consultation')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'in_consultation'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          In Consultation ({tabCounts.in_consultation})
+        </button>
+        <button
+          onClick={() => setFilterTab('completed')}
+          className={cn(
+            "px-4 py-2 rounded-[0.75rem] text-xs font-bold transition-all shrink-0 cursor-pointer",
+            filterTab === 'completed'
+              ? "bg-navy-900 text-white shadow-2xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-line"
+          )}
+        >
+          Completed ({tabCounts.completed})
+        </button>
+      </div>
+
       {/* ── Empty State ─────────────────────────────────────────────── */}
-      {appointments.length === 0 ? (
+      {filteredAppointments.length === 0 ? (
         <div className="bg-white rounded-[1.25rem] p-12 text-center border border-line shadow-card max-w-md mx-auto my-8">
           <div className="w-16 h-16 rounded-[1.25rem] bg-sand-50 text-sand-600 flex items-center justify-center mx-auto mb-4 border border-sand-600/20 shadow-2xs">
             <Coffee className="w-8 h-8" />
           </div>
-          <h2 className="text-base font-display font-bold text-ink mb-1">No visitors today</h2>
+          <h2 className="text-base font-display font-bold text-ink mb-1">
+            {filterTab === 'all' ? "No visitors today" : `No visits in "${filterTab.replace('_', ' ')}"`}
+          </h2>
           <p className="text-xs text-ink-soft max-w-xs mx-auto">
-            You have no medical representative appointments scheduled for today.
+            {filterTab === 'all' 
+              ? "You have no medical representative appointments scheduled for today."
+              : "Visits will appear here as representatives arrive and check in at the reception desk."}
           </p>
         </div>
       ) : (
         /* ── Appointments List ───────────────────────────────────────── */
         <div className="space-y-4">
-          {appointments.map((appt) => {
+          {filteredAppointments.map((appt) => {
             const timeRange = formatSlotRange(appt.slotStart, appt.slotEnd);
             const tokenStr = formatTokenDisplay(appt.token);
             const rep = appt.repSnapshot || {};
@@ -598,6 +684,17 @@ export default function DoctorToday() {
               </EdgeCard>
             );
           })}
+          
+          {/* View Full Schedule Button (Reference Image 5 Screen 4) */}
+          <div className="pt-2">
+            <Link
+              to="/admin/schedule"
+              className="w-full py-3 px-4 rounded-[1.125rem] bg-white border border-line hover:border-teal-300 text-ink text-xs font-bold flex items-center justify-center gap-2 shadow-2xs hover:shadow-xs transition-all"
+            >
+              <Calendar className="w-4 h-4 text-teal-600" />
+              <span>View Full Schedule</span>
+            </Link>
+          </div>
         </div>
       )}
 
