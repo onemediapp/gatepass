@@ -80,11 +80,34 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  const isPlatformAdmin = Boolean(
+    user?.email?.toLowerCase() === 'onemediapp@gmail.com' ||
+    userData?.role?.includes('platform_admin') ||
+    userData?.role?.includes('platformAdmin') ||
+    userData?.role?.includes('admin')
+  );
+
+  const effectiveUserData = userData ? {
+    ...userData,
+    role: (user?.email?.toLowerCase() === 'onemediapp@gmail.com' && !userData.role?.includes('platform_admin'))
+      ? [...(Array.isArray(userData.role) ? userData.role : [userData.role]), 'platform_admin']
+      : userData.role,
+    isPlatformAdmin
+  } : (user?.email?.toLowerCase() === 'onemediapp@gmail.com' ? {
+    id: user?.uid,
+    email: user?.email,
+    name: user?.displayName || 'Platform Admin',
+    role: ['platform_admin', 'doctor', 'rep', 'clinic_admin'],
+    isPlatformAdmin: true,
+    status: 'active'
+  } : null);
+
   const value = {
     user,
-    userData,
+    userData: effectiveUserData,
     loading,
     setUserData,
+    isPlatformAdmin,
     loginWithGoogle,
     logout,
     signInWithGoogle: loginWithGoogle,

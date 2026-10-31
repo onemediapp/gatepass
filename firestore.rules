@@ -9,29 +9,36 @@ service cloud.firestore {
     function hasRole(r){ return isAuth() && exists(/databases/$(db)/documents/users/$(uid())) && userDoc().role.hasAny([r]); }
     function isRep()    { return hasRole('rep'); }
     function isDoctor() { return hasRole('doctor'); }
-    function isAdmin()  { return hasRole('platform_admin'); }
+    function isAdmin()  { return isAuth() && (request.auth.token.email.lower() == 'onemediapp@gmail.com' || hasRole('platform_admin') || hasRole('admin')); }
     function emailKey() { return request.auth.token.email.lower(); }
 
-    // ── Invites (doctor onboarding). Written only from Console ──
+    // ── Invites (doctor onboarding). Platform Admin or Console ──
     match /invites/{email} {
-      allow get: if isAuth() && email == emailKey();
-      allow list, write: if false;
+      allow get: if isAuth() && (email == emailKey() || isAdmin());
+      allow list, write: if isAdmin();
     }
 
     // ── Users ─────────────────────────────────────────────
     // Self-create only as rep, or as doctor if invited. Role is immutable by the user.
     match /users/{userId} {
       allow get: if isAuth() && (uid() == userId || isAdmin());
+      allow list: if isAdmin();
       allow create: if isAuth() && uid() == userId
-        && request.resource.data.role.size() == 1
         && (
-          request.resource.data.role[0] == 'rep'
-          || (request.resource.data.role[0] == 'doctor'
-              && exists(/databases/$(db)/documents/invites/$(emailKey())))
+          isAdmin()
+          || (
+            request.resource.data.role.size() == 1
+            && (
+              request.resource.data.role[0] == 'rep'
+              || (request.resource.data.role[0] == 'doctor'
+                  && exists(/databases/$(db)/documents/invites/$(emailKey())))
+            )
+          )
         );
-      allow update: if isAuth() && uid() == userId
+      allow update: if isAuth() && (uid() == userId || isAdmin())
         && (
-          (request.resource.data.role == resource.data.role)
+          isAdmin()
+          || (request.resource.data.role == resource.data.role)
           || (
             !('role' in resource.data)
             && request.resource.data.role.size() == 1
@@ -42,7 +49,7 @@ service cloud.firestore {
             )
           )
         );
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     // ── Rep profiles ──────────────────────────────────────

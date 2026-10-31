@@ -80,7 +80,7 @@ function PageFallback() {
 }
 
 function ProtectedRoute({ children, requiredRole }) {
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, isPlatformAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -89,6 +89,11 @@ function ProtectedRoute({ children, requiredRole }) {
   if (!user) {
     const currentPath = location.pathname + location.search;
     return <Navigate to={`/?redirect=${encodeURIComponent(currentPath)}`} state={{ from: location }} replace />;
+  }
+
+  // Superuser Platform Admin access to all portals
+  if (user.email?.toLowerCase() === 'onemediapp@gmail.com' || isPlatformAdmin) {
+    return children;
   }
 
   if (userData && requiredRole && !userData.role?.includes(requiredRole)) {

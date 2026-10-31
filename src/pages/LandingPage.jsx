@@ -15,7 +15,7 @@ import LiveDot from '../components/ui/LiveDot';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { user, userData, loading } = useAuth();
+  const { user, userData, loading, isPlatformAdmin } = useAuth();
   const [selectedRole, setSelectedRole] = useState('rep'); // Default to 'rep' for seamless 1-tap UX
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -23,24 +23,30 @@ export default function LandingPage() {
   const location = useLocation();
 
   useEffect(() => {
-    if (!loading && user && userData) {
-      sessionStorage.removeItem('pendingRole');
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname;
-      if (redirectUrl && redirectUrl !== '/') {
-        navigate(redirectUrl, { replace: true });
+    if (!loading && user) {
+      if (user.email?.toLowerCase() === 'onemediapp@gmail.com' || isPlatformAdmin) {
+        navigate('/platform-admin', { replace: true });
         return;
       }
-      if (userData.role?.includes('doctor')) {
-        navigate('/admin', { replace: true });
-      } else if (userData.role?.includes('rep')) {
-        navigate('/rep/home', { replace: true });
+      if (userData) {
+        sessionStorage.removeItem('pendingRole');
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname;
+        if (redirectUrl && redirectUrl !== '/') {
+          navigate(redirectUrl, { replace: true });
+          return;
+        }
+        if (userData.role?.includes('doctor')) {
+          navigate('/admin', { replace: true });
+        } else if (userData.role?.includes('rep')) {
+          navigate('/rep/home', { replace: true });
+        }
       }
     }
-  }, [user, userData, loading, navigate, location]);
+  }, [user, userData, loading, isPlatformAdmin, navigate, location]);
 
-  // If user is authenticated with Google but has no users/{uid} document, show RoleChooser
-  if (!loading && user && !userData) {
+  // If user is authenticated with Google but has no users/{uid} document, show RoleChooser (skip for platform admin)
+  if (!loading && user && !userData && user.email?.toLowerCase() !== 'onemediapp@gmail.com' && !isPlatformAdmin) {
     return <RoleChooser />;
   }
 

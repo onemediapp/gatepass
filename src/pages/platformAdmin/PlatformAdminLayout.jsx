@@ -15,10 +15,12 @@ import {
   Bell, 
   ChevronDown, 
   Check, 
-  Stethoscope 
+  Stethoscope,
+  LogOut
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../lib/auth';
+import { logout } from '../../lib/firebase';
 
 export default function PlatformAdminLayout() {
   const navigate = useNavigate();
@@ -83,19 +85,39 @@ export default function PlatformAdminLayout() {
             </div>
           </div>
 
-          {/* Right: Notifications & Avatar */}
-          <div className="flex items-center gap-3">
+          {/* Right: Notifications, User & Sign Out */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => navigate('/platform-admin/subscriptions')}
               className="relative p-2 rounded-full hover:bg-white/10 text-white transition-colors"
+              title="Notifications"
             >
               <Bell className="w-4 h-4" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-purple-400 ring-2 ring-[#1E1B4B]" />
             </button>
 
-            <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs border border-purple-400 shadow-sm">
-              A
+            <div className="flex items-center gap-2 pl-1 border-l border-white/20">
+              <div 
+                className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs border border-purple-400 shadow-sm"
+                title={user?.email || 'onemediapp@gmail.com'}
+              >
+                {user?.email ? user.email[0].toUpperCase() : 'O'}
+              </div>
+              <span className="hidden sm:inline-block text-xs font-medium text-purple-200 max-w-[140px] truncate">
+                {user?.email || 'onemediapp@gmail.com'}
+              </span>
             </div>
+
+            <button
+              onClick={async () => {
+                await logout();
+                navigate('/');
+              }}
+              className="p-2 rounded-full hover:bg-white/10 text-purple-300 hover:text-white transition-colors ml-1"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
 
         </div>
