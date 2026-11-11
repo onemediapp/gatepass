@@ -22,6 +22,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { updateAppointment } from '../../lib/db/appointments';
+import { cancelAppointmentTransaction } from '../../lib/db/transactions';
 import { recordRepOutcome } from '../../lib/db/repRelations';
 import { formatSlotRange, formatDateIST } from '../../lib/time';
 import { formatTokenDisplay } from '../../lib/gatepass';
@@ -65,18 +66,21 @@ export default function VisitDetailsModal({ appt, doctorId, onClose, onRefresh }
   };
 
   const handleReject = async () => {
-    if (!window.confirm('Are you sure you want to decline this visit?')) return;
+    if (!window.confirm('Are you sure you want to cancel this visit? The slot will be released.')) return;
     setLoading(true);
     try {
-      await updateAppointment(appt.id, {
-        status: 'declined',
-        outcome: 'no_show',
-        outcomeAt: serverTimestamp()
+      await cancelAppointmentTransaction({
+        appointmentId: appt.id,
+        userId: doctorId,
+        userRole: 'doctor',
+        cancelReason: 'Doctor cancelled visit',
+        cancelCutoffMinutes: 60
       });
       if (onRefresh) onRefresh();
       onClose();
     } catch (err) {
-      console.error('Error rejecting visit:', err);
+      console.error('Error cancelling visit:', err);
+      alert(err.message || 'Failed to cancel visit');
     } finally {
       setLoading(false);
     }

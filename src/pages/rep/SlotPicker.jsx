@@ -110,8 +110,9 @@ export default function SlotPicker() {
             const rData = await getRep(user.uid);
             if (rData) {
               setRep(rData);
-              if (rData.company) {
-                generateCompanyKey(rData.company).then(setRepCompanyKey);
+              const comp = rData.company || rData.companyName;
+              if (comp) {
+                generateCompanyKey(comp).then(setRepCompanyKey);
               }
             }
           } catch (e) {}

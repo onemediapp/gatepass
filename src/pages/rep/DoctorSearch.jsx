@@ -72,52 +72,7 @@ export default function DoctorSearch() {
           return nameMatch || specMatch || cityMatch;
         });
 
-        // If results are empty, provide reference doctors from Remedi Clinic pilot
-        if (filtered.length === 0 && !searchTerm) {
-          filtered = [
-            {
-              id: 'doc-karthik',
-              profileSlug: 'karthik-remedi',
-              name: 'Dr. T. Karthik',
-              specialty: 'Consultant Physician • Diabetes Specialist',
-              qualifications: 'MBBS, MD (General Medicine)',
-              clinicName: 'Remedi Clinic',
-              city: 'Kurnool',
-              distance: '1.2 km',
-              availableToday: true,
-              availableSlots: ['11:00 AM', '12:00 PM', '6:00 PM'],
-              privacy: { visibleInSearch: true, showSpecialty: true }
-            },
-            {
-              id: 'doc-ramya',
-              profileSlug: 'ramya-remedi',
-              name: 'Dr. K. Ramya',
-              specialty: 'Dermatologist & Cosmetologist',
-              qualifications: 'MBBS, MD. DVL',
-              clinicName: 'Remedi Clinic',
-              city: 'Kurnool',
-              distance: '1.2 km',
-              availableToday: true,
-              availableSlots: ['11:30 AM', '12:30 PM', '7:00 PM'],
-              privacy: { visibleInSearch: true, showSpecialty: true }
-            },
-            {
-              id: 'doc-subba',
-              profileSlug: 'subba-remedi',
-              name: 'Dr. D V Subba Reddy',
-              specialty: 'Orthopedic Surgeon',
-              qualifications: 'MS (Orthopedics)',
-              clinicName: 'Remedi Clinic',
-              city: 'Kurnool',
-              distance: '1.2 km',
-              availableToday: false,
-              nextAvailable: 'Tomorrow',
-              availableSlots: ['10:00 AM', '12:00 PM', '4:00 PM'],
-              privacy: { visibleInSearch: true, showSpecialty: true }
-            }
-          ];
-        }
-
+        // Resolve clinics for filtered doctors
         const cMap = {};
         for (const dr of filtered) {
           if (dr.clinicIds && dr.clinicIds.length > 0) {
@@ -239,16 +194,45 @@ export default function DoctorSearch() {
             ))}
           </div>
         ) : results.length === 0 ? (
-          <div className="p-12 text-center bg-white rounded-[1.25rem] border border-line space-y-2">
-            <SearchX className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-            <h3 className="font-display font-bold text-sm text-ink">No Doctors Found</h3>
-            <p className="text-xs text-ink-soft">Try searching with another specialty or keyword.</p>
+          <div className="p-8 sm:p-12 text-center bg-white rounded-[1.25rem] border border-line space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center mx-auto text-slate-400">
+              <SearchX className="w-7 h-7" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-display font-bold text-base text-ink">No Doctors Found</h3>
+              <p className="text-xs text-ink-soft max-w-sm mx-auto">
+                {searchTerm || selectedSpecialty !== 'All'
+                  ? 'No doctors match your active filters. Try clearing filters or searching another keyword.'
+                  : `No doctors are currently listed in ${selectedCity}.`}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              {(searchTerm || selectedSpecialty !== 'All') && (
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedSpecialty('All');
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition cursor-pointer"
+                >
+                  Clear Filters
+                </button>
+              )}
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent('Hello Doctor, I use Gatepass Zero-Wait detailing protocol for pharma consultations. You can join or view it here: ' + window.location.origin)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Invite Doctor via WhatsApp</span>
+              </a>
+            </div>
           </div>
         ) : (
           results.map((doctor) => {
             const isFav = favorites.has(doctor.id);
-            const clinicName = doctor.clinicName || (doctor.clinicIds?.[0] ? clinicNamesMap[doctor.clinicIds[0]] : 'Remedi Clinic');
-            const slots = doctor.availableSlots || ['11:00 AM', '12:00 PM', '6:00 PM'];
+            const clinicName = doctor.clinicName || (doctor.clinicIds?.[0] ? clinicNamesMap[doctor.clinicIds[0]] : 'Clinic');
+            const slots = doctor.availableSlots;
 
             return (
               <div
@@ -313,19 +297,25 @@ export default function DoctorSearch() {
                 {/* Slot Chips & View Profile CTA */}
                 <div className="flex items-center justify-between gap-2 pt-1 border-t border-line/60">
                   <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1">
-                    {slots.map((slot, sIdx) => (
-                      <span
-                        key={sIdx}
-                        className="px-2.5 py-1 rounded-[0.625rem] bg-cream-50 border border-line text-[0.6875rem] font-mono font-semibold text-slate-700 whitespace-nowrap"
-                      >
-                        {slot}
+                    {slots && slots.length > 0 ? (
+                      slots.map((slot, sIdx) => (
+                        <span
+                          key={sIdx}
+                          className="px-2.5 py-1 rounded-[0.625rem] bg-cream-50 border border-line text-[0.6875rem] font-mono font-semibold text-slate-700 whitespace-nowrap"
+                        >
+                          {slot}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[0.6875rem] font-mono text-slate-500">
+                        {doctor.repSchedule?.slotMinutes ? `${doctor.repSchedule.slotMinutes} min detailing` : 'Zero-Wait Detailing'}
                       </span>
-                    ))}
+                    )}
                   </div>
 
                   <button
                     onClick={() => navigate(`/dr/${doctor.profileSlug || doctor.id}`)}
-                    className="px-3.5 py-1.5 rounded-[0.75rem] bg-amber-500 hover:bg-amber-400 text-navy-950 font-display font-bold text-xs shadow-2xs transition-all active:scale-95 whitespace-nowrap"
+                    className="px-3.5 py-1.5 rounded-[0.75rem] bg-amber-500 hover:bg-amber-400 text-navy-950 font-display font-bold text-xs shadow-2xs transition-all active:scale-95 whitespace-nowrap cursor-pointer"
                   >
                     View Profile
                   </button>

@@ -40,65 +40,10 @@ export default function RepNotices() {
 
   useEffect(() => {
     const unsub = subscribeActiveNotices((data) => {
-      if (data && data.length > 0) {
-        setNotices(data);
-      } else {
-        // Fallback reference pilot notices matching Image 14 Screen 1
-        setNotices([
-          {
-            id: 'notice-1',
-            type: 'looking_for',
-            typeLabel: 'Looking For',
-            doctorName: 'Dr. K. Ramya',
-            specialty: 'Dermatology & Cosmetology',
-            clinicName: 'Remedi Clinic, Kurnool',
-            dateStr: 'Today, 10:30 AM',
-            title: 'Looking for Derma & Aesthetic Representatives',
-            content: 'Looking for representatives from Derma, Skin care and Aesthetic products.',
-            doctorSlug: 'karthik-remedi'
-          },
-          {
-            id: 'notice-2',
-            type: 'info',
-            typeLabel: 'Information',
-            doctorName: 'Dr. T. Karthik',
-            specialty: 'General Medicine',
-            clinicName: 'Remedi Clinic, Kurnool',
-            dateStr: 'Today, 09:15 AM',
-            title: 'Shift to Evening Consultation',
-            content: 'Will be available only in the evening today (6 PM – 9 PM).',
-            doctorSlug: 'karthik-remedi'
-          },
-          {
-            id: 'notice-3',
-            type: 'closure',
-            typeLabel: 'Clinic Closure',
-            doctorName: 'Dr. D V Subba Reddy',
-            specialty: 'Orthopedics',
-            clinicName: 'Remedi Clinic, Kurnool',
-            dateStr: '28 Oct 2026',
-            title: 'Diwali & CME Leave Notice',
-            content: 'Clinic will be closed on 2 Nov 2026 (Monday) due to CME.',
-            doctorSlug: 'karthik-remedi'
-          },
-          {
-            id: 'notice-4',
-            type: 'not_accepting',
-            typeLabel: 'Not Accepting',
-            doctorName: 'Dr. S. Narayana',
-            specialty: 'Cardiology',
-            clinicName: 'City Care Clinic, Kurnool',
-            dateStr: '27 Oct 2026',
-            title: 'Antibiotic Category Restricted',
-            content: 'Not accepting representatives from antibiotic category this week.',
-            doctorSlug: 'karthik-remedi'
-          }
-        ]);
-      }
+      setNotices(data || []);
       setLoading(false);
     });
-
-    return () => unsub();
+    return () => unsub && unsub();
   }, []);
 
   const categories = ['All', 'Looking For', 'Not Accepting', 'Closure', 'Info'];

@@ -131,28 +131,28 @@ export default function RepHome() {
   const repFirstName = (userData?.name || user?.displayName || 'Ravi').split(' ')[0];
 
   // Counts
-  const approvedTodayCount = appointments.filter(a => a.status === 'approved' && a.slotDate === todayStr).length || 2;
-  const pendingCount = appointments.filter(a => a.status === 'pending').length || 3;
-  const completedCount = appointments.filter(a => a.status === 'completed').length || 18;
-  const reliabilityScore = repProfile?.reliabilityScore || 94;
+  const approvedTodayCount = appointments.filter(a => a.status === 'approved' && a.slotDate === todayStr).length;
+  const pendingCount = appointments.filter(a => a.status === 'pending').length;
+  const completedCount = appointments.filter(a => a.status === 'completed' || a.outcome === 'met').length;
+  const reliabilityScore = repProfile?.reliabilityScore || (completedCount > 0 ? 100 : 95);
 
   const generateDcrText = () => {
     const dateDisplay = formatDateIST(new Date(), 'dd MMM yyyy');
     let text = `📋 *PHARMA DAILY CALL REPORT (DCR)*\n`;
-    text += `👤 *Rep:* ${userData?.name || 'Ravi Sharma'} | ${repProfile?.companyName || 'Sunrise Pharma'}\n`;
+    text += `👤 *Rep:* ${userData?.name || 'Representative'} | ${repProfile?.companyName || 'Pharma'}\n`;
     text += `📅 *Date:* ${dateDisplay}\n`;
-    text += `📍 *Territory:* Kurnool Region (KR-A)\n\n`;
-    text += `*VISITS COMPLETED:*\n`;
+    text += `📍 *Territory:* ${userData?.city || 'Kurnool'}\n\n`;
+    text += `*VISITS RECORDED:*\n`;
 
     const todaysList = appointments.filter(a => a.slotDate === todayStr);
     if (todaysList.length === 0) {
-      text += `1. Dr. T. Karthik - Remedi Clinic | Met (GLP-1 Semaglutide)\n`;
-      text += `2. Dr. K. Ramya - Remedi Clinic | Met (Barrier Repair & Derma)\n`;
+      text += `No detailing visits recorded on Gatepass for today yet.\n`;
     } else {
       todaysList.forEach((a, i) => {
         const docName = a.doctorSnapshot?.name || a.doctorName || 'Doctor';
         const clinic = a.doctorSnapshot?.clinicName || a.clinicName || 'Clinic';
-        text += `${i + 1}. Dr. ${docName} - ${clinic} | Completed\n`;
+        const statusLabel = a.outcome === 'met' || a.status === 'completed' ? 'Completed' : (a.status || 'Scheduled').toUpperCase();
+        text += `${i + 1}. Dr. ${docName} - ${clinic} | ${statusLabel}\n`;
       });
     }
     return text;

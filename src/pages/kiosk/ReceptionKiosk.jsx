@@ -340,13 +340,14 @@ export default function ReceptionKiosk() {
 
   const verifyPinDirect = async (pin) => {
     setPinError('');
-    // Check against clinic delegation settings or standard default PIN 2026 / 1234
-    const validPins = ['2026', '1234', '0000', clinic?.delegation?.pin].filter(Boolean);
-    if (validPins.includes(pin)) {
+    const res = await verifyClinicStaffPin(clinic?.id, pin);
+    if (res.valid) {
       setIsUnlocked(true);
-      const name = clinic?.delegation?.staffName || 'Priya Reddy';
+      const name = res.staffName || clinic?.delegation?.staffName || 'Priya Reddy';
       setStaffName(name);
-      sessionStorage.setItem(`gatepass_staff_${clinic?.id}`, name);
+      if (clinic?.id) {
+        sessionStorage.setItem(`gatepass_staff_${clinic.id}`, name);
+      }
     } else {
       setPinError('Invalid 4-digit PIN. Please try again or ask clinic administrator.');
       setTimeout(() => setPinDigits(''), 1000);

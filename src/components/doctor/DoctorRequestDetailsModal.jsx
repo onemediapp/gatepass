@@ -45,7 +45,7 @@ export default function DoctorRequestDetailsModal({
   // Key Brands / Molecules
   const brands = rep.productNames && rep.productNames.length > 0 
     ? rep.productNames 
-    : ['Soliqua', 'Lantus', 'Basaglar'];
+    : (req.productFocus ? req.productFocus.split(',').map(s => s.trim()).filter(Boolean) : []);
 
   return (
     <div className="fixed inset-0 z-50 bg-navy-950/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">

@@ -11,6 +11,7 @@ import { getClinic } from '../../lib/db/clinics';
 import { subscribeDoctorNotices } from '../../lib/db/notices';
 import { hasContactGrant } from '../../lib/db/contactGrants';
 import { getDoctorContact } from '../../lib/db/doctorContacts';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import { useAuth } from '../../lib/auth';
 import { 
   DAYS_ORDER, 
@@ -187,10 +188,10 @@ export default function DoctorProfile() {
 
   const handleOpenWhatsApp = () => {
     if (!contactInfo?.whatsappNumber) return;
-    const cleanNumber = contactInfo.whatsappNumber.replace(/\D/g, '');
     const repName = user?.displayName || 'Medical Representative';
-    const msg = encodeURIComponent(`Hello Dr. ${doctor.name}, I am ${repName} visiting regarding Gatepass.`);
-    window.open(`https://wa.me/91${cleanNumber}?text=${msg}`, '_blank');
+    const msg = `Hello Dr. ${doctor.name}, I am ${repName} visiting regarding Gatepass.`;
+    const url = buildWhatsAppUrl(contactInfo.whatsappNumber, msg);
+    if (url) window.open(url, '_blank');
   };
 
   return (

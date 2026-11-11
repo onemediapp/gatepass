@@ -13,7 +13,7 @@ export function RepBottomNav() {
     { to: '/rep/home', icon: Home, label: 'Home' },
     { to: '/rep/search', icon: Stethoscope, label: 'Find Doctors' },
     { to: '/rep/history', icon: Calendar, label: 'Appointments' },
-    { to: '/rep/notices', icon: BellRing, label: 'Notices', badge: 3 },
+    { to: '/rep/notices', icon: BellRing, label: 'Notices' },
     { to: '/rep/profile', icon: User, label: 'Profile' },
   ];
 

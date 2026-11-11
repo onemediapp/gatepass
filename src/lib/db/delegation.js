@@ -26,6 +26,15 @@ import { getClinic, updateClinic } from './clinics';
  */
 export async function getClinicDelegationSettings(clinicId) {
   if (!clinicId) return null;
+  try {
+    const privSnap = await getDoc(doc(db, 'clinics', clinicId, 'private', 'delegation'));
+    if (privSnap.exists()) {
+      return privSnap.data();
+    }
+  } catch (err) {
+    // If private subcollection not accessible (e.g. unauthenticated kiosk or not owner), fall through
+  }
+
   const clinic = await getClinic(clinicId);
   if (!clinic) return null;
 
@@ -50,15 +59,33 @@ export async function updateClinicDelegationSettings(clinicId, delegationUpdates
   const clinic = await getClinic(clinicId);
   if (!clinic) throw new Error('Clinic not found');
 
-  const current = clinic.delegation || {};
+  const current = (await getClinicDelegationSettings(clinicId)) || {};
   const updated = {
     ...current,
     ...delegationUpdates,
     updatedAt: serverTimestamp()
   };
 
+  // Securely store credentials/PIN in private subcollection
+  try {
+    await setDoc(doc(db, 'clinics', clinicId, 'private', 'delegation'), updated, { merge: true });
+  } catch (e) {
+    console.warn('Could not write private delegation doc:', e);
+  }
+
+  // Update public clinic document without exposing raw PIN
+  const publicDelegation = {
+    enabled: updated.enabled ?? true,
+    staffName: updated.staffName || 'Clinic Reception',
+    allowApprovals: updated.allowApprovals ?? true,
+    allowRescheduling: updated.allowRescheduling ?? true,
+    allowQueueCallIn: updated.allowQueueCallIn ?? true,
+    hasCustomPin: Boolean(updated.pin && updated.pin !== '2026'),
+    updatedAt: serverTimestamp()
+  };
+
   await updateClinic(clinicId, {
-    delegation: updated
+    delegation: publicDelegation
   });
 
   return updated;

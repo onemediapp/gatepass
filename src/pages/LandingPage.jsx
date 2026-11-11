@@ -24,18 +24,19 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (!loading && user) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname;
+      if (redirectUrl && redirectUrl !== '/') {
+        navigate(redirectUrl, { replace: true });
+        return;
+      }
+
       if (user.email?.toLowerCase() === 'onemediapp@gmail.com' || isPlatformAdmin) {
         navigate('/platform-admin', { replace: true });
         return;
       }
       if (userData) {
         sessionStorage.removeItem('pendingRole');
-        const searchParams = new URLSearchParams(window.location.search);
-        const redirectUrl = searchParams.get('redirect') || location.state?.from?.pathname;
-        if (redirectUrl && redirectUrl !== '/') {
-          navigate(redirectUrl, { replace: true });
-          return;
-        }
         if (userData.role?.includes('doctor')) {
           navigate('/admin', { replace: true });
         } else if (userData.role?.includes('rep')) {

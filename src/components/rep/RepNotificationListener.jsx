@@ -57,7 +57,7 @@ export default function RepNotificationListener({ children }) {
             message,
             type,
             timestamp: new Date(),
-            doctorName: docName,
+            doctorName: docDisplayName,
             token: data.token
           };
 

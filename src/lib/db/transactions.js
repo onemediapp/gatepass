@@ -307,15 +307,6 @@ export async function declineAppointmentTransaction({ appointmentId, doctorId, d
       lastChangeBy: 'doctor'
     });
 
-    // Contact grant on decline (WhatsApp after_decision mode)
-    if (appt.repId) {
-      tx.set(doc(db, 'contactGrants', `${doctorId}_${appt.repId}`), {
-        doctorId,
-        repId: appt.repId,
-        grantedAt: serverTimestamp()
-      }, { merge: true });
-    }
-
     return appt.createdAt;
   });
 

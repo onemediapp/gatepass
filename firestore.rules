@@ -103,6 +103,14 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isAuth() && isDoctor() && request.resource.data.ownerDoctorId == uid();
       allow update, delete: if isAuth() && isDoctor() && resource.data.ownerDoctorId == uid();
+
+      // Private clinic subcollections (delegation PIN, confidential staff config)
+      match /private/{docId} {
+        allow read, write: if isAuth() && (
+          isAdmin()
+          || (isDoctor() && get(/databases/$(db)/documents/clinics/$(clinicId)).data.ownerDoctorId == uid())
+        );
+      }
     }
     match /doctorSlugs/{slug} {
       allow read: if true;
@@ -139,7 +147,7 @@ service cloud.firestore {
                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
                     ['status','lastChangeAt','lastChangeBy']))
              || request.resource.data.diff(resource.data).affectedKeys().hasOnly(
-                    ['repConfirmedAt','arrivedAt','movedSeenByRep'])
+                    ['repConfirmedAt','arrivedAt','movedSeenByRep','lastChangeAt','lastChangeBy'])
            ))
       );
       allow delete: if false;
@@ -222,38 +230,39 @@ service cloud.firestore {
     // ── Multi-Tenant Branches ─────────────────────────────
     match /branches/{branchId} {
       allow read: if true;
-      allow create, update, delete: if isAuth() && (isDoctor() || isAdmin());
+      allow create: if isAuth() && (isDoctor() || isAdmin()) && (request.resource.data.ownerDoctorId == uid() || isAdmin());
+      allow update, delete: if isAuth() && (isAdmin() || (isDoctor() && resource.data.ownerDoctorId == uid()));
     }
 
     // ── Clinic Staff & RBAC ───────────────────────────────
     match /clinicStaff/{staffId} {
-      allow read: if isAuth();
-      allow create, update, delete: if isAuth() && (isDoctor() || isAdmin());
+      allow read: if isAuth() && (isAdmin() || (isDoctor() && resource.data.ownerDoctorId == uid()));
+      allow create: if isAuth() && (isDoctor() || isAdmin()) && (request.resource.data.ownerDoctorId == uid() || isAdmin());
+      allow update, delete: if isAuth() && (isAdmin() || (isDoctor() && resource.data.ownerDoctorId == uid()));
     }
 
     // ── Location-Specific Schedules ───────────────────────
     match /doctorBranchSchedules/{id} {
       allow read: if isAuth();
-      allow create, update, delete: if isAuth() && (isDoctor() || isAdmin());
+      allow create, update, delete: if isAuth() && (isAdmin() || (isDoctor() && id.matches(uid() + '_.*')));
     }
 
     // ── Pharma Companies & Verification ───────────────────
     match /pharmaCompanies/{companyId} {
       allow read: if isAuth();
-      allow create, update: if isAuth();
-      allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     // ── Territories & Field Teams ─────────────────────────
     match /territories/{territoryId} {
       allow read: if isAuth();
-      allow create, update, delete: if isAuth();
+      allow write: if isAdmin();
     }
 
     // ── Multi-Tenant Subscriptions & Billing ──────────────
     match /platformSubscriptions/{subId} {
-      allow read: if isAuth();
-      allow write: if isAuth() && (isDoctor() || isAdmin());
+      allow read: if isAuth() && (isAdmin() || resource.data.ownerId == uid());
+      allow write: if isAdmin();
     }
   }
 }

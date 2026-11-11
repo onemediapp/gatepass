@@ -20,15 +20,18 @@ import {
   Sparkles,
   ArrowUpRight
 } from 'lucide-react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { useAuth } from '../../lib/auth';
 import { subscribeAllDoctorRequests } from '../../lib/db/doctorRequests';
+import { buildWhatsAppUrl } from '../../lib/whatsapp';
 import EdgeCard from '../../components/ui/EdgeCard';
 import MonoTag from '../../components/ui/MonoTag';
 import Skeleton from '../../components/ui/Skeleton';
 import { formatDateIST } from '../../lib/time';
 
 export default function OwnerStats() {
+  const { user, isPlatformAdmin } = useAuth();
   const [requests, setRequests] = useState([]);
   const [totalDoctors, setTotalDoctors] = useState(0);
   const [totalReps, setTotalReps] = useState(0);
@@ -44,26 +47,37 @@ export default function OwnerStats() {
       setLoading(false);
     });
 
-    // 2. Fetch platform counts (doctors, reps, appointments)
+    // 2. Fetch practice or platform counts
     async function fetchPlatformCounts() {
       try {
-        const [docsSnap, repsSnap, apptsSnap] = await Promise.all([
-          getDocs(collection(db, 'doctors')),
-          getDocs(collection(db, 'reps')),
-          getDocs(collection(db, 'appointments'))
-        ]);
-        setTotalDoctors(docsSnap.size);
-        setTotalReps(repsSnap.size);
-        setTotalAppointments(apptsSnap.size);
+        const docsSnap = await getDocs(collection(db, 'doctors')).catch(() => null);
+        if (docsSnap) setTotalDoctors(docsSnap.size);
+
+        if (isPlatformAdmin) {
+          const [repsSnap, apptsSnap] = await Promise.allSettled([
+            getDocs(collection(db, 'reps')),
+            getDocs(collection(db, 'appointments'))
+          ]);
+          if (repsSnap.status === 'fulfilled') setTotalReps(repsSnap.value.size);
+          if (apptsSnap.status === 'fulfilled') setTotalAppointments(apptsSnap.value.size);
+        } else if (user?.uid) {
+          // Doctor view: fetch doctor-scoped relations and appointments
+          const [linksSnap, myApptsSnap] = await Promise.allSettled([
+            getDocs(query(collection(db, 'doctorRepLinks'), where('doctorId', '==', user.uid))),
+            getDocs(query(collection(db, 'appointments'), where('doctorId', '==', user.uid)))
+          ]);
+          if (linksSnap.status === 'fulfilled') setTotalReps(linksSnap.value.size);
+          if (myApptsSnap.status === 'fulfilled') setTotalAppointments(myApptsSnap.value.size);
+        }
       } catch (err) {
-        console.warn('Error fetching platform aggregates:', err);
+        console.warn('Error fetching practice aggregates:', err);
       }
     }
 
     fetchPlatformCounts();
 
     return () => unsubRequests();
-  }, []);
+  }, [user?.uid, isPlatformAdmin]);
 
   // Aggregate doctorRequests by doctorName + city to rank demand
   const aggregatedRequests = useMemo(() => {
@@ -115,9 +129,8 @@ export default function OwnerStats() {
   };
 
   const handleWhatsAppInvite = (dr) => {
-    const phone = (dr.phone || '').replace(/\D/g, '');
-    const text = encodeURIComponent(`Namaste Dr. ${dr.doctorName.replace(/^Dr\.?\s*/i, '')}, medical representatives in ${dr.city} have requested your clinic on Gatepass to book structured rep visit slots. You can set your visit hours and quotas here: https://gatepass.health/doctor/register`);
-    const waUrl = phone ? `https://wa.me/91${phone}?text=${text}` : `https://wa.me/?text=${text}`;
+    const text = `Namaste Dr. ${dr.doctorName.replace(/^Dr\.?\s*/i, '')}, medical representatives in ${dr.city} have requested your clinic on Gatepass to book structured rep visit slots. You can set your visit hours and quotas here: https://gatepass.health/doctor/register`;
+    const waUrl = buildWhatsAppUrl(dr.phone, text);
     window.open(waUrl, '_blank', 'noopener,noreferrer');
   };
 

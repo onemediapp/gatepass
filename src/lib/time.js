@@ -124,8 +124,8 @@ export function parseSlotTimeToDate(slotDate, timeStr) {
   if (!slotDate || !timeStr) return new Date();
   const [year, month, day] = slotDate.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
-  const localDate = new Date(year, month - 1, day, hours, minutes, 0);
-  return fromZonedTime(localDate, TIMEZONE);
+  const isoStr = `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+  return fromZonedTime(isoStr, TIMEZONE);
 }
 
 /**

@@ -100,8 +100,8 @@ export default function DoctorHome() {
     return {
       pending: pendingCount,
       today: todayApproved.length,
-      waiting: waitingCount > 0 ? waitingCount : Math.min(2, todayApproved.length),
-      upcomingWeek: upcomingWeekCount > 0 ? upcomingWeekCount : 8
+      waiting: waitingCount,
+      upcomingWeek: upcomingWeekCount
     };
   }, [pendingRequests, todayVisits, allAppointments, todayStr]);
 
